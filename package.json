@@ -1,28 +1,26 @@
 {
-  "name": "discordbotexample",
-  "version": "1.0.0",
-  "description": "A sample bot framework for discord using DI.",
+  "name": "lovecraftbot",
+  "version": "0.0.1",
+  "description": "Un Bot Discord pour Horreur à Arkham",
+  "private": true,
   "main": "index.js",
-  "engines": {
-    "node": "10.11.0"
-  },
   "scripts": {
     "start": "ts-node src/index",
     "start:dev": "nodemon --exec \"ts-node \"-- \"src/index.ts\"",
     "test:lint": "eslint -c .eslintrc.json --ignore-pattern *.test.ts --ext .ts src",
     "test:unit": "ava-ts src/test/**.test.ts",
-    "test": "npm run test:lint && npm run test:unit"
+    "test": "yarn run test:lint && yarn run test:unit"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/seiyria/DiscordBotExample.git"
+    "url": "git+https://github.com/akaan/lovecraftbot.git"
   },
-  "author": "Kyle Kemp <kyle@seiyria.com>",
+  "author": "Akaan Qualrus <akaan.qualrus@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/seiyria/DiscordBotExample/issues"
+    "url": "https://github.com/akaan/lovecraftbot/issues"
   },
-  "homepage": "https://github.com/seiyria/DiscordBotExample#readme",
+  "homepage": "https://github.com/akaan/lovecraftbot#readme",
   "dependencies": {
     "discord.js": "11.5.1",
     "dotenv": "8.0.0",
