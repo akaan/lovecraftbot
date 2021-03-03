@@ -8,13 +8,11 @@ import { LoggerService } from './services/logger';
 import { CommandParser } from './services/command-parser';
 import { PresenceService } from './services/presence';
 import { EnvService } from './services/env';
-import { BlankService } from './services/blank';
 
 export class Bot {
   @Inject private logger: LoggerService;
   @Inject private envService: EnvService;
   @Inject private presenceService: PresenceService;
-  @Inject private blankService: BlankService;
   @Inject private commandParser: CommandParser;
 
   public async init(): Promise<void> {
@@ -30,7 +28,6 @@ export class Bot {
 
       this.envService.init(client);
       this.presenceService.init(client);
-      this.blankService.init(client);
       this.commandParser.init(client);
     });
 
