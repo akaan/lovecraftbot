@@ -28,6 +28,7 @@ export class Bot {
     const client = new Discord.Client();
     this.logger.log("Connecting to Discord ...");
     await client.login(DISCORD_TOKEN);
+    this.logger.log("Connected.");
 
     client.on("ready", () => {
       this.logger.log("Initialized bot!");
