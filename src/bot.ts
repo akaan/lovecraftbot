@@ -5,11 +5,15 @@ import { LoggerService } from "./services/logger";
 import { CommandParser } from "./services/command-parser";
 import { PresenceService } from "./services/presence";
 import { EnvService } from "./services/env";
+import { HelpService } from "./services/help";
 
 export class Bot {
   @Inject private logger: LoggerService;
+
+  @Inject private helpService: HelpService;
   @Inject private envService: EnvService;
   @Inject private presenceService: PresenceService;
+
   @Inject private commandParser: CommandParser;
 
   public async init(): Promise<void> {
@@ -26,13 +30,16 @@ export class Bot {
     client.on("ready", () => {
       this.logger.log("Initialized bot!");
 
-      [this.envService, this.presenceService, this.commandParser].map(
-        (service) => {
-          service.init(client).catch(() => {
-            this.logger.log("Problem initializing service", service);
-          });
-        }
-      );
+      [
+        this.helpService,
+        this.envService,
+        this.presenceService,
+        this.commandParser,
+      ].map((service) => {
+        service.init(client).catch(() => {
+          this.logger.log("Problem initializing service", service);
+        });
+      });
     });
 
     client.on("message", (msg) => {

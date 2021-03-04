@@ -1,14 +1,17 @@
 import * as Discord from "discord.js";
-import { OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
+import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { ICommandResult, ICommand } from "../interfaces";
 import { BaseService } from "../base/BaseService";
 
 import * as Commands from "../commands";
+import { HelpService } from "./help";
 
 @Singleton
 @OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
+  @Inject private helpService: HelpService;
+
   private executableCommands: { [key: string]: ICommand } = {};
 
   private messageCommands: ICommand[] = [];
@@ -86,6 +89,14 @@ export class CommandParser extends BaseService {
   }
 
   private registerCommand(cmdInst: ICommand) {
+    if (cmdInst.help && cmdInst.aliases) {
+      this.helpService.addHelp({
+        command: cmdInst.constructor.name,
+        aliases: cmdInst.aliases,
+        help: cmdInst.help,
+      });
+    }
+
     if (cmdInst.aliases) {
       cmdInst.aliases.forEach((alias) => {
         alias = alias.toLowerCase();

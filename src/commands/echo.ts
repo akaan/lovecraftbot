@@ -1,7 +1,7 @@
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 
 export class EchoCommand implements ICommand {
-  static help = "Echo your message right back at'cha!";
+  help = "Echo your message right back at'cha!";
 
   aliases = ["echo"];
 
