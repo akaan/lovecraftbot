@@ -6,6 +6,7 @@ import { CommandParser } from "./services/command-parser";
 import { PresenceService } from "./services/presence";
 import { EnvService } from "./services/env";
 import { HelpService } from "./services/help";
+import { EmojiService } from "./services/emoji";
 
 export class Bot {
   @Inject private logger: LoggerService;
@@ -13,6 +14,7 @@ export class Bot {
   @Inject private helpService: HelpService;
   @Inject private envService: EnvService;
   @Inject private presenceService: PresenceService;
+  @Inject private emojiService: EmojiService;
 
   @Inject private commandParser: CommandParser;
 
@@ -34,10 +36,14 @@ export class Bot {
         this.helpService,
         this.envService,
         this.presenceService,
+        this.emojiService,
         this.commandParser,
       ].map((service) => {
         service.init(client).catch(() => {
-          this.logger.log("Problem initializing service", service);
+          this.logger.log(
+            "Problem initializing service",
+            service.constructor.name
+          );
         });
       });
     });
