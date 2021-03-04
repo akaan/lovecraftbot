@@ -6,7 +6,7 @@ import { EnvService } from "../services/env";
 
 export class HelpCommand implements ICommand {
   help = "Affiche ce message !";
-  aliases = ["help"];
+  aliases = ["help", "aide"];
 
   @Inject private envService: EnvService;
   @Inject private helpService: HelpService;
