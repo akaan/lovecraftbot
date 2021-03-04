@@ -1,16 +1,14 @@
+import * as Discord from "discord.js";
+import { OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
-import * as Discord from 'discord.js';
-import { AutoWired, Singleton } from 'typescript-ioc';
+import { ICommandResult, ICommand } from "../interfaces";
+import { BaseService } from "../base/BaseService";
 
-import { ICommandResult, ICommand } from '../interfaces';
-import { BaseService } from '../base/BaseService';
-
-import * as Commands from '../commands';
+import * as Commands from "../commands";
 
 @Singleton
-@AutoWired
+@OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
-
   private executableCommands: { [key: string]: ICommand } = {};
 
   private messageCommands: ICommand[] = [];
@@ -18,7 +16,7 @@ export class CommandParser extends BaseService {
   private emojiRemoveCommands: ICommand[] = [];
 
   public async init(client: Discord.Client): Promise<void> {
-    super.init(client);
+    await super.init(client);
 
     this.loadCommands(Commands);
   }
@@ -26,36 +24,55 @@ export class CommandParser extends BaseService {
   // used to parse strings. any command registering this will be listening to all incoming messages.
   // this function returns nothing because it can operate on multiple values
   handleMessage(message: Discord.Message): void {
-    this.messageCommands.forEach((cmd) => cmd.onMessage(message));
+    this.messageCommands.forEach((cmd) => {
+      cmd.onMessage(message);
+      return;
+    });
   }
 
   // any command registering this will fire their callback when a reaction is added to a message
   // this function returns nothing because it can operate on multiple values
-  handleEmojiAdd(reaction: Discord.MessageReaction, user: Discord.User): void {
-    this.emojiAddCommands.forEach((cmd) => cmd.onEmojiAdd(reaction, user));
+  handleEmojiAdd(
+    reaction: Discord.MessageReaction,
+    user: Discord.User | Discord.PartialUser
+  ): void {
+    this.emojiAddCommands.forEach((cmd) => {
+      cmd.onEmojiAdd(reaction, user);
+      return;
+    });
   }
 
   // any command registering this will fire their callback when a reaction is removed from a message
   // this function returns nothing because it can operate on multiple values
-  handleEmojiRemove(reaction: Discord.MessageReaction, user: Discord.User): void {
-    this.emojiRemoveCommands.forEach((cmd) => cmd.onEmojiRemove(reaction, user));
+  handleEmojiRemove(
+    reaction: Discord.MessageReaction,
+    user: Discord.User | Discord.PartialUser
+  ): void {
+    this.emojiRemoveCommands.forEach((cmd) => {
+      cmd.onEmojiRemove(reaction, user);
+      return;
+    });
   }
 
   // used to handle commands. each command can register a set of aliases that fire off a callback.
   // no alias overlapping is allowed
   async handleCommand(message: Discord.Message): Promise<ICommandResult> {
-    const cmd = message.content.split(' ')[0].substring(1);
-    const args = message.content.substring(message.content.indexOf(cmd) + cmd.length + 1);
+    const cmd = message.content.split(" ")[0].substring(1);
+    const args = message.content.substring(
+      message.content.indexOf(cmd) + cmd.length + 1
+    );
 
     const cmdInst = this.executableCommands[cmd.toLowerCase()];
-    if (!cmdInst) { return; }
+    if (!cmdInst) {
+      return;
+    }
 
     return cmdInst.execute({
       debug: false,
       cmd,
       args,
       message,
-      user: message.author
+      user: message.author,
     });
   }
 
@@ -76,11 +93,19 @@ export class CommandParser extends BaseService {
         if (this.executableCommands[alias]) {
           throw new Error(
             `Cannot re-register alias "${alias}".
-            Trying to register ${JSON.stringify(cmdInst)} but already registered ${JSON.stringify(this.executableCommands[alias])}.`
+            Trying to register ${JSON.stringify(
+              cmdInst
+            )} but already registered ${JSON.stringify(
+              this.executableCommands[alias]
+            )}.`
           );
         }
 
-        if (!cmdInst.execute) { throw new Error(`Command "${alias}" does not have an execute function.`); }
+        if (!cmdInst.execute) {
+          throw new Error(
+            `Command "${alias}" does not have an execute function.`
+          );
+        }
         this.executableCommands[alias] = cmdInst;
       });
     }

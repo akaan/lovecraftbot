@@ -1,8 +1,8 @@
-
-import * as Discord from 'discord.js';
+import * as Discord from "discord.js";
 
 export interface ICommandResult {
   resultString?: string;
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   result?: any;
 }
 
@@ -25,8 +25,14 @@ export interface ICommand {
   onMessage?(message: Discord.Message);
 
   // run when an emoji is added to a message, if the function is added to the command
-  onEmojiAdd?(reaction: Discord.MessageReaction, user: Discord.User);
+  onEmojiAdd?(
+    reaction: Discord.MessageReaction,
+    user: Discord.User | Discord.PartialUser
+  );
 
   // run when an emoji is removed from a message, if the function is added to the command
-  onEmojiRemove?(reaction: Discord.MessageReaction, user: Discord.User);
+  onEmojiRemove?(
+    reaction: Discord.MessageReaction,
+    user: Discord.User | Discord.PartialUser
+  );
 }

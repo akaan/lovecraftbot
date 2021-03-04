@@ -1,9 +1,9 @@
 
-import { AutoWired, Singleton } from 'typescript-ioc';
+import { OnlyInstantiableByContainer, Singleton } from 'typescript-ioc';
 import { BaseService } from '../base/BaseService';
 
 @Singleton
-@AutoWired
+@OnlyInstantiableByContainer
 export class EnvService extends BaseService {
 
   public get discordToken(): string {
