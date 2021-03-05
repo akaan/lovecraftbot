@@ -1,7 +1,10 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
+import * as Discord from "discord.js";
+import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
+import { ResourcesService } from "./resources";
+import { LoggerService } from "./logger";
 
 interface CardData {
   title: string;
@@ -9,9 +12,49 @@ interface CardData {
   id: string;
 }
 
+interface ArkhamDBCard {
+  name: string;
+  real_name: string;
+  code: string;
+  faction: string;
+  xp: number;
+  double_sided: boolean;
+  imagesrc: string;
+  backimagesrc: string;
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
+  @Inject logger: LoggerService;
+  @Inject resources: ResourcesService;
+  private frenchCards: ArkhamDBCard[] = [];
+
+  public async init(client: Discord.Client): Promise<void> {
+    await super.init(client);
+
+    await this.loadCards();
+  }
+
+  public getCardsByNameOrRealName(search: string): ArkhamDBCard[] {
+    return this.frenchCards.filter(
+      (card) =>
+        card.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+        card.real_name.toLowerCase().includes(search.trim().toLowerCase())
+    );
+  }
+
+  public getCardByCode(code: string): ArkhamDBCard | undefined {
+    return this.frenchCards.find((c) => c.code === code);
+  }
+
+  public getFrenchCardImage(code: string): Promise<string | undefined> {
+    return axios
+      .head<string>(`http://arkhamdb.fr.cr/IMAGES/CARTES/AH-${code}.jpg`)
+      .then((response) => response.config.url)
+      .catch(() => undefined as string | undefined);
+  }
+
   public getCardImageLink(cardId: string): Promise<string | undefined> {
     const possibleUrls = [
       `http://arkhamdb.fr.cr/IMAGES/CARTES/AH-${cardId}.jpg`,
@@ -62,5 +105,16 @@ export class CardService extends BaseService {
         }
       });
     }, Promise.resolve(undefined as string | undefined));
+  }
+
+  private async loadCards() {
+    const rawData = await this.resources.readResource("cards.fr.json");
+    if (rawData) {
+      try {
+        this.frenchCards = JSON.parse(rawData) as ArkhamDBCard[];
+      } catch (err) {
+        this.logger.error(err);
+      }
+    }
   }
 }

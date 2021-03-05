@@ -7,6 +7,7 @@ import { PresenceService } from "./services/presence";
 import { EnvService } from "./services/env";
 import { HelpService } from "./services/help";
 import { EmojiService } from "./services/emoji";
+import { CardService } from "./services/card";
 
 export class Bot {
   @Inject private logger: LoggerService;
@@ -15,6 +16,7 @@ export class Bot {
   @Inject private envService: EnvService;
   @Inject private presenceService: PresenceService;
   @Inject private emojiService: EmojiService;
+  @Inject private cardService: CardService;
 
   @Inject private commandParser: CommandParser;
 
@@ -39,6 +41,7 @@ export class Bot {
         this.presenceService,
         this.emojiService,
         this.commandParser,
+        this.cardService,
       ].map((service) => {
         service.init(client).catch(() => {
           this.logger.log(

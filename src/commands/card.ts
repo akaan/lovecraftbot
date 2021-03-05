@@ -9,99 +9,92 @@ export class CardCommand implements ICommand {
   aliases = ["!", "c", "card", "carte"];
 
   @Inject private cardService: CardService;
-  private CARD_ID_REGEX = /\d{5}$/;
+  private CARD_CODE_REGEX = /\d{5}$/;
   private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
-
-  private async sendSingleCardImageLink(
-    message: Discord.Message,
-    cardId: string
-  ): Promise<ICommandResult> {
-    const imageUrl = await this.cardService.getCardImageLink(cardId);
-    if (imageUrl) {
-      await message.reply(imageUrl);
-      return {
-        resultString: `CardCommand: image envoyée.`,
-      };
-    } else {
-      await message.reply(`Je n'ai pas trouvé d'image pour la carte ${cardId}`);
-      return {
-        resultString: `CardCommand: image non trouvée pour l'ID ${cardId}`,
-      };
-    }
-  }
-
-  private async sendCardImageLinks(
-    message: Discord.Message,
-    cardIds: string[]
-  ): Promise<ICommandResult> {
-    const maybeLinks = await Promise.all(
-      cardIds.map((id) => this.cardService.getCardImageLink(id))
-    );
-    const links = maybeLinks.filter((l) => l !== undefined);
-    if (links.length > 0) {
-      await Promise.all(links.map((l) => message.reply(l)));
-      return { resultString: `CardCommand: images envoyées` };
-    } else {
-      await message.reply(`je n'ai trouvé aucune image pour ces cartes.`);
-      return {
-        resultString: `CardCommand: aucune image trouvée pour les ID ${cardIds.join(
-          ", "
-        )}`,
-      };
-    }
-  }
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;
 
-    const maybeCardId = this.CARD_ID_REGEX.exec(args);
-    if (maybeCardId) {
-      // Recherche par ID de carte
-      return this.sendSingleCardImageLink(message, maybeCardId[0]);
+    const maybeCardCode = this.CARD_CODE_REGEX.exec(args);
+    if (maybeCardCode) {
+      // Recherche par code de carte
+      await this.sendCardWithCode(message, maybeCardCode[0]);
+      return {
+        resultString: `[CardCommand] Par code ${maybeCardCode[0]} : image envoyée.`,
+      };
     }
 
     // Recherche par titre de carte
     const [, searchString, maybeXpAsString] = this.CARD_AND_XP_REGEX.exec(args);
-    const cardsForTitle = await this.cardService.getCardsForTitle(
-      searchString.trim()
-    );
+    const foundCards = this.cardService
+      .getCardsByNameOrRealName(searchString.trim())
+      .filter((c) => c.faction !== "mythos");
 
-    if (cardsForTitle.length === 0) {
+    if (foundCards.length === 0) {
       await message.reply("désolé, le mystère de cette carte reste entier.");
       return {
-        resultString: `CardCommand: Aucune carte correspondant à "${searchString}"`,
+        resultString: `[CardCommand] Aucune carte correspondant à la recherche "${searchString.trim()}"`,
       };
     }
 
     if (maybeXpAsString && maybeXpAsString !== "0") {
       // La première carte avec le niveau d'XP précisé
-      const maybeCardWithGivenXp = cardsForTitle.find(
+      const maybeCardWithGivenXp = foundCards.find(
         (c) => c.xp === parseInt(maybeXpAsString, 10)
       );
       if (maybeCardWithGivenXp) {
-        return this.sendSingleCardImageLink(message, maybeCardWithGivenXp.id);
+        await this.sendCardWithCode(message, maybeCardWithGivenXp.code);
+        return {
+          resultString: `[CardCommand] Par recherche "${searchString.trim()}" et XP = "${maybeXpAsString}": image envoyée.`,
+        };
       } else {
         await message.reply(
           `je n'ai pas trouvé de carte de niveau ${maybeXpAsString} correspondant.`
         );
         return {
-          resultString: `CardCommand: Aucune carte de niveau ${maybeXpAsString} correspondant à "${searchString}"`,
+          resultString: `[CardCommand] Aucune carte d'XP ${maybeXpAsString} correspondant à "${searchString}"`,
         };
       }
     }
 
     if (maybeXpAsString && maybeXpAsString === "0") {
       // Tous les niveaux de la première carte trouvée
-      const allCards = cardsForTitle.filter(
-        (c) => c.title === cardsForTitle[0].title
+      const allCards = foundCards.filter((c) => c.name === foundCards[0].name);
+      await Promise.all(
+        allCards.map((c) => this.sendCardWithCode(message, c.code))
       );
-      return this.sendCardImageLinks(
-        message,
-        allCards.map((c) => c.id)
-      );
+      return {
+        resultString: `[CardCommand] Par recherche "${searchString.trim()}", tout niveau d'XP : images envoyées.`,
+      };
     }
 
     // La première des cartes trouvées pour ce titre
-    return this.sendSingleCardImageLink(message, cardsForTitle[0].id);
+    if (await this.sendCardWithCode(message, foundCards[0].code)) {
+      return {
+        resultString: `[CardCommand] Par recherche "${searchString.trim()}" : image envoyée.`,
+      };
+    }
+
+    await message.reply("désolé, le mystère de cette carte reste entier.");
+    return {
+      resultString: `[CardCommand] Aucune carte correspondant à "${args}"`,
+    };
+  }
+
+  private async sendCardWithCode(
+    message: Discord.Message,
+    code: string
+  ): Promise<boolean> {
+    const maybeCardWithCode = this.cardService.getCardByCode(code);
+    if (maybeCardWithCode) {
+      const maybeFrenchCardImageLink = await this.cardService.getFrenchCardImage(
+        maybeCardWithCode.code
+      );
+      await message.reply(
+        maybeFrenchCardImageLink || maybeCardWithCode.imagesrc
+      );
+      return true;
+    }
+    return false;
   }
 }
