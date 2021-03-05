@@ -1,16 +1,19 @@
 import * as Discord from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
-import { ICommandResult, ICommand } from "../interfaces";
+import { ICommandResult, ICommand, CommandConstructor } from "../interfaces";
 import { BaseService } from "../base/BaseService";
 
 import * as Commands from "../commands";
 import { HelpService } from "./help";
 
+type CommandsDictionary = { [key: string]: CommandConstructor };
+const AvailableCommands = (Commands as unknown) as CommandsDictionary;
+
 @Singleton
 @OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
-  @Inject private helpService: HelpService;
+  @Inject private helpService?: HelpService;
 
   private executableCommands: { [key: string]: ICommand } = {};
 
@@ -21,14 +24,14 @@ export class CommandParser extends BaseService {
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
 
-    this.loadCommands(Commands);
+    this.loadCommands(AvailableCommands);
   }
 
   // used to parse strings. any command registering this will be listening to all incoming messages.
   // this function returns nothing because it can operate on multiple values
   handleMessage(message: Discord.Message): void {
     this.messageCommands.forEach((cmd) => {
-      cmd.onMessage(message);
+      if (cmd.onMessage) cmd.onMessage(message);
       return;
     });
   }
@@ -40,7 +43,7 @@ export class CommandParser extends BaseService {
     user: Discord.User | Discord.PartialUser
   ): void {
     this.emojiAddCommands.forEach((cmd) => {
-      cmd.onEmojiAdd(reaction, user);
+      if (cmd.onEmojiAdd) cmd.onEmojiAdd(reaction, user);
       return;
     });
   }
@@ -52,7 +55,7 @@ export class CommandParser extends BaseService {
     user: Discord.User | Discord.PartialUser
   ): void {
     this.emojiRemoveCommands.forEach((cmd) => {
-      cmd.onEmojiRemove(reaction, user);
+      if (cmd.onEmojiRemove) cmd.onEmojiRemove(reaction, user);
       return;
     });
   }
@@ -66,8 +69,8 @@ export class CommandParser extends BaseService {
     );
 
     const cmdInst = this.executableCommands[cmd.toLowerCase()];
-    if (!cmdInst) {
-      return;
+    if (!cmdInst || !cmdInst.execute) {
+      return { resultString: `Pas de commande pour ${cmd}` };
     }
 
     return cmdInst.execute({
@@ -79,17 +82,16 @@ export class CommandParser extends BaseService {
     });
   }
 
-  private loadCommands(commands): void {
-    Object.keys(commands).forEach((cmdName) => {
+  private loadCommands(commands: CommandsDictionary): void {
+    Object.values(commands).forEach((cmdCtor) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      const cmdInst: ICommand = new Commands[cmdName]() as ICommand;
-
+      const cmdInst: ICommand = new cmdCtor();
       this.registerCommand(cmdInst);
     });
   }
 
   private registerCommand(cmdInst: ICommand) {
-    if (cmdInst.help && cmdInst.aliases) {
+    if (this.helpService && cmdInst.help && cmdInst.aliases) {
       this.helpService.addHelp({
         command: cmdInst.constructor.name,
         aliases: cmdInst.aliases,

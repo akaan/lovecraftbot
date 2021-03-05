@@ -4,13 +4,16 @@ import { Inject } from "typescript-ioc";
 import { EmojiService } from "../services/emoji";
 
 export class HasturCommand implements ICommand {
-  @Inject private emojiService: EmojiService;
-
+  aliases = undefined;
   help = "Il ne faut pas prononcer son nom";
 
-  aliases = null;
+  @Inject private emojiService?: EmojiService;
 
   async onMessage(message: Discord.Message): Promise<void> {
+    if (!this.emojiService) {
+      return;
+    }
+
     if (/hastur/i.test(message.content)) {
       const hastur = this.emojiService.getEmoji("yellow");
       const emoji = hastur || "🐙";

@@ -9,11 +9,11 @@ const readFile = util.promisify(fs.readFile);
 @Singleton
 @OnlyInstantiableByContainer
 export class ResourcesService extends BaseService {
-  @Inject logger: LoggerService;
+  @Inject logger?: LoggerService;
 
   public readResource(filename: string): Promise<string | undefined> {
     return readFile(`./data/${filename}`, "utf-8").catch((err) => {
-      this.logger.error(err);
+      if (this.logger) this.logger.error(err);
       return undefined as string | undefined;
     });
   }

@@ -24,6 +24,10 @@ export class EmojiService extends BaseService {
   }
 
   private loadEmojis(): void {
+    if (!this.client) {
+      return;
+    }
+
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-explicit-any */
     const emojiCollection = this.client.emojis.cache as any;
 

@@ -1,14 +1,12 @@
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 
 export class EchoCommand implements ICommand {
-  help = "Echo your message right back at'cha!";
-
   aliases = ["echo"];
+  help = "Te renvoie ton propre message !";
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;
     await message.reply(args);
-
-    return { resultString: args };
+    return { resultString: `[EchoCommand] echo "${args}""` };
   }
 }

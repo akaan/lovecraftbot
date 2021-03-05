@@ -5,14 +5,18 @@ import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { CardService } from "../services/card";
 
 export class CardCommand implements ICommand {
-  help = "Affiche la carte correspondant au numéro";
   aliases = ["!", "c", "card", "carte"];
+  help = "Affiche la carte correspondant au numéro";
 
-  @Inject private cardService: CardService;
+  @Inject private cardService?: CardService;
   private CARD_CODE_REGEX = /\d{5}$/;
   private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
+    if (!this.cardService) {
+      return { resultString: `[CardCommand] CardService asbent` };
+    }
+
     const { message, args } = cmdArgs;
 
     const maybeCardCode = this.CARD_CODE_REGEX.exec(args);
@@ -24,8 +28,16 @@ export class CardCommand implements ICommand {
       };
     }
 
+    const matches = this.CARD_AND_XP_REGEX.exec(args);
+    if (!matches) {
+      await message.reply("je n'ai pas compris la demande.");
+      return {
+        resultString: `[CardCommand] Impossible d'interpréter "${args}"`,
+      };
+    }
+
     // Recherche par titre de carte
-    const [, searchString, maybeXpAsString] = this.CARD_AND_XP_REGEX.exec(args);
+    const [, searchString, maybeXpAsString] = matches;
     const foundCards = this.cardService
       .getCardsByNameOrRealName(searchString.trim())
       .filter((c) => c.faction !== "mythos");
@@ -85,6 +97,10 @@ export class CardCommand implements ICommand {
     message: Discord.Message,
     code: string
   ): Promise<boolean> {
+    if (!this.cardService) {
+      return false;
+    }
+
     const maybeCardWithCode = this.cardService.getCardByCode(code);
     if (maybeCardWithCode) {
       const maybeFrenchCardImageLink = await this.cardService.getFrenchCardImage(

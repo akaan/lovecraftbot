@@ -10,17 +10,21 @@ import { EmojiService } from "./services/emoji";
 import { CardService } from "./services/card";
 
 export class Bot {
-  @Inject private logger: LoggerService;
+  @Inject private logger?: LoggerService;
 
-  @Inject private helpService: HelpService;
-  @Inject private envService: EnvService;
-  @Inject private presenceService: PresenceService;
-  @Inject private emojiService: EmojiService;
-  @Inject private cardService: CardService;
+  @Inject private helpService?: HelpService;
+  @Inject private envService?: EnvService;
+  @Inject private presenceService?: PresenceService;
+  @Inject private emojiService?: EmojiService;
+  @Inject private cardService?: CardService;
 
-  @Inject private commandParser: CommandParser;
+  @Inject private commandParser?: CommandParser;
 
   public async init(): Promise<void> {
+    if (!this.envService) {
+      throw new Error("No EnvService");
+    }
+
     const DISCORD_TOKEN = this.envService.discordToken;
     const COMMAND_PREFIX = this.envService.commandPrefix;
     if (!DISCORD_TOKEN) {
@@ -28,12 +32,12 @@ export class Bot {
     }
 
     const client = new Discord.Client();
-    this.logger.log("Connecting to Discord ...");
+    if (this.logger) this.logger.log("Connecting to Discord ...");
     await client.login(DISCORD_TOKEN);
-    this.logger.log("Connected.");
+    if (this.logger) this.logger.log("Connected.");
 
     client.on("ready", () => {
-      this.logger.log("Initialized bot!");
+      if (this.logger) this.logger.log("Initialized bot!");
 
       [
         this.helpService,
@@ -43,22 +47,30 @@ export class Bot {
         this.commandParser,
         this.cardService,
       ].map((service) => {
-        service.init(client).catch(() => {
-          this.logger.log(
-            "Problem initializing service",
-            service.constructor.name
-          );
-        });
+        if (service)
+          service.init(client).catch(() => {
+            if (this.logger)
+              this.logger.log(
+                "Problem initializing service",
+                service.constructor.name
+              );
+          });
       });
     });
 
     client.on("message", (msg) => {
-      if (msg.author.bot || msg.author.id === client.user.id) {
+      if (!this.commandParser) {
+        return;
+      }
+
+      if (msg.author.bot || (client.user && msg.author.id === client.user.id)) {
         return;
       }
 
       if (
+        this.envService &&
         this.envService.testServerId &&
+        msg.guild &&
         this.envService.testServerId !== msg.guild.id
       ) {
         return;
@@ -69,15 +81,18 @@ export class Bot {
       if (content.startsWith(COMMAND_PREFIX)) {
         this.commandParser
           .handleCommand(msg)
-          .then((result) => this.logger.logCommandResult(result))
-          .catch((err) => this.logger.log("Error handling command", err));
+          .then((result) => this.logger && this.logger.logCommandResult(result))
+          .catch(
+            (err) =>
+              this.logger && this.logger.log("Error handling command", err)
+          );
       } else {
         this.commandParser.handleMessage(msg);
       }
     });
 
     client.on("messageReactionAdd", (reaction, user) => {
-      if (user.bot) {
+      if (!this.commandParser || user.bot) {
         return;
       }
 
@@ -85,7 +100,7 @@ export class Bot {
     });
 
     client.on("messageReactionRemove", (reaction, user) => {
-      if (user.bot) {
+      if (!this.commandParser || user.bot) {
         return;
       }
 

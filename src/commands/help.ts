@@ -5,25 +5,35 @@ import { HelpService } from "../services/help";
 import { EnvService } from "../services/env";
 
 export class HelpCommand implements ICommand {
-  help = "Affiche ce message !";
   aliases = ["help", "aide"];
+  help = "Affiche ce message !";
 
-  @Inject private envService: EnvService;
-  @Inject private helpService: HelpService;
+  @Inject private envService?: EnvService;
+  @Inject private helpService?: HelpService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
+    if (!this.envService) {
+      return { resultString: `[HelpCommand] EnvService absent` };
+    }
+
+    if (!this.helpService) {
+      return { resultString: `[HelpCommand] HelpService absent` };
+    }
+
+    const commandPrefix = this.envService.commandPrefix;
+
     const { message } = cmdArgs;
     await message.author.send(`
 **__Toutes les commandes__**
 ${this.helpService.allHelp
   .map(({ aliases, help }) => {
     return `__${aliases
-      .map((x) => `\`${this.envService.commandPrefix}${x}\``)
+      .map((x) => `\`${commandPrefix}${x}\``)
       .join(", ")}__\n${help}\n`;
   })
   .join("\n")}
 `);
 
-    return { resultString: "helped" };
+    return { resultString: "[HelpCommand] Aide envoyée" };
   }
 }
