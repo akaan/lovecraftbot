@@ -1,23 +1,22 @@
+# LovecraftBot
 
-# Discord Bot Example
+Un bot Discord pour Horreur à Arkham : le Jeu de Cartes.
 
-A sample bot framework for Discord using DI.
+## Développement
 
-## Developing
+- `npm run start:dev` pour démarrer en mode développement
+- `npm run start` pour démarrer en mode production
 
-* `npm run start:dev` to run in dev mode (with livereload)
-* `npm run start` to run in prod mode
+## Variables d'environnement
 
-## Environment Variables
+Mettez les variables suivantes dans un fichier [`.env`](https://www.npmjs.com/package/dotenv).
 
-Put these values in a [`.env`](https://www.npmjs.com/package/dotenv) file or in the projects environment variables.
+### Obligatoire
 
-### Required
+- `DISCORD_TOKEN` - Le token Discord pour le bot.
 
-* `DISCORD_TOKEN` - the Discord token for the bot.
+### Facultatif
 
-### Optional
-
-* `COMMAND_PREFIX` - the command prefix for the bot. Defaults to `!`.
-* `IGNORE_PRESENCE` - do not set presence values.
-* `TEST_SERVER` - set this to a Discord Guild ID
+- `COMMAND_PREFIX` - Le préfixe de commande du bot. Par défaut à `!`.
+- `IGNORE_PRESENCE` - Ne pas pas positionner de texte de présence.
+- `TEST_SERVER` - Mettre un ID de Guile Discord.
