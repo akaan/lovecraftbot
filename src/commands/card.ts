@@ -103,14 +103,30 @@ export class CardCommand implements ICommand {
 
     const maybeCardWithCode = this.cardService.getCardByCode(code);
     if (maybeCardWithCode) {
+      const cardWithCode = maybeCardWithCode;
       const maybeFrenchCardImageLink = await this.cardService.getFrenchCardImage(
-        maybeCardWithCode.code
+        cardWithCode.code
       );
-      await message.reply(
-        maybeFrenchCardImageLink || maybeCardWithCode.imagesrc
-      );
-      return true;
+
+      if (maybeFrenchCardImageLink) {
+        const frenchCardImageLink = maybeFrenchCardImageLink;
+        await message.reply(frenchCardImageLink);
+        return true;
+      }
+
+      if (cardWithCode.imagesrc) {
+        const maybeCardImageLink = await this.cardService.getCardImage(
+          cardWithCode
+        );
+        if (maybeCardImageLink) {
+          const cardImageLink = maybeCardImageLink;
+          await message.reply(cardImageLink);
+          return true;
+        }
+      }
     }
+
+    await message.reply("Pas d'image disponible pour cette carte.");
     return false;
   }
 }

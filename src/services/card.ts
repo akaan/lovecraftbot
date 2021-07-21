@@ -49,6 +49,13 @@ export class CardService extends BaseService {
       .catch(() => undefined as string | undefined);
   }
 
+  public getCardImage(card: ArkhamDBCard): Promise<string | undefined> {
+    return axios
+      .head<string>(`https://arkhamdb.com${card.imagesrc}`)
+      .then((response) => response.config.url)
+      .catch(() => undefined as string | undefined);
+  }
+
   public async downloadLatestCardDb(): Promise<void> {
     if (!this.resources) {
       return;
