@@ -19,6 +19,7 @@ interface ArkhamDBCard {
 @Singleton
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
+  public name = "CardService";
   private frenchCards: ArkhamDBCard[] = [];
 
   @Inject logger?: LoggerService;

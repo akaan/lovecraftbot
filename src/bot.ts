@@ -33,11 +33,9 @@ export class Bot {
 
     const client = new Discord.Client();
     if (this.logger) this.logger.log("Connecting to Discord ...");
-    await client.login(DISCORD_TOKEN);
-    if (this.logger) this.logger.log("Connected.");
 
     client.on("ready", () => {
-      if (this.logger) this.logger.log("Initialized bot!");
+      if (this.logger) this.logger.log("Connected.");
 
       [
         this.helpService,
@@ -48,13 +46,16 @@ export class Bot {
         this.cardService,
       ].map((service) => {
         if (service)
-          service.init(client).catch(() => {
-            if (this.logger)
-              this.logger.log(
-                "Problem initializing service",
-                service.constructor.name
-              );
-          });
+          service
+            .init(client)
+            .then(() => {
+              if (this.logger)
+                this.logger.log("Initialized service", service.name);
+            })
+            .catch(() => {
+              if (this.logger)
+                this.logger.log("Problem initializing service", service.name);
+            });
       });
     });
 
@@ -107,6 +108,7 @@ export class Bot {
       this.commandParser.handleEmojiRemove(reaction, user);
     });
 
+    await client.login(DISCORD_TOKEN);
     return;
   }
 }

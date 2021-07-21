@@ -9,6 +9,8 @@ import { ICommandResult } from "../interfaces";
 @Singleton
 @OnlyInstantiableByContainer
 export class LoggerService extends BaseService {
+  public name = "LoggerService";
+
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
 

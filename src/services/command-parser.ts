@@ -13,6 +13,7 @@ const AvailableCommands = (Commands as unknown) as CommandsDictionary;
 @Singleton
 @OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
+  public name = "CommandParser";
   @Inject private helpService?: HelpService;
 
   private executableCommands: { [key: string]: ICommand } = {};

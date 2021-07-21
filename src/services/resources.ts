@@ -10,6 +10,8 @@ const writeFile = util.promisify(fs.writeFile);
 @Singleton
 @OnlyInstantiableByContainer
 export class ResourcesService extends BaseService {
+  public name = "ResourcesService";
+
   @Inject logger?: LoggerService;
 
   public readResource(filename: string): Promise<string | undefined> {
