@@ -4,8 +4,6 @@ import { BaseService } from "../base/BaseService";
 @Singleton
 @OnlyInstantiableByContainer
 export class EnvService extends BaseService {
-  public name = "EnvService";
-
   public get discordToken(): string | undefined {
     return process.env.DISCORD_TOKEN;
   }

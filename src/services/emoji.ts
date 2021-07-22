@@ -6,7 +6,6 @@ import { BaseService } from "../base/BaseService";
 @Singleton
 @OnlyInstantiableByContainer
 export class EmojiService extends BaseService {
-  public name = "EmojiService";
   private emojiHash: { [key: string]: string } = {};
   private emojiInstanceHash: { [key: string]: Discord.Emoji } = {};
 

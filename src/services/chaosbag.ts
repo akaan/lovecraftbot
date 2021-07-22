@@ -6,7 +6,6 @@ import { EmojiService } from "./emoji";
 @Singleton
 @OnlyInstantiableByContainer
 export class ChaosBagService extends BaseService {
-  public name = "ChaosBagService";
   @Inject randomService?: RandomService;
   @Inject emojiService?: EmojiService;
 

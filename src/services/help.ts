@@ -10,8 +10,6 @@ interface HelpText {
 @Singleton
 @OnlyInstantiableByContainer
 export class HelpService extends BaseService {
-  public name = "HelpService";
-
   public get allHelp(): HelpText[] {
     return this.helpTexts;
   }

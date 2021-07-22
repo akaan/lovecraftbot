@@ -1,6 +1,8 @@
 import * as Discord from "discord.js";
 import { Inject } from "typescript-ioc";
 
+import { nameOfConstructor } from "./ClassUtils";
+
 import { LoggerService } from "./services/logger";
 import { CommandParser } from "./services/command-parser";
 import { PresenceService } from "./services/presence";
@@ -50,11 +52,17 @@ export class Bot {
             .init(client)
             .then(() => {
               if (this.logger)
-                this.logger.log("Initialized service", service.name);
+                this.logger.log(
+                  "Initialized service",
+                  nameOfConstructor(service)
+                );
             })
             .catch(() => {
               if (this.logger)
-                this.logger.log("Problem initializing service", service.name);
+                this.logger.log(
+                  "Problem initializing service",
+                  nameOfConstructor(service)
+                );
             });
       });
     });
