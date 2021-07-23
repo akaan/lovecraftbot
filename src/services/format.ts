@@ -36,7 +36,25 @@ export class FormatService extends BaseService {
   private turndownService = new TurndownService();
 
   public format(text: string): string {
-    return this.turndownService.turndown(this.formatTextForEmojis(text));
+    const withTraits = this.formatTextForTraits(text);
+    const withEmoji = this.formatTextForEmojis(withTraits);
+    return this.turndownService.turndown(withEmoji);
+  }
+
+  private formatTextForTraits(text: string): string {
+    const matches = text.match(/\[\[[^\]]+\]\]/g);
+
+    if (!matches || !matches[0]) {
+      return text;
+    }
+
+    matches.forEach((match) => {
+      const trait = match.substring(2, match.length - 2);
+      console.log(trait);
+      text = text.replace(match, `<b><i>${trait}</i></b>`);
+    });
+
+    return text;
   }
 
   private formatTextForEmojis(text: string): string {
