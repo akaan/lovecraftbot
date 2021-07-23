@@ -1,6 +1,6 @@
 .env
 .nvmrc
 node_modules/
-data/*
+data/cards.fr.json
 test.ts
 temp/*
