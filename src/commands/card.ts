@@ -2,7 +2,11 @@ import * as Discord from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { CardService } from "../services/card";
+import { ArkhamDBCard, CardService } from "../services/card";
+
+const ERROR_NO_CARD_SERVICE = {
+  resultString: `[CardCommand] CardService asbent`,
+};
 
 export class CardCommand implements ICommand {
   aliases = ["!", "c", "card", "carte"];
@@ -14,7 +18,7 @@ export class CardCommand implements ICommand {
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     if (!this.cardService) {
-      return { resultString: `[CardCommand] CardService asbent` };
+      return ERROR_NO_CARD_SERVICE;
     }
 
     const { message, args } = cmdArgs;
@@ -22,10 +26,8 @@ export class CardCommand implements ICommand {
     const maybeCardCode = this.CARD_CODE_REGEX.exec(args);
     if (maybeCardCode) {
       // Recherche par code de carte
-      await this.sendCardWithCode(message, maybeCardCode[0]);
-      return {
-        resultString: `[CardCommand] Par code ${maybeCardCode[0]} : image envoyée.`,
-      };
+      const cardCode = maybeCardCode[0];
+      return this.sendCardWithCode(message, cardCode);
     }
 
     const matches = this.CARD_AND_XP_REGEX.exec(args);
@@ -38,9 +40,8 @@ export class CardCommand implements ICommand {
 
     // Recherche par titre de carte
     const [, searchString, maybeXpAsString] = matches;
-    const foundCards = this.cardService
-      .getCards(searchString.trim())
-      .filter((c) => c.faction !== "mythos");
+    const foundCards = this.cardService.getCards(searchString.trim());
+    //.filter((c) => c.faction_code !== "mythos");
 
     if (foundCards.length === 0) {
       await message.reply("désolé, le mystère de cette carte reste entier.");
@@ -55,10 +56,7 @@ export class CardCommand implements ICommand {
         (c) => c.xp === parseInt(maybeXpAsString, 10)
       );
       if (maybeCardWithGivenXp) {
-        await this.sendCardWithCode(message, maybeCardWithGivenXp.code);
-        return {
-          resultString: `[CardCommand] Par recherche "${searchString.trim()}" et XP = "${maybeXpAsString}": image envoyée.`,
-        };
+        return this.sendCards(message, [maybeCardWithGivenXp]);
       } else {
         await message.reply(
           `je n'ai pas trouvé de carte de niveau ${maybeXpAsString} correspondant.`
@@ -72,61 +70,47 @@ export class CardCommand implements ICommand {
     if (maybeXpAsString && maybeXpAsString === "0") {
       // Tous les niveaux de la première carte trouvée
       const allCards = foundCards.filter((c) => c.name === foundCards[0].name);
-      await Promise.all(
-        allCards.map((c) => this.sendCardWithCode(message, c.code))
-      );
-      return {
-        resultString: `[CardCommand] Par recherche "${searchString.trim()}", tout niveau d'XP : images envoyées.`,
-      };
+      return this.sendCards(message, allCards);
     }
 
     // La première des cartes trouvées pour ce titre
-    if (await this.sendCardWithCode(message, foundCards[0].code)) {
-      return {
-        resultString: `[CardCommand] Par recherche "${searchString.trim()}" : image envoyée.`,
-      };
-    }
-
-    await message.reply("désolé, le mystère de cette carte reste entier.");
-    return {
-      resultString: `[CardCommand] Aucune carte correspondant à "${args}"`,
-    };
+    return this.sendCards(message, [foundCards[0]]);
   }
 
   private async sendCardWithCode(
     message: Discord.Message,
     code: string
-  ): Promise<boolean> {
+  ): Promise<ICommandResult> {
     if (!this.cardService) {
-      return false;
+      return ERROR_NO_CARD_SERVICE;
     }
 
-    const maybeCardWithCode = this.cardService.getCardByCode(code);
-    if (maybeCardWithCode) {
-      const cardWithCode = maybeCardWithCode;
-      const maybeFrenchCardImageLink = await this.cardService.getFrenchCardImage(
-        cardWithCode.code
-      );
-
-      if (maybeFrenchCardImageLink) {
-        const frenchCardImageLink = maybeFrenchCardImageLink;
-        await message.reply(frenchCardImageLink);
-        return true;
-      }
-
-      if (cardWithCode.imagesrc) {
-        const maybeCardImageLink = await this.cardService.getCardImage(
-          cardWithCode
-        );
-        if (maybeCardImageLink) {
-          const cardImageLink = maybeCardImageLink;
-          await message.reply(cardImageLink);
-          return true;
-        }
-      }
+    const maybeCardByCode = this.cardService.getCardByCode(code);
+    if (maybeCardByCode) {
+      const cardByCode = maybeCardByCode;
+      await message.reply(await this.cardService.createEmbed(cardByCode));
     }
 
-    await message.reply("Pas d'image disponible pour cette carte.");
-    return false;
+    return {
+      resultString: `[CardCommand] Aucune carte correspondant au code "${code}"`,
+    };
+  }
+
+  private async sendCards(
+    message: Discord.Message,
+    cards: ArkhamDBCard[]
+  ): Promise<ICommandResult> {
+    if (!this.cardService) {
+      return ERROR_NO_CARD_SERVICE;
+    }
+    const surelyCardService = this.cardService;
+
+    const embeds = await Promise.all(
+      cards.map((card) => surelyCardService.createEmbed(card))
+    );
+    await Promise.all(embeds.map((embed) => message.reply(embed)));
+    return {
+      resultString: `[CardCommand] ${cards.length} carte(s) envoyée's`,
+    };
   }
 }
