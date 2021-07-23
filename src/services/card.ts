@@ -1,6 +1,9 @@
 import axios from "axios";
+import diacritics from "diacritics";
 import * as Discord from "discord.js";
+import Fuse from "fuse.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
+
 import { BaseService } from "../base/BaseService";
 import { ResourcesService } from "./resources";
 import { LoggerService } from "./logger";
@@ -20,6 +23,7 @@ interface ArkhamDBCard {
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
   private frenchCards: ArkhamDBCard[] = [];
+  private fuse: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
 
   @Inject logger?: LoggerService;
   @Inject resources?: ResourcesService;
@@ -30,12 +34,9 @@ export class CardService extends BaseService {
     await this.loadCards();
   }
 
-  public getCardsByNameOrRealName(search: string): ArkhamDBCard[] {
-    return this.frenchCards.filter(
-      (card) =>
-        card.name.toLowerCase().includes(search.trim().toLowerCase()) ||
-        card.real_name.toLowerCase().includes(search.trim().toLowerCase())
-    );
+  public getCards(search: string): ArkhamDBCard[] {
+    const foundCard = this.fuse.search(diacritics.remove(search))[0].item;
+    return this.frenchCards.filter((card) => card.name === foundCard.name);
   }
 
   public getCardByCode(code: string): ArkhamDBCard | undefined {
@@ -87,6 +88,16 @@ export class CardService extends BaseService {
     if (rawData) {
       try {
         this.frenchCards = JSON.parse(rawData) as ArkhamDBCard[];
+
+        this.fuse = new Fuse<ArkhamDBCard>(this.frenchCards, {
+          keys: ["real_name", "name"],
+          getFn: function (...args) {
+            return diacritics.remove(
+              /* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
+              (Fuse as any).config.getFn.apply(this, args)
+            );
+          },
+        });
       } catch (err) {
         if (this.logger) this.logger.error(err);
       }

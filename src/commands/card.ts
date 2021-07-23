@@ -39,7 +39,7 @@ export class CardCommand implements ICommand {
     // Recherche par titre de carte
     const [, searchString, maybeXpAsString] = matches;
     const foundCards = this.cardService
-      .getCardsByNameOrRealName(searchString.trim())
+      .getCards(searchString.trim())
       .filter((c) => c.faction !== "mythos");
 
     if (foundCards.length === 0) {
