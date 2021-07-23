@@ -2,11 +2,10 @@ import axios from "axios";
 import diacritics from "diacritics";
 import * as Discord from "discord.js";
 import Fuse from "fuse.js";
-import TurndownService from "turndown";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { EmojiService } from "./emoji";
+import { FormatService } from "./format";
 import { ResourcesService } from "./resources";
 import { LoggerService } from "./logger";
 
@@ -18,29 +17,6 @@ const CLASS_COLORS = {
   survivor: 0xcc3038,
   neutral: 0x808080,
   mythos: 0xfcfcfc,
-};
-
-const ICONS: { [key: string]: string } = {
-  guardian: "ClassGuardian",
-  seeker: "ClassSeeker",
-  rogue: "ClassRogue",
-  mystic: "ClassMystic",
-  survivor: "ClassSurvivor",
-  reaction: "ResponseAction",
-  action: "Action",
-  fast: "FastAction",
-  willpower: "SkillWillpower",
-  intellect: "SkillIntellect",
-  combat: "SkillCombat",
-  agility: "SkillAgility",
-  elder_sign: "ChaosElderSign",
-  skull: "ChaosSkull",
-  cultist: "ChaosCultist",
-  tablet: "ChaosTablet",
-  elder_thing: "ChaosElderOne",
-  auto_fail: "ChaosFail",
-  bless: "bless",
-  curse: "curse",
 };
 
 export interface ArkhamDBCard {
@@ -78,9 +54,8 @@ export class CardService extends BaseService {
   private packs: CodeAndName[] = [];
   private types: CodeAndName[] = [];
   private fuse: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
-  private turndownService = new TurndownService();
 
-  @Inject emojiService?: EmojiService;
+  @Inject formatService?: FormatService;
   @Inject logger?: LoggerService;
   @Inject resources?: ResourcesService;
 
@@ -110,9 +85,11 @@ export class CardService extends BaseService {
     }
 
     if (card.text) {
-      embed.setDescription(
-        this.turndownService.turndown(this.formatTextForEmojis(card.text))
-      );
+      if (this.formatService) {
+        embed.setDescription(this.formatService.format(card.text));
+      } else {
+        embed.setDescription(card.text);
+      }
     }
     embed.setColor(CLASS_COLORS[card.faction_code]);
 
@@ -194,31 +171,6 @@ export class CardService extends BaseService {
         this.logger.error(error);
       }
     }
-  }
-
-  private formatTextForEmojis(text: string): string {
-    if (!this.emojiService) {
-      return text;
-    }
-    const emojiService = this.emojiService;
-
-    const matches = text.match(/\[[^\]]+\]/g);
-    if (!matches || !matches[0]) {
-      return text;
-    }
-
-    matches.forEach((match) => {
-      const arkhamdbCode = match.substring(1, match.length - 1);
-      const frenchCode = ICONS[arkhamdbCode];
-      if (frenchCode) {
-        const maybeEmoji = emojiService.getEmoji(frenchCode);
-        if (maybeEmoji) {
-          text = text.replace(match, maybeEmoji);
-        }
-      }
-    });
-
-    return text;
   }
 
   private async loadFactions() {
