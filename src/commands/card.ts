@@ -21,13 +21,14 @@ export class CardCommand implements ICommand {
       return ERROR_NO_CARD_SERVICE;
     }
 
-    const { message, args } = cmdArgs;
+    const { cmd, message, args } = cmdArgs;
+    const extended = ["card", "carte"].includes(cmd);
 
     const maybeCardCode = this.CARD_CODE_REGEX.exec(args);
     if (maybeCardCode) {
       // Recherche par code de carte
       const cardCode = maybeCardCode[0];
-      return this.sendCardWithCode(message, cardCode);
+      return this.sendCardWithCode(message, cardCode, extended);
     }
 
     const matches = this.CARD_AND_XP_REGEX.exec(args);
@@ -56,7 +57,7 @@ export class CardCommand implements ICommand {
         (c) => c.xp === parseInt(maybeXpAsString, 10)
       );
       if (maybeCardWithGivenXp) {
-        return this.sendCards(message, [maybeCardWithGivenXp]);
+        return this.sendCards(message, [maybeCardWithGivenXp], extended);
       } else {
         await message.reply(
           `je n'ai pas trouvé de carte de niveau ${maybeXpAsString} correspondant.`
@@ -70,16 +71,17 @@ export class CardCommand implements ICommand {
     if (maybeXpAsString && maybeXpAsString === "0") {
       // Tous les niveaux de la première carte trouvée
       const allCards = foundCards.filter((c) => c.name === foundCards[0].name);
-      return this.sendCards(message, allCards);
+      return this.sendCards(message, allCards, extended);
     }
 
     // La première des cartes trouvées pour ce titre
-    return this.sendCards(message, [foundCards[0]]);
+    return this.sendCards(message, [foundCards[0]], extended);
   }
 
   private async sendCardWithCode(
     message: Discord.Message,
-    code: string
+    code: string,
+    extended = false
   ): Promise<ICommandResult> {
     if (!this.cardService) {
       return ERROR_NO_CARD_SERVICE;
@@ -88,7 +90,9 @@ export class CardCommand implements ICommand {
     const maybeCardByCode = this.cardService.getCardByCode(code);
     if (maybeCardByCode) {
       const cardByCode = maybeCardByCode;
-      await message.reply(await this.cardService.createEmbed(cardByCode));
+      await message.reply(
+        await this.cardService.createEmbed(cardByCode, extended)
+      );
     }
 
     return {
@@ -98,7 +102,8 @@ export class CardCommand implements ICommand {
 
   private async sendCards(
     message: Discord.Message,
-    cards: ArkhamDBCard[]
+    cards: ArkhamDBCard[],
+    extended = false
   ): Promise<ICommandResult> {
     if (!this.cardService) {
       return ERROR_NO_CARD_SERVICE;
@@ -106,7 +111,7 @@ export class CardCommand implements ICommand {
     const surelyCardService = this.cardService;
 
     const embeds = await Promise.all(
-      cards.map((card) => surelyCardService.createEmbed(card))
+      cards.map((card) => surelyCardService.createEmbed(card, extended))
     );
     await Promise.all(embeds.map((embed) => message.reply(embed)));
     return {

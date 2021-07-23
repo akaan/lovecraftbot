@@ -73,7 +73,10 @@ export class CardService extends BaseService {
     return this.frenchCards.filter((card) => card.name === foundCard.name);
   }
 
-  public async createEmbed(card: ArkhamDBCard): Promise<Discord.MessageEmbed> {
+  public async createEmbed(
+    card: ArkhamDBCard,
+    extended = false
+  ): Promise<Discord.MessageEmbed> {
     const embed = new Discord.MessageEmbed();
     if (!["neutral", "mythos"].includes(card.faction_code)) {
       embed.attachFiles([
@@ -84,40 +87,43 @@ export class CardService extends BaseService {
       embed.setAuthor(card.name);
     }
 
-    if (card.text) {
-      if (this.formatService) {
-        embed.setDescription(this.formatService.format(card.text));
-      } else {
-        embed.setDescription(card.text);
-      }
-    }
     embed.setColor(CLASS_COLORS[card.faction_code]);
 
-    embed.addField("Nom anglais", card.real_name);
+    if (extended) {
+      if (card.text) {
+        if (this.formatService) {
+          embed.setDescription(this.formatService.format(card.text));
+        } else {
+          embed.setDescription(card.text);
+        }
+      }
 
-    const maybeFaction = this.factions.find(
-      (faction) => faction.code == card.faction_code
-    );
-    if (maybeFaction) {
-      embed.addField("Faction", maybeFaction.name);
-    }
+      embed.addField("Nom anglais", card.real_name);
 
-    if (card.xp) {
-      embed.addField("Niveau", card.xp);
-    }
+      const maybeFaction = this.factions.find(
+        (faction) => faction.code == card.faction_code
+      );
+      if (maybeFaction) {
+        embed.addField("Faction", maybeFaction.name);
+      }
 
-    const maybeType = this.types.find((type) => type.code == card.type_code);
-    if (maybeType) {
-      embed.addField("Type", maybeType.name);
-    }
+      if (card.xp) {
+        embed.addField("Niveau", card.xp);
+      }
 
-    if (card.cost) {
-      embed.addField("Coût", card.cost);
-    }
+      const maybeType = this.types.find((type) => type.code == card.type_code);
+      if (maybeType) {
+        embed.addField("Type", maybeType.name);
+      }
 
-    const maybePack = this.packs.find((pack) => pack.code == card.pack_code);
-    if (maybePack) {
-      embed.addField("Pack", maybePack.name);
+      if (card.cost) {
+        embed.addField("Coût", card.cost);
+      }
+
+      const maybePack = this.packs.find((pack) => pack.code == card.pack_code);
+      if (maybePack) {
+        embed.addField("Pack", maybePack.name);
+      }
     }
 
     const maybeFrenchImage = await this.getFrenchCardImage(card.code);
