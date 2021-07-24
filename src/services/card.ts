@@ -98,8 +98,6 @@ export class CardService extends BaseService {
         }
       }
 
-      embed.addField("Nom anglais", card.real_name);
-
       const maybeFaction = this.factions.find(
         (faction) => faction.code == card.faction_code
       );
@@ -108,22 +106,24 @@ export class CardService extends BaseService {
       }
 
       if (card.xp) {
-        embed.addField("Niveau", card.xp);
+        embed.addField("Niveau", card.xp, true);
       }
 
       const maybeType = this.types.find((type) => type.code == card.type_code);
       if (maybeType) {
-        embed.addField("Type", maybeType.name);
+        embed.addField("Type", maybeType.name, true);
       }
 
       if (card.cost) {
-        embed.addField("Coût", card.cost);
+        embed.addField("Coût", card.cost, true);
       }
 
       const maybePack = this.packs.find((pack) => pack.code == card.pack_code);
       if (maybePack) {
         embed.addField("Pack", maybePack.name);
       }
+
+      embed.addField("Nom anglais", card.real_name);
     }
 
     const maybeFrenchImage = await this.getFrenchCardImage(card.code);
