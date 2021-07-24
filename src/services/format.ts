@@ -14,6 +14,7 @@ const ICONS: { [key: string]: string } = {
   reaction: "ResponseAction",
   action: "Action",
   fast: "FastAction",
+  free: "FastAction",
   willpower: "SkillWillpower",
   intellect: "SkillIntellect",
   combat: "SkillCombat",
