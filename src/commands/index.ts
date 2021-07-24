@@ -5,3 +5,4 @@ export * from "./echo";
 export * from "./hastur";
 export * from "./help";
 export * from "./refresh";
+export * from "./rule";

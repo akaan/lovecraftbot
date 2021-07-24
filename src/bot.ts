@@ -11,6 +11,7 @@ import { HelpService } from "./services/help";
 import { EmojiService } from "./services/emoji";
 import { CardService } from "./services/card";
 import { CardOfTheDayService } from "./services/cardOfTheDay";
+import { RulesService } from "./services/rules";
 
 export class Bot {
   private client?: Discord.Client;
@@ -22,6 +23,7 @@ export class Bot {
   @Inject private emojiService?: EmojiService;
   @Inject private cardService?: CardService;
   @Inject private cardOfTheDayService?: CardOfTheDayService;
+  @Inject private rulesService?: RulesService;
 
   @Inject private commandParser?: CommandParser;
 
@@ -51,6 +53,7 @@ export class Bot {
         this.commandParser,
         this.cardService,
         this.cardOfTheDayService,
+        this.rulesService,
       ].map((service) => {
         if (service)
           service
