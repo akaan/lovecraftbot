@@ -36,9 +36,14 @@ export class FormatService extends BaseService {
   private turndownService = new TurndownService();
 
   public format(text: string): string {
-    const withTraits = this.formatTextForTraits(text);
+    const withLineBreaks = this.formatTextForLineBreaks(text);
+    const withTraits = this.formatTextForTraits(withLineBreaks);
     const withEmoji = this.formatTextForEmojis(withTraits);
     return this.turndownService.turndown(withEmoji);
+  }
+
+  private formatTextForLineBreaks(text: string): string {
+    return text.replace(/\n/g, "<br/>");
   }
 
   private formatTextForTraits(text: string): string {
