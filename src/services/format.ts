@@ -19,6 +19,7 @@ const ICONS: { [key: string]: string } = {
   intellect: "SkillIntellect",
   combat: "SkillCombat",
   agility: "SkillAgility",
+  wild: "SkillWild",
   elder_sign: "ChaosElderSign",
   skull: "ChaosSkull",
   cultist: "ChaosCultist",
