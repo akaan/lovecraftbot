@@ -63,7 +63,7 @@ export class CardService extends BaseService {
   private factions: CodeAndName[] = [];
   private packs: CodeAndName[] = [];
   private types: CodeAndName[] = [];
-  private fuse: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
+  private playerCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
 
   @Inject formatService?: FormatService;
   @Inject logger?: LoggerService;
@@ -79,7 +79,8 @@ export class CardService extends BaseService {
   }
 
   public getCards(search: string): ArkhamDBCard[] {
-    const foundCard = this.fuse.search(diacritics.remove(search))[0].item;
+    const foundCard = this.playerCardsIndex.search(diacritics.remove(search))[0]
+      .item;
     return this.frenchCards.filter((card) => card.name === foundCard.name);
   }
 
@@ -249,7 +250,11 @@ export class CardService extends BaseService {
       try {
         this.frenchCards = JSON.parse(rawData) as ArkhamDBCard[];
 
-        this.fuse = new Fuse<ArkhamDBCard>(this.frenchCards, {
+        const playerCards = this.frenchCards.filter(
+          (card) => card.faction_code !== "mythos"
+        );
+
+        this.playerCardsIndex = new Fuse<ArkhamDBCard>(playerCards, {
           keys: ["real_name", "name"],
           getFn: function (...args) {
             return diacritics.remove(
