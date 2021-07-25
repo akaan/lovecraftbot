@@ -39,6 +39,8 @@ export interface ArkhamDBCard {
   type_code: string;
   pack_code: string;
   double_sided: boolean;
+  permanent: boolean;
+  slot: string;
 }
 
 interface CodeAndName {
