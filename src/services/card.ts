@@ -128,14 +128,9 @@ export class CardService extends BaseService {
       embed.addField("Nom anglais", card.real_name);
     }
 
-    const maybeFrenchImage = await this.getFrenchCardImage(card.code);
-    if (maybeFrenchImage) {
-      embed.setImage(maybeFrenchImage);
-    } else {
-      const maybeImage = await this.getCardImage(card);
-      if (maybeImage) {
-        embed.setImage(maybeImage);
-      }
+    const maybeCardImageLink = await this.getCardImageLink(card);
+    if (maybeCardImageLink) {
+      embed.setImage(maybeCardImageLink);
     }
 
     return embed;
@@ -145,14 +140,32 @@ export class CardService extends BaseService {
     return this.frenchCards.find((c) => c.code === code);
   }
 
-  public getFrenchCardImage(code: string): Promise<string | undefined> {
+  private async getCardImageLink(
+    card: ArkhamDBCard
+  ): Promise<string | undefined> {
+    const maybeFrenchImageLink = await this.getFrenchCardImageLink(card);
+    if (maybeFrenchImageLink) {
+      return maybeFrenchImageLink;
+    } else {
+      const maybeEnglishImageLink = await this.getEnglishCardImageLink(card);
+      if (maybeEnglishImageLink) {
+        return maybeEnglishImageLink;
+      }
+    }
+  }
+
+  private getFrenchCardImageLink(
+    card: ArkhamDBCard
+  ): Promise<string | undefined> {
     return axios
-      .head<string>(`http://arkhamdb.fr.cr/IMAGES/CARTES/AH-${code}.jpg`)
+      .head<string>(`http://arkhamdb.fr.cr/IMAGES/CARTES/AH-${card.code}.jpg`)
       .then((response) => response.config.url)
       .catch(() => undefined as string | undefined);
   }
 
-  public getCardImage(card: ArkhamDBCard): Promise<string | undefined> {
+  private getEnglishCardImageLink(
+    card: ArkhamDBCard
+  ): Promise<string | undefined> {
     return axios
       .head<string>(`https://arkhamdb.com${card.imagesrc}`)
       .then((response) => response.config.url)
