@@ -48,6 +48,14 @@ interface CodeAndName {
   name: string;
 }
 
+function findOrDefaultToCode(dict: CodeAndName[], search: string): string {
+  const found = dict.find((codeAndName) => codeAndName.code === search);
+  if (found) {
+    return found.name;
+  }
+  return search;
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
@@ -80,13 +88,20 @@ export class CardService extends BaseService {
     extended = false
   ): Promise<Discord.MessageEmbed> {
     const embed = new Discord.MessageEmbed();
+
+    const cardFaction = findOrDefaultToCode(this.factions, card.faction_code);
+    const cardType = findOrDefaultToCode(this.types, card.type_code);
+
+    embed.setTitle(card.name);
+    embed.setURL(`https://fr.arkhamdb.com/card/${card.code}`);
+
     if (!["neutral", "mythos"].includes(card.faction_code)) {
-      embed.attachFiles([
-        `https://arkhamdb.com/bundles/app/images/factions/${card.faction_code}.png`,
-      ]);
-      embed.setAuthor(card.name, `attachment://${card.faction_code}.png`);
+      embed.setAuthor(
+        `${cardType} ${cardFaction}`,
+        `https://arkhamdb.com/bundles/app/images/factions/${card.faction_code}.png`
+      );
     } else {
-      embed.setAuthor(card.name);
+      embed.setAuthor(`${cardType} ${cardFaction}`);
     }
 
     embed.setColor(CLASS_COLORS[card.faction_code]);
@@ -105,20 +120,8 @@ export class CardService extends BaseService {
         }
       }
 
-      const maybeFaction = this.factions.find(
-        (faction) => faction.code == card.faction_code
-      );
-      if (maybeFaction) {
-        embed.addField("Faction", maybeFaction.name);
-      }
-
       if (card.xp) {
         embed.addField("Niveau", card.xp, true);
-      }
-
-      const maybeType = this.types.find((type) => type.code == card.type_code);
-      if (maybeType) {
-        embed.addField("Type", maybeType.name, true);
       }
 
       if (card.cost) {
