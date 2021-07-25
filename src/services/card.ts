@@ -91,7 +91,12 @@ export class CardService extends BaseService {
 
     embed.setColor(CLASS_COLORS[card.faction_code]);
 
-    if (extended) {
+    const maybeCardImageLink = await this.getCardImageLink(card);
+    if (maybeCardImageLink) {
+      embed.setImage(maybeCardImageLink);
+    }
+
+    if (extended || !maybeCardImageLink) {
       if (card.text) {
         if (this.formatService) {
           embed.setDescription(this.formatService.format(card.text));
@@ -126,11 +131,6 @@ export class CardService extends BaseService {
       }
 
       embed.addField("Nom anglais", card.real_name);
-    }
-
-    const maybeCardImageLink = await this.getCardImageLink(card);
-    if (maybeCardImageLink) {
-      embed.setImage(maybeCardImageLink);
     }
 
     return embed;
