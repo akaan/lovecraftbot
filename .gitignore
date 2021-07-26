@@ -3,5 +3,6 @@
 node_modules/
 data/cardOfTheDay.json
 data/cards.fr.json
+data/taboos.json
 test.ts
 temp/*

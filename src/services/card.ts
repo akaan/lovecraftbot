@@ -49,6 +49,17 @@ export interface ArkhamDBCard {
   slot: string;
 }
 
+interface ArkhamDBTaboo {
+  start_date: string;
+  cards: string;
+}
+
+interface Taboo {
+  code: string;
+  xp: number;
+  text: string;
+}
+
 interface CodeAndName {
   code: string;
   name: string;
@@ -66,6 +77,7 @@ function findOrDefaultToCode(dict: CodeAndName[], search: string): string {
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
   private frenchCards: ArkhamDBCard[] = [];
+  private taboos: Taboo[] = [];
   private factions: CodeAndName[] = [];
   private packs: CodeAndName[] = [];
   private types: CodeAndName[] = [];
@@ -79,6 +91,7 @@ export class CardService extends BaseService {
     await super.init(client);
 
     await this.loadCards();
+    await this.loadTaboos();
     await this.loadFactions();
     await this.loadPacks();
     await this.loadTypes();
@@ -174,6 +187,22 @@ export class CardService extends BaseService {
       }
     }
 
+    const maybeTaboo = this.taboos.find((taboo) => taboo.code === card.code);
+    if (maybeTaboo) {
+      const tabooText = [];
+      if (maybeTaboo.xp) {
+        tabooText.push(`XP: ${maybeTaboo.xp}`);
+      }
+      if (maybeTaboo.text) {
+        if (this.formatService) {
+          tabooText.push(this.formatService.format(maybeTaboo.text));
+        } else {
+          tabooText.push(maybeTaboo.text);
+        }
+      }
+      embed.addField("Taboo", tabooText.join("\n"));
+    }
+
     if (!back && this.hasBack(card)) {
       embed.setFooter("Cette carte a un dos.");
     }
@@ -199,6 +228,28 @@ export class CardService extends BaseService {
       );
       await this.resources.saveResource(
         "cards.fr.json",
+        JSON.stringify(response.data)
+      );
+      await this.loadCards();
+    } catch (error) {
+      if (this.logger) {
+        this.logger.error(error);
+      }
+    }
+  }
+
+  public async downloadLatestTaboos(): Promise<void> {
+    if (!this.resources) {
+      return;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await axios.get<any[]>(
+        "https://fr.arkhamdb.com/api/public/taboos"
+      );
+      await this.resources.saveResource(
+        "taboos.json",
         JSON.stringify(response.data)
       );
       await this.loadCards();
@@ -323,6 +374,30 @@ export class CardService extends BaseService {
             );
           },
         });
+      } catch (err) {
+        if (this.logger) this.logger.error(err);
+      }
+    }
+  }
+
+  private async loadTaboos() {
+    if (!this.resources) {
+      return;
+    }
+
+    const dataAvailable = await this.resources.resourceExists("taboos.json");
+    if (!dataAvailable) {
+      await this.downloadLatestTaboos();
+    }
+
+    const rawData = await this.resources.readResource("taboos.json");
+    if (rawData) {
+      try {
+        const allTaboos = JSON.parse(rawData) as ArkhamDBTaboo[];
+        if (allTaboos.length > 0) {
+          const latestTaboo = allTaboos[0];
+          this.taboos = JSON.parse(latestTaboo.cards) as Taboo[];
+        }
       } catch (err) {
         if (this.logger) this.logger.error(err);
       }
