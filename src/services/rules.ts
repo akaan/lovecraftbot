@@ -47,22 +47,24 @@ export class RulesService extends BaseService {
     mainEmbed.setAuthor(rule.title);
 
     if (rule.text) {
+      const ruleText = this.deleteLinks(rule.text);
       if (this.formatService) {
-        mainEmbed.setDescription(this.formatService.format(rule.text));
+        mainEmbed.setDescription(this.formatService.format(ruleText));
       } else {
-        mainEmbed.setDescription(rule.text);
+        mainEmbed.setDescription(ruleText);
       }
     }
 
     if (rule.rules) {
       rule.rules.forEach((subRule) => {
         if (subRule.text) {
+          const subRuleText = this.deleteLinks(subRule.text);
           const subEmbed = new Discord.MessageEmbed();
           subEmbed.setAuthor(subRule.title);
           if (this.formatService) {
-            subEmbed.setDescription(this.formatService.format(subRule.text));
+            subEmbed.setDescription(this.formatService.format(subRuleText));
           } else {
-            subEmbed.setDescription(rule.text);
+            subEmbed.setDescription(subRuleText);
           }
           subEmbeds.push(subEmbed);
         }
@@ -70,6 +72,20 @@ export class RulesService extends BaseService {
     }
 
     return [mainEmbed, ...subEmbeds];
+  }
+
+  private deleteLinks(text: string): string {
+    const matches = text.match(/\[([^[]*)]\([^)]*\)/g);
+
+    if (!matches || !matches[0]) {
+      return text;
+    }
+
+    matches.forEach(() => {
+      text = text.replace(/\[([^[]*)]\([^)]*\)/, "<b>$1</b>");
+    });
+
+    return text;
   }
 
   private async loadRules() {
