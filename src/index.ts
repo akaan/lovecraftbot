@@ -10,6 +10,9 @@ const init = async () => {
 
   try {
     await bot.init();
+    process.on("SIGINT", () => {
+      bot.shutdown();
+    });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);

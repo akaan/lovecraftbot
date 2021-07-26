@@ -39,12 +39,12 @@ export class CardOfTheDayService extends BaseService {
   }
 
   public start(): void {
-    if (!this.envService) {
+    if (!this.envService || !this.client) {
       return;
     }
     const cardOfTheDayHour = this.envService.cardOfTheDayHour;
 
-    setInterval(() => {
+    this.client.setInterval(() => {
       const now = new Date();
       if (now.getHours() == cardOfTheDayHour) {
         this.sendCardOfTheDay().catch(console.log);

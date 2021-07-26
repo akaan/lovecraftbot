@@ -13,6 +13,7 @@ import { CardService } from "./services/card";
 import { CardOfTheDayService } from "./services/cardOfTheDay";
 
 export class Bot {
+  private client?: Discord.Client;
   @Inject private logger?: LoggerService;
 
   @Inject private helpService?: HelpService;
@@ -35,10 +36,11 @@ export class Bot {
       throw new Error("No Discord token specified!");
     }
 
-    const client = new Discord.Client();
+    this.client = new Discord.Client();
+    const client = this.client;
     if (this.logger) this.logger.log("Connecting to Discord ...");
 
-    client.on("ready", () => {
+    this.client.on("ready", () => {
       if (this.logger) this.logger.log("Connected.");
 
       [
@@ -70,12 +72,17 @@ export class Bot {
       });
     });
 
-    client.on("message", (msg) => {
+    this.client.on("message", (msg) => {
       if (!this.commandParser) {
         return;
       }
 
-      if (msg.author.bot || (client.user && msg.author.id === client.user.id)) {
+      if (
+        msg.author.bot ||
+        (this.client &&
+          this.client.user &&
+          msg.author.id === this.client.user.id)
+      ) {
         return;
       }
 
@@ -103,7 +110,7 @@ export class Bot {
       }
     });
 
-    client.on("messageReactionAdd", (reaction, user) => {
+    this.client.on("messageReactionAdd", (reaction, user) => {
       if (!this.commandParser || user.bot) {
         return;
       }
@@ -111,7 +118,7 @@ export class Bot {
       this.commandParser.handleEmojiAdd(reaction, user);
     });
 
-    client.on("messageReactionRemove", (reaction, user) => {
+    this.client.on("messageReactionRemove", (reaction, user) => {
       if (!this.commandParser || user.bot) {
         return;
       }
@@ -119,7 +126,16 @@ export class Bot {
       this.commandParser.handleEmojiRemove(reaction, user);
     });
 
-    await client.login(DISCORD_TOKEN);
+    await this.client.login(DISCORD_TOKEN);
     return;
+  }
+
+  public shutdown(): void {
+    if (!this.client) {
+      return;
+    }
+    this.logger && this.logger.log("Disconnecting...");
+    this.client.destroy();
+    this.logger && this.logger.log("Disconnected.");
   }
 }
