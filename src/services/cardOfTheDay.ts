@@ -50,6 +50,12 @@ export class CardOfTheDayService extends BaseService {
         this.sendCardOfTheDay().catch(console.log);
       }
     }, 1000 * 60);
+
+    if (this.logger) {
+      this.logger.log(
+        `[CardOfTheDayService] La carte du jour sera envoyée chaque jour à ${cardOfTheDayHour}H.`
+      );
+    }
   }
 
   private async sendCardOfTheDay(): Promise<void> {
@@ -110,14 +116,20 @@ export class CardOfTheDayService extends BaseService {
     if (!this.resourcesService) {
       return;
     }
-    const rawData = await this.resourcesService.readResource(
+
+    const dataAvailable = await this.resourcesService.resourceExists(
       "cardOfTheDay.json"
     );
-    if (rawData) {
-      try {
-        this.cardCodesSent = JSON.parse(rawData) as string[];
-      } catch (err) {
-        if (this.logger) this.logger.error(err);
+    if (dataAvailable) {
+      const rawData = await this.resourcesService.readResource(
+        "cardOfTheDay.json"
+      );
+      if (rawData) {
+        try {
+          this.cardCodesSent = JSON.parse(rawData) as string[];
+        } catch (err) {
+          if (this.logger) this.logger.error(err);
+        }
       }
     }
   }

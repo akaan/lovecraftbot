@@ -298,6 +298,11 @@ export class CardService extends BaseService {
       return;
     }
 
+    const dataAvailable = await this.resources.resourceExists("cards.fr.json");
+    if (!dataAvailable) {
+      await this.downloadLatestCardDb();
+    }
+
     const rawData = await this.resources.readResource("cards.fr.json");
     if (rawData) {
       try {
