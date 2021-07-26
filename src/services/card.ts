@@ -185,6 +185,28 @@ export class CardService extends BaseService {
       .find((c) => c.code === code);
   }
 
+  public async downloadLatestCardDb(): Promise<void> {
+    if (!this.resources) {
+      return;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await axios.get<any[]>(
+        "https://fr.arkhamdb.com/api/public/cards/?encounter=true"
+      );
+      await this.resources.saveResource(
+        "cards.fr.json",
+        JSON.stringify(response.data)
+      );
+      await this.loadCards();
+    } catch (error) {
+      if (this.logger) {
+        this.logger.error(error);
+      }
+    }
+  }
+
   private async getCardImageLink(
     card: ArkhamDBCard,
     back = false
@@ -227,28 +249,6 @@ export class CardService extends BaseService {
       )
       .then((response) => response.config.url)
       .catch(() => undefined as string | undefined);
-  }
-
-  public async downloadLatestCardDb(): Promise<void> {
-    if (!this.resources) {
-      return;
-    }
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await axios.get<any[]>(
-        "https://fr.arkhamdb.com/api/public/cards/?encounter=true"
-      );
-      await this.resources.saveResource(
-        "cards.fr.json",
-        JSON.stringify(response.data)
-      );
-      await this.loadCards();
-    } catch (error) {
-      if (this.logger) {
-        this.logger.error(error);
-      }
-    }
   }
 
   private async loadFactions() {
