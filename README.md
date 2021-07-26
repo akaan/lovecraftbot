@@ -21,4 +21,4 @@ Mettez les variables suivantes dans un fichier [`.env`](https://www.npmjs.com/pa
 
 - `COMMAND_PREFIX` - Le préfixe de commande du bot. Par défaut à `!`.
 - `IGNORE_PRESENCE` - Ne pas pas positionner de texte de présence.
-- `TEST_SERVER` - Mettre un ID de Guile Discord.
+- `TEST_SERVER` - Mettre un ID de Guilde Discord.
