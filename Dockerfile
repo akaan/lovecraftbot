@@ -1,10 +1,15 @@
-FROM node:10.11.0-alpine
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-COPY ./package.json /usr/src/app/
+FROM node:15.5
+
+# Création du dossier
+RUN mkdir -p /usr/src/bot
+WORKDIR /usr/src/bot
+
+# Copie et installation du bot
+COPY ./package.json /usr/src/bot/
 RUN npm install && npm cache clean --force
-COPY ./ /usr/src/app
-ENV NODE_ENV production
-ENV PORT 80
-EXPOSE 80
+
+# Copie des sources
+COPY ./ /usr/src/bot
+
+# Démarrage !
 CMD [ "npm", "start" ]
