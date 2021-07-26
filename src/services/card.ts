@@ -91,7 +91,9 @@ export class CardService extends BaseService {
   }
 
   public getAllPlayerCardCodes(): string[] {
-    return this.frenchCards.map((card) => card.code);
+    return this.frenchCards
+      .filter((card) => card.faction_code !== "mythos")
+      .map((card) => card.code);
   }
 
   public hasBack(card: ArkhamDBCard): boolean {
