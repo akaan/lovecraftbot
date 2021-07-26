@@ -1,6 +1,7 @@
 .env
 .nvmrc
 node_modules/
+data/cardOfTheDay.json
 data/cards.fr.json
 test.ts
 temp/*

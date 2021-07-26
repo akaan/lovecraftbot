@@ -14,6 +14,8 @@ Mettez les variables suivantes dans un fichier [`.env`](https://www.npmjs.com/pa
 ### Obligatoire
 
 - `DISCORD_TOKEN` - Le token Discord pour le bot.
+- `CARD_OF_THE_DAY_CHANNEL` - L'ID du channel sur lequel envoyer la carte du jour
+- `CARD_OF_THE_DAY_HOUR` - L'heure à laquelle envoyer la carte du jour (par défaut à `8`)
 
 ### Facultatif
 

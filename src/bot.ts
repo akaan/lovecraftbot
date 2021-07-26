@@ -10,6 +10,7 @@ import { EnvService } from "./services/env";
 import { HelpService } from "./services/help";
 import { EmojiService } from "./services/emoji";
 import { CardService } from "./services/card";
+import { CardOfTheDayService } from "./services/cardOfTheDay";
 
 export class Bot {
   @Inject private logger?: LoggerService;
@@ -19,6 +20,7 @@ export class Bot {
   @Inject private presenceService?: PresenceService;
   @Inject private emojiService?: EmojiService;
   @Inject private cardService?: CardService;
+  @Inject private cardOfTheDayService?: CardOfTheDayService;
 
   @Inject private commandParser?: CommandParser;
 
@@ -46,6 +48,7 @@ export class Bot {
         this.emojiService,
         this.commandParser,
         this.cardService,
+        this.cardOfTheDayService,
       ].map((service) => {
         if (service)
           service

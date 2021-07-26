@@ -90,6 +90,10 @@ export class CardService extends BaseService {
     return this.frenchCards.filter((card) => card.name === foundCard.name);
   }
 
+  public getAllPlayerCardCodes(): string[] {
+    return this.frenchCards.map((card) => card.code);
+  }
+
   public hasBack(card: ArkhamDBCard): boolean {
     return !!card.back_text || !!card.backimagesrc;
   }
@@ -176,7 +180,9 @@ export class CardService extends BaseService {
   }
 
   public getCardByCode(code: string): ArkhamDBCard | undefined {
-    return this.frenchCards.find((c) => c.code === code);
+    return this.frenchCards
+      .filter((card) => card.faction_code !== "mythos")
+      .find((c) => c.code === code);
   }
 
   private async getCardImageLink(
