@@ -35,6 +35,7 @@ export interface ArkhamDBCard {
   imagesrc: string;
   backimagesrc: string;
   text: string;
+  back_text: string;
   cost: string;
   type_code: string;
   pack_code: string;
@@ -84,8 +85,13 @@ export class CardService extends BaseService {
     return this.frenchCards.filter((card) => card.name === foundCard.name);
   }
 
+  public hasBack(card: ArkhamDBCard): boolean {
+    return !!card.back_text || !!card.backimagesrc;
+  }
+
   public async createEmbed(
     card: ArkhamDBCard,
+    back: boolean,
     extended = false
   ): Promise<Discord.MessageEmbed> {
     const embed = new Discord.MessageEmbed();
@@ -107,34 +113,44 @@ export class CardService extends BaseService {
 
     embed.setColor(CLASS_COLORS[card.faction_code]);
 
-    const maybeCardImageLink = await this.getCardImageLink(card);
+    const maybeCardImageLink = await this.getCardImageLink(card, back);
     if (maybeCardImageLink) {
       embed.setImage(maybeCardImageLink);
     }
 
+    const cardText = back ? card.back_text : card.text;
+
     if (extended || !maybeCardImageLink) {
-      if (card.text) {
+      if (cardText) {
         if (this.formatService) {
-          embed.setDescription(this.formatService.format(card.text));
+          embed.setDescription(this.formatService.format(cardText));
         } else {
-          embed.setDescription(card.text);
+          embed.setDescription(cardText);
         }
       }
 
-      if (card.xp) {
-        embed.addField("Niveau", card.xp, true);
-      }
+      if (!back) {
+        if (card.xp) {
+          embed.addField("Niveau", card.xp, true);
+        }
 
-      if (card.cost) {
-        embed.addField("Coût", card.cost, true);
-      }
+        if (card.cost) {
+          embed.addField("Coût", card.cost, true);
+        }
 
-      const maybePack = this.packs.find((pack) => pack.code == card.pack_code);
-      if (maybePack) {
-        embed.addField("Pack", maybePack.name);
-      }
+        const maybePack = this.packs.find(
+          (pack) => pack.code == card.pack_code
+        );
+        if (maybePack) {
+          embed.addField("Pack", maybePack.name);
+        }
 
-      embed.addField("Nom anglais", card.real_name);
+        embed.addField("Nom anglais", card.real_name);
+      }
+    }
+
+    if (!back && this.hasBack(card)) {
+      embed.setFooter("Cette carte a un dos.");
     }
 
     return embed;
@@ -145,13 +161,17 @@ export class CardService extends BaseService {
   }
 
   private async getCardImageLink(
-    card: ArkhamDBCard
+    card: ArkhamDBCard,
+    back = false
   ): Promise<string | undefined> {
-    const maybeFrenchImageLink = await this.getFrenchCardImageLink(card);
+    const maybeFrenchImageLink = await this.getFrenchCardImageLink(card, back);
     if (maybeFrenchImageLink) {
       return maybeFrenchImageLink;
     } else {
-      const maybeEnglishImageLink = await this.getEnglishCardImageLink(card);
+      const maybeEnglishImageLink = await this.getEnglishCardImageLink(
+        card,
+        back
+      );
       if (maybeEnglishImageLink) {
         return maybeEnglishImageLink;
       }
@@ -159,19 +179,27 @@ export class CardService extends BaseService {
   }
 
   private getFrenchCardImageLink(
-    card: ArkhamDBCard
+    card: ArkhamDBCard,
+    back = false
   ): Promise<string | undefined> {
     return axios
-      .head<string>(`http://arkhamdb.fr.cr/IMAGES/CARTES/AH-${card.code}.jpg`)
+      .head<string>(
+        `http://arkhamdb.fr.cr/IMAGES/CARTES/AH-${card.code}${
+          back ? "_back" : ""
+        }.jpg`
+      )
       .then((response) => response.config.url)
       .catch(() => undefined as string | undefined);
   }
 
   private getEnglishCardImageLink(
-    card: ArkhamDBCard
+    card: ArkhamDBCard,
+    back = false
   ): Promise<string | undefined> {
     return axios
-      .head<string>(`https://arkhamdb.com${card.imagesrc}`)
+      .head<string>(
+        `https://arkhamdb.com${back ? card.backimagesrc : card.imagesrc}`
+      )
       .then((response) => response.config.url)
       .catch(() => undefined as string | undefined);
   }

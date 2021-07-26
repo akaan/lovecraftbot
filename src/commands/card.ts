@@ -9,7 +9,7 @@ const ERROR_NO_CARD_SERVICE = {
 };
 
 export class CardCommand implements ICommand {
-  aliases = ["!", "c", "card", "carte"];
+  aliases = ["!", "c", "card", "carte", "d", "dos"];
   help = "Affiche la carte correspondant au numéro";
 
   @Inject private cardService?: CardService;
@@ -22,7 +22,8 @@ export class CardCommand implements ICommand {
     }
 
     const { cmd, message, args } = cmdArgs;
-    const extended = ["card", "carte"].includes(cmd);
+    const extended = ["card", "carte", "dos"].includes(cmd);
+    const back = ["d", "dos"].includes(cmd);
 
     const maybeCardCode = this.CARD_CODE_REGEX.exec(args);
     if (maybeCardCode) {
@@ -49,6 +50,19 @@ export class CardCommand implements ICommand {
       return {
         resultString: `[CardCommand] Aucune carte correspondant à la recherche "${searchString.trim()}"`,
       };
+    }
+
+    if (back) {
+      if (this.cardService.hasBack(foundCards[0])) {
+        return this.sendCardBack(message, foundCards[0], extended);
+      } else {
+        await message.reply(
+          `désolé, la carte ${foundCards[0].name} n'a pas de dos.`
+        );
+        return {
+          resultString: `[CardCommand] Pas de dos pour la carte demandée`,
+        };
+      }
     }
 
     if (maybeXpAsString && maybeXpAsString !== "0") {
@@ -91,12 +105,31 @@ export class CardCommand implements ICommand {
     if (maybeCardByCode) {
       const cardByCode = maybeCardByCode;
       await message.reply(
-        await this.cardService.createEmbed(cardByCode, extended)
+        await this.cardService.createEmbed(cardByCode, false, extended)
       );
+      return {
+        resultString: `[CardCommand] Carte envoyée`,
+      };
     }
 
     return {
       resultString: `[CardCommand] Aucune carte correspondant au code "${code}"`,
+    };
+  }
+
+  private async sendCardBack(
+    message: Discord.Message,
+    card: ArkhamDBCard,
+    extended = false
+  ): Promise<ICommandResult> {
+    if (!this.cardService) {
+      return ERROR_NO_CARD_SERVICE;
+    }
+
+    const embed = await this.cardService.createEmbed(card, true, extended);
+    await message.reply(embed);
+    return {
+      resultString: `[CardCommand] Dos de carte envoyée`,
     };
   }
 
@@ -111,7 +144,7 @@ export class CardCommand implements ICommand {
     const surelyCardService = this.cardService;
 
     const embeds = await Promise.all(
-      cards.map((card) => surelyCardService.createEmbed(card, extended))
+      cards.map((card) => surelyCardService.createEmbed(card, false, extended))
     );
     await Promise.all(embeds.map((embed) => message.reply(embed)));
     return {
