@@ -9,7 +9,7 @@ import { LoggerService } from "./logger";
 import { ResourcesService } from "./resources";
 
 interface TableRow {
-  row: { color: string; text: string };
+  row: Array<{ color?: string; text?: string }>;
 }
 
 interface Rule {
@@ -67,6 +67,24 @@ export class RulesService extends BaseService {
             subEmbed.setDescription(subRuleText);
           }
           subEmbeds.push(subEmbed);
+        }
+        if (subRule.table) {
+          const tableAsText = subRule.table
+            .map(({ row }) => {
+              if (row.length > 0) {
+                return row[0].text ? row[0].text : "";
+              }
+              return "";
+            })
+            .join("\n");
+          const tableEmbed = new Discord.MessageEmbed();
+          tableEmbed.setAuthor(subRule.title);
+          if (this.formatService) {
+            tableEmbed.setDescription(this.formatService.format(tableAsText));
+          } else {
+            tableEmbed.setDescription(tableAsText);
+          }
+          subEmbeds.push(tableEmbed);
         }
       });
     }
