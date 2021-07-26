@@ -24,6 +24,8 @@ export interface ArkhamDBCard {
   name: string;
   real_name: string;
   xp: number;
+  permanent: boolean;
+  double_sided: boolean;
   faction_code:
     | "guardian"
     | "seeker"
@@ -32,15 +34,18 @@ export interface ArkhamDBCard {
     | "survivor"
     | "neutral"
     | "mythos";
-  imagesrc: string;
-  backimagesrc: string;
-  text: string;
-  back_text: string;
-  cost: string;
   type_code: string;
   pack_code: string;
-  double_sided: boolean;
-  permanent: boolean;
+  text: string;
+  imagesrc: string;
+  back_text: string;
+  backimagesrc: string;
+  skill_willpower: number;
+  skill_intellect: number;
+  skill_combat: number;
+  skill_agility: number;
+  skill_wild: number;
+  cost: string;
   slot: string;
 }
 
@@ -132,6 +137,20 @@ export class CardService extends BaseService {
       if (!back) {
         if (card.xp) {
           embed.addField("Niveau", card.xp, true);
+        }
+
+        if (card.type_code !== "investigator" && this.formatService) {
+          const icons =
+            "[willpower]".repeat(card.skill_willpower || 0) +
+            "[intellect]".repeat(card.skill_intellect || 0) +
+            "[combat]".repeat(card.skill_combat || 0) +
+            "[agility]".repeat(card.skill_agility || 0) +
+            "[wild]".repeat(card.skill_wild || 0);
+          embed.addField(
+            "Icônes",
+            icons !== "" ? this.formatService.format(icons) : "-",
+            true
+          );
         }
 
         if (card.cost) {
