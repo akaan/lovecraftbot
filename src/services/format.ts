@@ -57,7 +57,6 @@ export class FormatService extends BaseService {
 
     matches.forEach((match) => {
       const trait = match.substring(2, match.length - 2);
-      console.log(trait);
       text = text.replace(match, `<b><i>${trait}</i></b>`);
     });
 
