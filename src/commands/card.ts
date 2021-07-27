@@ -29,7 +29,7 @@ export class CardCommand implements ICommand {
     if (maybeCardCode) {
       // Recherche par code de carte
       const cardCode = maybeCardCode[0];
-      return this.sendCardWithCode(message, cardCode, extended);
+      return this.sendCardWithCode(message, cardCode, back, extended);
     }
 
     const matches = this.CARD_AND_XP_REGEX.exec(args);
@@ -95,6 +95,7 @@ export class CardCommand implements ICommand {
   private async sendCardWithCode(
     message: Discord.Message,
     code: string,
+    back = false,
     extended = false
   ): Promise<ICommandResult> {
     if (!this.cardService) {
@@ -104,9 +105,18 @@ export class CardCommand implements ICommand {
     const maybeCardByCode = this.cardService.getCardByCode(code);
     if (maybeCardByCode) {
       const cardByCode = maybeCardByCode;
+
+      if (back && !this.cardService.hasBack(cardByCode)) {
+        await message.reply("désolé, cette carte n'a pas de dos.");
+        return {
+          resultString: `[CardCommand] La carte de code "${code}" n'a pas de dos.`,
+        };
+      }
+
       await message.reply(
-        await this.cardService.createEmbed(cardByCode, false, extended)
+        await this.cardService.createEmbed(cardByCode, back, extended)
       );
+
       return {
         resultString: `[CardCommand] Carte envoyée`,
       };
