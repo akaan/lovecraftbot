@@ -46,7 +46,7 @@ export class CardOfTheDayService extends BaseService {
 
     this.client.setInterval(() => {
       const now = new Date();
-      if (now.getHours() == cardOfTheDayHour) {
+      if (now.getHours() == cardOfTheDayHour && now.getMinutes() == 0) {
         this.sendCardOfTheDay().catch(console.log);
       }
     }, 1000 * 60);
