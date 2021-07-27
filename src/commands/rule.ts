@@ -3,6 +3,7 @@ import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { RulesService } from "../services/rules";
+import { DiscordMenu } from "../utils/DiscordMenu";
 
 export class RuleCommand implements ICommand {
   aliases = ["rule", "règle", "regle"];
@@ -21,7 +22,13 @@ export class RuleCommand implements ICommand {
     const maybeRule = this.rulesService.getRule(args);
     if (maybeRule) {
       const responses = this.rulesService.createEmbeds(maybeRule);
-      await Promise.all(responses.map((response) => message.reply(response)));
+      if (responses.length > 1) {
+        const menu = new DiscordMenu(responses);
+        await menu.replyTo(message);
+      } else {
+        await message.reply(responses[0]);
+      }
+
       return {
         resultString: `[RuleCommand] Règle envoyée`,
       };
