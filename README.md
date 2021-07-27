@@ -2,6 +2,11 @@
 
 Un bot Discord pour Horreur à Arkham : le Jeu de Cartes.
 
+## Remerciements
+
+- les données des cartes sont issues de [ArkhamDB](https://arkhamdb.com/) grâce au travail de [Kamalisk](https://github.com/Kamalisk) et [tant d'autres](https://github.com/Kamalisk/arkhamdb-json-data/graphs/contributors)
+- les règles sont reprises du code source de [ArkhamCards](https://arkhamcards.com/) par [zzorba](https://github.com/zzorba)
+
 ## Développement
 
 - `npm run start:dev` pour démarrer en mode développement
