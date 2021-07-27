@@ -81,13 +81,16 @@ export class CardOfTheDayService extends BaseService {
           remainingCodes[
             this.randomService.getRandomInt(0, remainingCodes.length)
           ];
-        const randomCard = this.cardService.getCardByCode(randomCode);
-        if (randomCard) {
-          const embed = await this.cardService.createEmbed(
-            randomCard,
-            false,
-            true
-          );
+        const randomCard = this.cardService.getCards(randomCode, {
+          cardPool: "player",
+          searchType: "by_code",
+          returns: "single",
+        });
+        if (randomCard.length > 0) {
+          const embed = await this.cardService.createEmbed(randomCard[0], {
+            back: false,
+            extended: true,
+          });
           await (channel as Discord.TextChannel).send(embed);
           this.cardCodesSent.push(randomCode);
           await this.saveCardCodesSent();

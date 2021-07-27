@@ -192,9 +192,13 @@ export class DeckService extends BaseService {
     const cardsInDeck: CardInDeck[] = [];
 
     Object.keys(slots).forEach((cardCode) => {
-      const card = surelyCardService.getCardByCode(cardCode);
-      if (card) {
-        cardsInDeck.push({ ...card, quantity: slots[cardCode] });
+      const card = surelyCardService.getCards(cardCode, {
+        cardPool: "player",
+        searchType: "by_code",
+        returns: "single",
+      });
+      if (card.length > 0) {
+        cardsInDeck.push({ ...card[0], quantity: slots[cardCode] });
       }
     });
 

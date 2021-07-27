@@ -73,6 +73,17 @@ function findOrDefaultToCode(dict: CodeAndName[], search: string): string {
   return search;
 }
 
+interface SearchOptions {
+  searchType: "by_code" | "by_title";
+  cardPool: "player" | "encounter";
+  returns: "all" | "single";
+}
+
+interface EmbedOptions {
+  extended: boolean;
+  back: boolean;
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
@@ -82,6 +93,7 @@ export class CardService extends BaseService {
   private packs: CodeAndName[] = [];
   private types: CodeAndName[] = [];
   private playerCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
+  private encounterCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
 
   @Inject formatService?: FormatService;
   @Inject logger?: LoggerService;
@@ -97,10 +109,35 @@ export class CardService extends BaseService {
     await this.loadTypes();
   }
 
-  public getCards(search: string): ArkhamDBCard[] {
-    const foundCard = this.playerCardsIndex.search(diacritics.remove(search))[0]
-      .item;
-    return this.frenchCards.filter((card) => card.name === foundCard.name);
+  public getCards(
+    search: string,
+    searchOptions: SearchOptions
+  ): ArkhamDBCard[] {
+    if (searchOptions.searchType === "by_code") {
+      const factionFilter =
+        searchOptions.cardPool === "player"
+          ? (card: ArkhamDBCard) => card.faction_code !== "mythos"
+          : (card: ArkhamDBCard) => card.faction_code === "mythos";
+      return this.frenchCards
+        .filter(factionFilter)
+        .filter((card) => card.code === search);
+    }
+
+    const cardsIndex =
+      searchOptions.cardPool === "player"
+        ? this.playerCardsIndex
+        : this.encounterCardsIndex;
+    const foundCards = cardsIndex.search(diacritics.remove(search));
+    if (foundCards.length > 0) {
+      const foundCard = foundCards[0].item;
+      if (searchOptions.returns === "single") {
+        return [foundCard];
+      } else {
+        return this.frenchCards.filter((card) => card.name === foundCard.name);
+      }
+    }
+
+    return [];
   }
 
   public getAllPlayerCardCodes(): string[] {
@@ -115,8 +152,7 @@ export class CardService extends BaseService {
 
   public async createEmbed(
     card: ArkhamDBCard,
-    back: boolean,
-    extended = false
+    embedOptions: EmbedOptions
   ): Promise<Discord.MessageEmbed> {
     const embed = new Discord.MessageEmbed();
 
@@ -137,14 +173,17 @@ export class CardService extends BaseService {
 
     embed.setColor(CLASS_COLORS[card.faction_code]);
 
-    const maybeCardImageLink = await this.getCardImageLink(card, back);
+    const maybeCardImageLink = await this.getCardImageLink(
+      card,
+      embedOptions.back
+    );
     if (maybeCardImageLink) {
       embed.setImage(maybeCardImageLink);
     }
 
-    const cardText = back ? card.back_text : card.text;
+    const cardText = embedOptions.back ? card.back_text : card.text;
 
-    if (extended || !maybeCardImageLink) {
+    if (embedOptions.extended || !maybeCardImageLink) {
       if (cardText) {
         if (this.formatService) {
           embed.setDescription(this.formatService.format(cardText));
@@ -153,12 +192,16 @@ export class CardService extends BaseService {
         }
       }
 
-      if (!back) {
+      if (!embedOptions.back) {
         if (card.xp) {
           embed.addField("Niveau", card.xp, true);
         }
 
-        if (card.type_code !== "investigator" && this.formatService) {
+        if (
+          card.faction_code !== "mythos" &&
+          card.type_code !== "investigator" &&
+          this.formatService
+        ) {
           const icons =
             "[willpower]".repeat(card.skill_willpower || 0) +
             "[intellect]".repeat(card.skill_intellect || 0) +
@@ -203,17 +246,11 @@ export class CardService extends BaseService {
       embed.addField("Taboo", tabooText.join("\n"));
     }
 
-    if (!back && this.hasBack(card)) {
+    if (!embedOptions.back && this.hasBack(card)) {
       embed.setFooter("Cette carte a un dos.");
     }
 
     return embed;
-  }
-
-  public getCardByCode(code: string): ArkhamDBCard | undefined {
-    return this.frenchCards
-      .filter((card) => card.faction_code !== "mythos")
-      .find((c) => c.code === code);
   }
 
   public async downloadLatestCardDb(): Promise<void> {
@@ -365,7 +402,11 @@ export class CardService extends BaseService {
           (card) => card.faction_code !== "mythos"
         );
 
-        this.playerCardsIndex = new Fuse<ArkhamDBCard>(playerCards, {
+        const encounterCards = this.frenchCards.filter(
+          (card) => card.faction_code == "mythos"
+        );
+
+        const indexOptions: Fuse.IFuseOptions<ArkhamDBCard> = {
           keys: ["real_name", "name"],
           getFn: function (...args) {
             return diacritics.remove(
@@ -373,7 +414,16 @@ export class CardService extends BaseService {
               (Fuse as any).config.getFn.apply(this, args)
             );
           },
-        });
+        };
+
+        this.playerCardsIndex = new Fuse<ArkhamDBCard>(
+          playerCards,
+          indexOptions
+        );
+        this.encounterCardsIndex = new Fuse<ArkhamDBCard>(
+          encounterCards,
+          indexOptions
+        );
       } catch (err) {
         if (this.logger) this.logger.error(err);
       }
