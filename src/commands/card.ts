@@ -76,7 +76,7 @@ export class CardCommand implements ICommand {
           returns: typeof searchOptions.xp === "undefined" ? "single" : "all",
         });
 
-        if (typeof searchOptions.xp !== "undefined") {
+        if (typeof searchOptions.xp !== "undefined" && searchOptions.xp !== 0) {
           foundCards = foundCards.filter(
             (card) => card.xp === searchOptions.xp
           );
