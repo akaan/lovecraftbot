@@ -10,7 +10,16 @@ const ERROR_NO_CARD_SERVICE = {
 
 export class CardCommand implements ICommand {
   aliases = ["!", "c", "card", "carte", "d", "dos"];
-  help = "Affiche la carte correspondant au numéro";
+  help = `Pour l'affichage de carte(s).
+
+  Usage: \`cmd recherche xp\`
+  - \`xp\` peut être omis
+  - \`recherche\` peut être un code de carte ou du texte
+  - si \`xp\` est fourni alors recherche d'une carte avec ce niveau d'XP
+  - si \`xp\`= 0 alors envoie de tous les niveaux de la carte trouvée
+  - les commandes \`d\` et \`dos\` envoient le dos de la carte s'il existe
+  - les commandes \`!\`, \`c\` et \`d\` n'envoient que l'image de la carte
+  - les commandes \`card\`, \`carte\` et \`dos\` envoient une description complète de la carte`;
 
   @Inject private cardService?: CardService;
   private CARD_CODE_REGEX = /\d{5}$/;
