@@ -73,10 +73,21 @@ function findOrDefaultToCode(dict: CodeAndName[], search: string): string {
   return search;
 }
 
-interface SearchOptions {
-  searchType: "by_code" | "by_title";
-  cardPool: "player" | "encounter";
-  returns: "all" | "single";
+export enum SearchType {
+  BY_CODE,
+  BY_TITLE,
+}
+
+export enum CardPool {
+  PLAYER,
+  ENCOUNTER,
+}
+
+interface SearchParams {
+  searchString: string;
+  searchType?: SearchType;
+  searchCardPool?: CardPool;
+  includeSameNameCards?: boolean;
 }
 
 interface EmbedOptions {
@@ -109,28 +120,30 @@ export class CardService extends BaseService {
     await this.loadTypes();
   }
 
-  public getCards(
-    search: string,
-    searchOptions: SearchOptions
-  ): ArkhamDBCard[] {
-    if (searchOptions.searchType === "by_code") {
+  public getCards({
+    searchString,
+    searchType = SearchType.BY_TITLE,
+    searchCardPool = CardPool.PLAYER,
+    includeSameNameCards = false,
+  }: SearchParams): ArkhamDBCard[] {
+    if (searchType === SearchType.BY_CODE) {
       const factionFilter =
-        searchOptions.cardPool === "player"
+        searchCardPool === CardPool.PLAYER
           ? (card: ArkhamDBCard) => card.faction_code !== "mythos"
           : (card: ArkhamDBCard) => card.faction_code === "mythos";
       return this.frenchCards
         .filter(factionFilter)
-        .filter((card) => card.code === search);
+        .filter((card) => card.code === searchString);
     }
 
     const cardsIndex =
-      searchOptions.cardPool === "player"
+      searchCardPool === CardPool.PLAYER
         ? this.playerCardsIndex
         : this.encounterCardsIndex;
-    const foundCards = cardsIndex.search(diacritics.remove(search));
+    const foundCards = cardsIndex.search(diacritics.remove(searchString));
     if (foundCards.length > 0) {
       const foundCard = foundCards[0].item;
-      if (searchOptions.returns === "single") {
+      if (!includeSameNameCards) {
         return [foundCard];
       } else {
         return this.frenchCards.filter((card) => card.name === foundCard.name);

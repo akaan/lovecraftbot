@@ -3,7 +3,7 @@ import * as Discord from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { ArkhamDBCard, CardService } from "./card";
+import { ArkhamDBCard, CardPool, CardService, SearchType } from "./card";
 import { EmojiService } from "./emoji";
 import { LoggerService } from "./logger";
 
@@ -192,10 +192,10 @@ export class DeckService extends BaseService {
     const cardsInDeck: CardInDeck[] = [];
 
     Object.keys(slots).forEach((cardCode) => {
-      const card = surelyCardService.getCards(cardCode, {
-        cardPool: "player",
-        searchType: "by_code",
-        returns: "single",
+      const card = surelyCardService.getCards({
+        searchString: cardCode,
+        searchCardPool: CardPool.PLAYER,
+        searchType: SearchType.BY_CODE,
       });
       if (card.length > 0) {
         cardsInDeck.push({ ...card[0], quantity: slots[cardCode] });

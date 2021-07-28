@@ -1,7 +1,12 @@
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { ArkhamDBCard, CardService } from "../services/card";
+import {
+  ArkhamDBCard,
+  CardPool,
+  CardService,
+  SearchType,
+} from "../services/card";
 import { DiscordMenu } from "../utils/DiscordMenu";
 
 const ERROR_NO_CARD_SERVICE = {
@@ -9,11 +14,11 @@ const ERROR_NO_CARD_SERVICE = {
 };
 
 interface SearchOptions {
-  cardPool: "player" | "encounter";
-  xp?: number;
+  cardPool: CardPool;
+  xp: "none" | "all" | number;
   extended: boolean;
   back: boolean;
-  searchType: "by_code" | "by_title";
+  searchType: SearchType;
   searchString: string;
 }
 
@@ -63,24 +68,15 @@ export class CardCommand implements ICommand {
     let foundCards: ArkhamDBCard[] = [];
 
     if (searchOptions) {
-      if (searchOptions.searchType == "by_code") {
-        foundCards = this.cardService.getCards(searchOptions.searchString, {
-          cardPool: searchOptions.cardPool,
-          searchType: "by_code",
-          returns: "single",
-        });
-      } else {
-        foundCards = this.cardService.getCards(searchOptions.searchString, {
-          cardPool: searchOptions.cardPool,
-          searchType: "by_title",
-          returns: typeof searchOptions.xp === "undefined" ? "single" : "all",
-        });
+      foundCards = this.cardService.getCards({
+        searchString: searchOptions.searchString,
+        searchType: searchOptions.searchType,
+        searchCardPool: searchOptions.cardPool,
+        includeSameNameCards: searchOptions.xp !== "none",
+      });
 
-        if (typeof searchOptions.xp !== "undefined" && searchOptions.xp !== 0) {
-          foundCards = foundCards.filter(
-            (card) => card.xp === searchOptions.xp
-          );
-        }
+      if (typeof searchOptions.xp === "number") {
+        foundCards = foundCards.filter((card) => card.xp === searchOptions.xp);
       }
     } else {
       await message.reply("je n'ai pas compris la demande.");
@@ -131,19 +127,22 @@ export class CardCommand implements ICommand {
     ].includes(cmd);
     const back = ["d", "dos", "rd", "rencontred"].includes(cmd);
     const cardPool = ["r", "rencontre", "rd", "rencontred"].includes(cmd)
-      ? "encounter"
-      : "player";
-    const searchType = this.CARD_CODE_REGEX.test(args) ? "by_code" : "by_title";
+      ? CardPool.ENCOUNTER
+      : CardPool.PLAYER;
+    const searchType = this.CARD_CODE_REGEX.test(args)
+      ? SearchType.BY_CODE
+      : SearchType.BY_TITLE;
 
-    if (searchType == "by_code") {
+    if (searchType == SearchType.BY_CODE) {
       const cardCodeMatches = this.CARD_CODE_REGEX.exec(args);
       if (cardCodeMatches) {
         return {
+          back,
           cardPool,
           extended,
-          back,
           searchType,
           searchString: cardCodeMatches[0],
+          xp: "none",
         };
       }
     } else {
@@ -151,13 +150,13 @@ export class CardCommand implements ICommand {
       if (titleAndXpMatches) {
         const [, title, xpAsString] = titleAndXpMatches;
         const parsedXp = parseInt(xpAsString, 10);
-        const xp = isNaN(parsedXp) ? undefined : parsedXp;
+        const xp = isNaN(parsedXp) ? "none" : parsedXp;
         return {
           cardPool,
           extended,
           back,
           searchType,
-          xp,
+          xp: xp === 0 ? "all" : xp,
           searchString: title.trim(),
         };
       }
