@@ -1,6 +1,6 @@
 {
   "name": "lovecraftbot",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Un Bot Discord pour Horreur à Arkham",
   "private": true,
   "main": "index.js",
