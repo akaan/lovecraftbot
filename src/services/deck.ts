@@ -215,9 +215,6 @@ export class DeckService extends BaseService {
       classEmoji = this.emojiService.getEmoji(classIcon);
     }
 
-    /*return `${cardInDeck.quantity}x ${classEmoji} ${
-      cardInDeck.name
-    } ${"•".repeat(level)}${signature ? " ★" : ""}`;*/
     return `${cardInDeck.quantity}x ${classEmoji} [${
       cardInDeck.name
     }](https://fr.arkhamdb.com/card/${cardInDeck.code}) ${"•".repeat(level)}${
