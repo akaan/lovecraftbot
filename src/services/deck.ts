@@ -15,7 +15,7 @@ interface ArkhamDBDeck {
   investigator_code: string;
   investigator_name: string;
   slots: Slots;
-  sideSlots: Slots;
+  sideSlots: Slots | []; // https://github.com/Kamalisk/arkhamdb/issues/434
   ignoreDeckLimitSlots: Slots;
 }
 
@@ -177,6 +177,13 @@ export class DeckService extends BaseService {
         }
       }
     });
+
+    if (!Array.isArray(deck.sideSlots)) {
+      desc += "\n\n**Cartes de côté**\n";
+      desc += this.addCardData(deck.sideSlots)
+        .map((card) => this.formatCard(card))
+        .join("\n");
+    }
 
     embed.setDescription(desc);
 
