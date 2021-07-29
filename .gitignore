@@ -1,8 +1,10 @@
 .env
 .nvmrc
 node_modules/
-data/cardOfTheDay.json
-data/cards.fr.json
-data/taboos.json
+data/
+!data/factions.json
+!data/packs.json
+!data/rules_fr.json
+!data/types.json
 test.ts
 temp/*
