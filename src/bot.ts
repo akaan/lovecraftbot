@@ -7,7 +7,6 @@ import { LoggerService } from "./services/logger";
 import { CommandParser } from "./services/command-parser";
 import { PresenceService } from "./services/presence";
 import { EnvService } from "./services/env";
-import { HelpService } from "./services/help";
 import { EmojiService } from "./services/emoji";
 import { CardService } from "./services/card";
 import { CardOfTheDayService } from "./services/cardOfTheDay";
@@ -15,71 +14,58 @@ import { RulesService } from "./services/rules";
 
 export class Bot {
   private client?: Discord.Client;
-  @Inject private logger?: LoggerService;
 
-  @Inject private helpService?: HelpService;
-  @Inject private envService?: EnvService;
-  @Inject private presenceService?: PresenceService;
-  @Inject private emojiService?: EmojiService;
-  @Inject private cardService?: CardService;
-  @Inject private cardOfTheDayService?: CardOfTheDayService;
-  @Inject private rulesService?: RulesService;
+  constructor(
+    @Inject private cardOfTheDayService: CardOfTheDayService,
+    @Inject private cardService: CardService,
+    @Inject private envService: EnvService,
+    @Inject private emojiService: EmojiService,
+    @Inject private logger: LoggerService,
+    @Inject private presenceService: PresenceService,
+    @Inject private rulesService: RulesService,
 
-  @Inject private commandParser?: CommandParser;
+    // Celui-là doit arriver en dernier
+    @Inject private commandParser: CommandParser
+  ) {}
 
   public async init(): Promise<void> {
-    if (!this.envService) {
-      throw new Error("No EnvService");
-    }
-
     const DISCORD_TOKEN = this.envService.discordToken;
-    const COMMAND_PREFIX = this.envService.commandPrefix;
     if (!DISCORD_TOKEN) {
       throw new Error("No Discord token specified!");
     }
 
+    const COMMAND_PREFIX = this.envService.commandPrefix;
+
     this.client = new Discord.Client();
     const client = this.client;
-    if (this.logger) this.logger.log("Connecting to Discord ...");
+    this.logger.log("Connecting to Discord ...");
 
     this.client.on("ready", () => {
-      if (this.logger) this.logger.log("Connected.");
+      this.logger.log("Connected.");
 
       [
-        this.helpService,
-        this.envService,
         this.presenceService,
         this.emojiService,
-        this.commandParser,
         this.cardService,
         this.cardOfTheDayService,
         this.rulesService,
+        this.commandParser,
       ].map((service) => {
-        if (service)
-          service
-            .init(client)
-            .then(() => {
-              if (this.logger)
-                this.logger.log(
-                  "Initialized service",
-                  nameOfConstructor(service)
-                );
-            })
-            .catch(() => {
-              if (this.logger)
-                this.logger.log(
-                  "Problem initializing service",
-                  nameOfConstructor(service)
-                );
-            });
+        service
+          .init(client)
+          .then(() => {
+            this.logger.log("Initialized service", nameOfConstructor(service));
+          })
+          .catch(() => {
+            this.logger.log(
+              "Problem initializing service",
+              nameOfConstructor(service)
+            );
+          });
       });
     });
 
     this.client.on("message", (msg) => {
-      if (!this.commandParser) {
-        return;
-      }
-
       if (
         msg.author.bot ||
         (this.client &&
@@ -90,7 +76,6 @@ export class Bot {
       }
 
       if (
-        this.envService &&
         this.envService.testServerId &&
         msg.guild &&
         this.envService.testServerId !== msg.guild.id
@@ -103,18 +88,15 @@ export class Bot {
       if (content.startsWith(COMMAND_PREFIX)) {
         this.commandParser
           .handleCommand(msg)
-          .then((result) => this.logger && this.logger.logCommandResult(result))
-          .catch(
-            (err) =>
-              this.logger && this.logger.log("Error handling command", err)
-          );
+          .then((result) => this.logger.logCommandResult(result))
+          .catch((err) => this.logger.log("Error handling command", err));
       } else {
         this.commandParser.handleMessage(msg);
       }
     });
 
     this.client.on("messageReactionAdd", (reaction, user) => {
-      if (!this.commandParser || user.bot) {
+      if (user.bot) {
         return;
       }
 
@@ -122,7 +104,7 @@ export class Bot {
     });
 
     this.client.on("messageReactionRemove", (reaction, user) => {
-      if (!this.commandParser || user.bot) {
+      if (user.bot) {
         return;
       }
 
@@ -137,8 +119,8 @@ export class Bot {
     if (!this.client) {
       return;
     }
-    this.logger && this.logger.log("Disconnecting...");
+    this.logger.log("Disconnecting...");
     this.client.destroy();
-    this.logger && this.logger.log("Disconnected.");
+    this.logger.log("Disconnected.");
   }
 }
