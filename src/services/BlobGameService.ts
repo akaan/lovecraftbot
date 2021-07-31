@@ -6,7 +6,7 @@ import {
   BlobGameFileRepository,
   BlobGameFileRepositoryFactory,
 } from "./BlobGameFileRepository";
-import { RandomService } from "./random";
+import { RandomService } from "./RandomService";
 
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
   if (bg1.getDateCreated() < bg2.getDateCreated()) return 1;

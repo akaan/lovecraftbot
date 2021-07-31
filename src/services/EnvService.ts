@@ -32,4 +32,12 @@ export class EnvService extends BaseService {
       return parsed;
     }
   }
+
+  public get massMultiplayerEventCategoryName(): string | undefined {
+    return process.env.MASS_MULTIPLAYER_EVENT_CATEGORY;
+  }
+
+  public get massMultiplayerEventAdminChannelName(): string | undefined {
+    return process.env.MASS_MULTIPLAYER_EVENT_ADMIN_CHANNEL;
+  }
 }

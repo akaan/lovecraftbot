@@ -3,8 +3,8 @@ import { Inject } from "typescript-ioc";
 
 import { BlobGame } from "../domain/BlobGame";
 import { IBlobGameRepository } from "../domain/IBlobGameRepository";
-import { LoggerService } from "./logger";
-import { ResourcesService } from "./resources";
+import { LoggerService } from "./LoggerService";
+import { ResourcesService } from "./ResourcesService";
 
 interface BlobGameSaved {
   id: number;
