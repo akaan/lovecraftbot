@@ -1,7 +1,11 @@
+import { Guild } from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
-import { BlobGameFileRepository } from "./BlobGameFileRepository";
+import {
+  BlobGameFileRepository,
+  BlobGameFileRepositoryFactory,
+} from "./BlobGameFileRepository";
 import { RandomService } from "./random";
 
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
@@ -13,90 +17,133 @@ const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
 @Singleton
 @OnlyInstantiableByContainer
 export class BlobGameService extends BaseService {
-  @Inject private blobGameRepository?: BlobGameFileRepository;
-  @Inject private randomService?: RandomService;
+  private blobGameRepositoryByGuildId: {
+    [guildId: string]: BlobGameFileRepository;
+  } = {};
+  private currentGameByGuildId: { [guildId: string]: BlobGame } = {};
 
-  private currentGame?: BlobGame;
+  constructor(
+    @Inject private blobGameRepositoryFactory: BlobGameFileRepositoryFactory,
+    @Inject private randomService: RandomService
+  ) {
+    super();
+  }
 
-  public async startNewGame(numberOfPlayers: number): Promise<void> {
-    if (!this.blobGameRepository || !this.randomService) {
-      return;
-    }
-    const nextId = await this.blobGameRepository.nextId();
-    this.currentGame = new BlobGame(nextId, new Date(), numberOfPlayers);
+  public async startNewGame(
+    guild: Guild,
+    numberOfPlayers: number
+  ): Promise<void> {
+    const repository = this.getBlobGameRepository(guild);
+
+    const nextId = await repository.nextId();
+    const game = (this.currentGameByGuildId[guild.id] = new BlobGame(
+      nextId,
+      new Date(),
+      numberOfPlayers
+    ));
     const randomStory =
       BlobGame.POSSIBLE_STORIES[
-        this.randomService.getRandomInt(0, BlobGame.POSSIBLE_STORIES.length)
+        this.randomService.getRandomInt(0, BlobGame.POSSIBLE_STORIES.length - 1)
       ];
-    this.currentGame.chooseStory(randomStory);
-    await this.blobGameRepository.save(this.currentGame);
+    game.chooseStory(randomStory);
+    await repository.save(game);
     return;
   }
 
-  public async continueLatestGame(): Promise<boolean> {
-    if (!this.blobGameRepository) return false;
-    const availableBlobGames = await this.blobGameRepository.load();
+  public async continueLatestGame(guild: Guild): Promise<boolean> {
+    const repository = this.getBlobGameRepository(guild);
+    const availableBlobGames = await repository.load();
     if (availableBlobGames.length === 0) return false;
-    this.currentGame = availableBlobGames.sort(sortByDateDesc)[0];
+    this.currentGameByGuildId[guild.id] =
+      availableBlobGames.sort(sortByDateDesc)[0];
     return true;
   }
 
-  public getBlobTotalHealth(): number | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getBlobTotalHealth();
+  public getBlobTotalHealth(guild: Guild): number | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getBlobTotalHealth();
   }
 
-  public getBlobRemainingHealth(): number | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getBlobRemainingHealth();
+  public getBlobRemainingHealth(guild: Guild): number | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getBlobRemainingHealth();
   }
 
-  public getNumberOfDamageDealtToBlob(): number | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getNumberOfDamageDealtToBlob();
+  public getNumberOfDamageDealtToBlob(guild: Guild): number | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getNumberOfDamageDealtToBlob();
   }
 
-  public dealDamageToBlob(numberOfDamageDealt: number): Promise<void> {
-    if (!this.currentGame || !this.blobGameRepository) return Promise.reject();
-    this.currentGame.dealDamageToBlob(numberOfDamageDealt);
-    return this.blobGameRepository.save(this.currentGame);
+  public dealDamageToBlob(
+    guild: Guild,
+    numberOfDamageDealt: number
+  ): Promise<void> {
+    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    this.currentGameByGuildId[guild.id].dealDamageToBlob(numberOfDamageDealt);
+    return this.getBlobGameRepository(guild).save(
+      this.currentGameByGuildId[guild.id]
+    );
   }
 
-  public getAct1ClueThreshold(): number | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getAct1ClueThreshold();
+  public getAct1ClueThreshold(guild: Guild): number | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getAct1ClueThreshold();
   }
 
-  public getNumberOfCluesOnAct1(): number | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getNumberOfCluesOnAct1();
+  public getNumberOfCluesOnAct1(guild: Guild): number | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getNumberOfCluesOnAct1();
   }
 
-  public placeCluesOnAct1(numberOfClues: number): Promise<void> {
-    if (!this.currentGame || !this.blobGameRepository) return Promise.reject();
-    this.currentGame.placeCluesOnAct1(numberOfClues);
-    return this.blobGameRepository.save(this.currentGame);
+  public placeCluesOnAct1(guild: Guild, numberOfClues: number): Promise<void> {
+    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
+    return this.getBlobGameRepository(guild).save(
+      this.currentGameByGuildId[guild.id]
+    );
   }
 
-  public getNumberOfCounterMeasures(): number | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getNumberOfCounterMeasures();
+  public getNumberOfCounterMeasures(guild: Guild): number | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getNumberOfCounterMeasures();
   }
 
-  public gainCounterMeasures(numberOfCounterMeasures: number): Promise<void> {
-    if (!this.currentGame || !this.blobGameRepository) return Promise.reject();
-    this.currentGame.gainCounterMeasures(numberOfCounterMeasures);
-    return this.blobGameRepository.save(this.currentGame);
+  public gainCounterMeasures(
+    guild: Guild,
+    numberOfCounterMeasures: number
+  ): Promise<void> {
+    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    this.currentGameByGuildId[guild.id].gainCounterMeasures(
+      numberOfCounterMeasures
+    );
+    return this.getBlobGameRepository(guild).save(
+      this.currentGameByGuildId[guild.id]
+    );
   }
 
-  public spendCounterMeasures(numberOfCounterMeasures: number): Promise<void> {
-    if (!this.currentGame || !this.blobGameRepository) return Promise.reject();
-    this.currentGame.spendCounterMeasures(numberOfCounterMeasures);
-    return this.blobGameRepository.save(this.currentGame);
+  public spendCounterMeasures(
+    guild: Guild,
+    numberOfCounterMeasures: number
+  ): Promise<void> {
+    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    this.currentGameByGuildId[guild.id].spendCounterMeasures(
+      numberOfCounterMeasures
+    );
+    return this.getBlobGameRepository(guild).save(
+      this.currentGameByGuildId[guild.id]
+    );
   }
 
-  public getStory(): string | undefined {
-    if (!this.currentGame) return;
-    return this.currentGame.getStory();
+  public getStory(guild: Guild): string | undefined {
+    if (!this.currentGameByGuildId[guild.id]) return;
+    return this.currentGameByGuildId[guild.id].getStory();
+  }
+
+  private getBlobGameRepository(guild: Guild): BlobGameFileRepository {
+    if (!this.blobGameRepositoryByGuildId[guild.id]) {
+      this.blobGameRepositoryByGuildId[guild.id] =
+        this.blobGameRepositoryFactory.create(guild);
+    }
+    return this.blobGameRepositoryByGuildId[guild.id];
   }
 }
