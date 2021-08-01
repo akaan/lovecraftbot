@@ -6,16 +6,10 @@ export class RefreshCommand implements ICommand {
   aliases = ["refresh"];
   help = "Recharge les toutes dernières cartes depuis ArkhamDB";
 
-  @Inject cardService?: CardService;
+  constructor(@Inject private cardService: CardService) {}
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message } = cmdArgs;
-
-    if (!this.cardService) {
-      await message.reply("Oups, impossible de recharger les cartes.");
-      return { resultString: `[RefreshCommand] ResourcesService absent` };
-    }
-
     await this.cardService.downloadLatestCardDb();
 
     await message.reply("C'est bon, les cartes ont été rechargées !");

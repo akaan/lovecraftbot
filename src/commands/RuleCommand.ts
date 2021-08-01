@@ -9,15 +9,9 @@ export class RuleCommand implements ICommand {
   aliases = ["rule", "règle", "regle"];
   help = "Affiche la règle correspondante";
 
-  @Inject private rulesService?: RulesService;
+  constructor(@Inject private rulesService: RulesService) {}
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    if (!this.rulesService) {
-      return {
-        resultString: `[RuleCommand] RulesService absent`,
-      };
-    }
-
     const { message, args } = cmdArgs;
     const maybeRule = this.rulesService.getRule(args);
     if (maybeRule) {

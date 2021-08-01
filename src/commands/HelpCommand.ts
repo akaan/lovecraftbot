@@ -8,18 +8,12 @@ export class HelpCommand implements ICommand {
   aliases = ["help", "aide"];
   help = "Affiche ce message !";
 
-  @Inject private envService?: EnvService;
-  @Inject private helpService?: HelpService;
+  constructor(
+    @Inject private envService: EnvService,
+    @Inject private helpService: HelpService
+  ) {}
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    if (!this.envService) {
-      return { resultString: `[HelpCommand] EnvService absent` };
-    }
-
-    if (!this.helpService) {
-      return { resultString: `[HelpCommand] HelpService absent` };
-    }
-
     const commandPrefix = this.envService.commandPrefix;
 
     const { message } = cmdArgs;
