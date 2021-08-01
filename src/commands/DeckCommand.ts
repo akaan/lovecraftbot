@@ -7,15 +7,9 @@ export class DeckCommand implements ICommand {
   aliases = ["deck"];
   help = "Affiche le deck correspondant à l'ID fourni";
 
-  @Inject private deckService?: DeckService;
+  constructor(@Inject private deckService: DeckService) {}
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    if (!this.deckService) {
-      return {
-        resultString: `[DeckCommand] DecklistService indisponible`,
-      };
-    }
-
     const { message, args } = cmdArgs;
     const deck = await this.deckService.getDeck(args);
     if (deck) {
