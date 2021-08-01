@@ -144,7 +144,7 @@ export class BlobGameFileRepository implements IBlobGameRepository {
         (typeof blobGame.story === "string" ||
           typeof blobGame.story === "undefined") &&
         (typeof blobGame.dateEnded === "undefined" ||
-          (blobGame.dateEnded === "string" &&
+          (typeof blobGame.dateEnded === "string" &&
             !isNaN(Date.parse(blobGame.dateEnded))))
     );
   }
