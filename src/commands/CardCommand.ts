@@ -9,10 +9,6 @@ import {
 } from "../services/CardService";
 import { DiscordMenu } from "../utils/DiscordMenu";
 
-const ERROR_NO_CARD_SERVICE = {
-  resultString: `[CardCommand] CardService asbent`,
-};
-
 interface SearchOptions {
   cardPool: CardPool;
   xp: "none" | "all" | number;
@@ -52,16 +48,12 @@ export class CardCommand implements ICommand {
   - \`rd\`: juste l'image du dos de la carte rencontre
   - \`rencontred\`: dos de carte rencontre avec description`;
 
-  @Inject private cardService?: CardService;
   private CARD_CODE_REGEX = /\d{5}$/;
   private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    if (!this.cardService) {
-      return ERROR_NO_CARD_SERVICE;
-    }
-    const cardService = this.cardService;
+  constructor(@Inject private cardService: CardService) {}
 
+  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { cmd, message, args } = cmdArgs;
     const searchOptions = this.getSearchOptions(cmd, args);
 
@@ -88,7 +80,7 @@ export class CardCommand implements ICommand {
     if (foundCards.length > 0) {
       const embeds = await Promise.all(
         foundCards.map((card) =>
-          cardService.createEmbed(card, {
+          this.cardService.createEmbed(card, {
             back: searchOptions.back,
             extended: searchOptions.extended,
           })
