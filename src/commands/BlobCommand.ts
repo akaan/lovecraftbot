@@ -9,11 +9,9 @@ export class BlobCommand implements ICommand {
   aliases = ["blob"];
   help = ``;
 
-  constructor(
-    @Inject private blobGameService: BlobGameService,
-    @Inject private envService: EnvService,
-    @Inject private massMultiplayerEventService: MassMultiplayerEventService
-  ) {}
+  @Inject private blobGameService!: BlobGameService;
+  @Inject private envService!: EnvService;
+  @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;
@@ -78,6 +76,9 @@ export class BlobCommand implements ICommand {
             this.blobGameService.getBlobRemainingHealth(message.guild) || 0
           } points de vie restants`
         );
+        return {
+          resultString: `[BlobCommand] Stats envoyées`,
+        };
       }
     }
 
