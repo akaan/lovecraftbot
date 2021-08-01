@@ -34,7 +34,7 @@ export class ResourcesService extends BaseService {
 
   public guildResourceExists(guild: Guild, filename: string): Promise<boolean> {
     return ResourcesService.createGuildFolder(guild).then(() => {
-      return exists(`./data/${filename}`);
+      return exists(`./data/guild-${guild.id}/${filename}`);
     });
   }
 
