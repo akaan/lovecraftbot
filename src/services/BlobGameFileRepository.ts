@@ -17,11 +17,10 @@ interface BlobGameSaved {
 }
 
 export class BlobGameFileRepository implements IBlobGameRepository {
-  constructor(
-    private guild: Guild,
-    private logger: LoggerService,
-    private resourcesService: ResourcesService
-  ) {}
+  @Inject private logger!: LoggerService;
+  @Inject private resourcesService!: ResourcesService;
+
+  constructor(private guild: Guild) {}
 
   public async get(id: number): Promise<BlobGame | undefined> {
     return (await this.load()).find((game) => game.getId() === id);
@@ -131,16 +130,5 @@ export class BlobGameFileRepository implements IBlobGameRepository {
         (typeof blobGame.story === "string" ||
           typeof blobGame.story === "undefined")
     );
-  }
-}
-
-export class BlobGameFileRepositoryFactory {
-  constructor(
-    @Inject private logger: LoggerService,
-    @Inject private resourceService: ResourcesService
-  ) {}
-
-  public create(guild: Guild): BlobGameFileRepository {
-    return new BlobGameFileRepository(guild, this.logger, this.resourceService);
   }
 }

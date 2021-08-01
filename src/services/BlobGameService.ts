@@ -2,10 +2,7 @@ import { Guild } from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
-import {
-  BlobGameFileRepository,
-  BlobGameFileRepositoryFactory,
-} from "./BlobGameFileRepository";
+import { BlobGameFileRepository } from "./BlobGameFileRepository";
 import { RandomService } from "./RandomService";
 
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
@@ -22,12 +19,7 @@ export class BlobGameService extends BaseService {
   } = {};
   private currentGameByGuildId: { [guildId: string]: BlobGame } = {};
 
-  constructor(
-    @Inject private blobGameRepositoryFactory: BlobGameFileRepositoryFactory,
-    @Inject private randomService: RandomService
-  ) {
-    super();
-  }
+  @Inject private randomService!: RandomService;
 
   public async startNewGame(
     guild: Guild,
@@ -141,8 +133,9 @@ export class BlobGameService extends BaseService {
 
   private getBlobGameRepository(guild: Guild): BlobGameFileRepository {
     if (!this.blobGameRepositoryByGuildId[guild.id]) {
-      this.blobGameRepositoryByGuildId[guild.id] =
-        this.blobGameRepositoryFactory.create(guild);
+      this.blobGameRepositoryByGuildId[guild.id] = new BlobGameFileRepository(
+        guild
+      );
     }
     return this.blobGameRepositoryByGuildId[guild.id];
   }
