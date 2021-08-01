@@ -13,6 +13,7 @@ __Commandes pour les organisateurs__:
 
 - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
 - \`admin continue\` reprendre la partie en cours (après redémarrage du bot)
+- \`admin end\` termine la partie
   `;
 
   @Inject private blobGameService!: BlobGameService;
@@ -82,6 +83,10 @@ __Commandes pour les organisateurs__:
           if (adminAction === "continue") {
             return this.continueGame(message.guild, message);
           }
+
+          if (adminAction === "end") {
+            return this.endGame(message.guild, message);
+          }
         }
       }
 
@@ -145,5 +150,17 @@ __Commandes pour les organisateurs__:
         resultString: `[BlobCommand] Impossible de reprendre une partie commencée`,
       };
     }
+  }
+
+  private async endGame(
+    guild: Guild,
+    message: Message
+  ): Promise<ICommandResult> {
+    await this.blobGameService.endGame(guild);
+    await this.massMultiplayerEventService.cleanGroupChannels(guild);
+    await message.reply(`partie terminée !`);
+    return {
+      resultString: `[BlobCommand] Fin de partie}`,
+    };
   }
 }

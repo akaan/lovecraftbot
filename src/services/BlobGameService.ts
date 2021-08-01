@@ -58,6 +58,12 @@ export class BlobGameService extends BaseService {
     return this.currentGameByGuildId[guild.id].getDateCreated();
   }
 
+  public async endGame(guild: Guild): Promise<void> {
+    const repository = this.getBlobGameRepository(guild);
+    this.currentGameByGuildId[guild.id].endGame(new Date());
+    await repository.save(this.currentGameByGuildId[guild.id]);
+  }
+
   public getBlobTotalHealth(guild: Guild): number | undefined {
     if (!this.currentGameByGuildId[guild.id]) return;
     return this.currentGameByGuildId[guild.id].getBlobTotalHealth();

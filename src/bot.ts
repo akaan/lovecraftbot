@@ -11,6 +11,7 @@ import { EmojiService } from "./services/EmojiService";
 import { CardService } from "./services/CardService";
 import { CardOfTheDayService } from "./services/CardOfTheDayService";
 import { RulesService } from "./services/RulesService";
+import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
 
 export class Bot {
   private client?: Discord.Client;
@@ -22,6 +23,7 @@ export class Bot {
   @Inject private logger!: LoggerService;
   @Inject private presenceService!: PresenceService;
   @Inject private rulesService!: RulesService;
+  @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
 
   // Celui-là doit arriver en dernier
   @Inject private commandParser!: CommandParser;
@@ -47,6 +49,7 @@ export class Bot {
         this.cardService,
         this.cardOfTheDayService,
         this.rulesService,
+        this.massMultiplayerEventService,
         this.commandParser,
       ].map((service) => {
         service
