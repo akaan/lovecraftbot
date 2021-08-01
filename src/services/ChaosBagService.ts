@@ -6,12 +6,8 @@ import { EmojiService } from "./EmojiService";
 @Singleton
 @OnlyInstantiableByContainer
 export class ChaosBagService extends BaseService {
-  constructor(
-    @Inject private randomService: RandomService,
-    @Inject private emojiService: EmojiService
-  ) {
-    super();
-  }
+  @Inject private randomService!: RandomService;
+  @Inject private emojiService!: EmojiService;
 
   NIGHT_OF_THE_ZEALOT_STANDARD_BAG = [
     "p1",

@@ -13,15 +13,11 @@ import { ResourcesService } from "./ResourcesService";
 export class CardOfTheDayService extends BaseService {
   private cardCodesSent: string[] = [];
 
-  constructor(
-    @Inject private cardService: CardService,
-    @Inject private envService: EnvService,
-    @Inject private logger: LoggerService,
-    @Inject private randomService: RandomService,
-    @Inject private resourcesService: ResourcesService
-  ) {
-    super();
-  }
+  @Inject private cardService!: CardService;
+  @Inject private envService!: EnvService;
+  @Inject private logger!: LoggerService;
+  @Inject private randomService!: RandomService;
+  @Inject private resourcesService!: ResourcesService;
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);

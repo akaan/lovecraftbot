@@ -8,10 +8,8 @@ export class HelpCommand implements ICommand {
   aliases = ["help", "aide"];
   help = "Affiche ce message !";
 
-  constructor(
-    @Inject private envService: EnvService,
-    @Inject private helpService: HelpService
-  ) {}
+  @Inject private envService!: EnvService;
+  @Inject private helpService!: HelpService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const commandPrefix = this.envService.commandPrefix;

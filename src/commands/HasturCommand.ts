@@ -7,7 +7,7 @@ export class HasturCommand implements ICommand {
   aliases = undefined;
   help = "Il ne faut pas prononcer son nom";
 
-  constructor(@Inject private emojiService: EmojiService) {}
+  @Inject private emojiService!: EmojiService;
 
   async onMessage(message: Discord.Message): Promise<void> {
     if (/hastur/i.test(message.content)) {

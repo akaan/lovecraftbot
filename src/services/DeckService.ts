@@ -114,13 +114,9 @@ const byCardName = (c1: CardInDeck, c2: CardInDeck): number => {
 @Singleton
 @OnlyInstantiableByContainer
 export class DeckService extends BaseService {
-  constructor(
-    @Inject private cardService: CardService,
-    @Inject private emojiService: EmojiService,
-    @Inject private logger: LoggerService
-  ) {
-    super();
-  }
+  @Inject private cardService!: CardService;
+  @Inject private emojiService!: EmojiService;
+  @Inject private logger!: LoggerService;
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);

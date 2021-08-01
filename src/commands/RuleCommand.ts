@@ -9,7 +9,7 @@ export class RuleCommand implements ICommand {
   aliases = ["rule", "règle", "regle"];
   help = "Affiche la règle correspondante";
 
-  constructor(@Inject private rulesService: RulesService) {}
+  @Inject private rulesService!: RulesService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;

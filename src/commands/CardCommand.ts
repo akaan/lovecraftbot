@@ -51,7 +51,7 @@ export class CardCommand implements ICommand {
   private CARD_CODE_REGEX = /\d{5}$/;
   private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
 
-  constructor(@Inject private cardService: CardService) {}
+  @Inject private cardService!: CardService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { cmd, message, args } = cmdArgs;

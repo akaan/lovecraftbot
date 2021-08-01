@@ -1,10 +1,5 @@
 import * as Discord from "discord.js";
-import {
-  OnlyInstantiableByContainer,
-  Singleton,
-  Inject,
-  Container,
-} from "typescript-ioc";
+import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { ICommandResult, ICommand, CommandConstructor } from "../interfaces";
 import { BaseService } from "../base/BaseService";
@@ -18,9 +13,7 @@ const AvailableCommands = Commands as unknown as CommandsDictionary;
 @Singleton
 @OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
-  constructor(@Inject private helpService: HelpService) {
-    super();
-  }
+  @Inject private helpService!: HelpService;
 
   private executableCommands: { [key: string]: ICommand } = {};
 
@@ -91,8 +84,7 @@ export class CommandParser extends BaseService {
 
   private loadCommands(commands: CommandsDictionary): void {
     Object.values(commands).forEach((cmdCtor) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const cmdInst: ICommand = Container.get(cmdCtor);
+      const cmdInst: ICommand = new cmdCtor();
       this.registerCommand(cmdInst);
     });
   }

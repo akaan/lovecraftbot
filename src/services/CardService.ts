@@ -106,13 +106,9 @@ export class CardService extends BaseService {
   private playerCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
   private encounterCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
 
-  constructor(
-    @Inject private formatService: FormatService,
-    @Inject private logger: LoggerService,
-    @Inject private resources: ResourcesService
-  ) {
-    super();
-  }
+  @Inject private formatService!: FormatService;
+  @Inject private logger!: LoggerService;
+  @Inject private resources!: ResourcesService;
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);

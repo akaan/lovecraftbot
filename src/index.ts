@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import * as dotenv from "dotenv";
-import { Container } from "typescript-ioc";
 dotenv.config();
 
 import { Bot } from "./Bot";
 
 const init = async () => {
-  const bot = Container.get(Bot);
+  const bot = new Bot();
 
   try {
     await bot.init();

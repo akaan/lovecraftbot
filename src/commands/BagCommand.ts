@@ -6,7 +6,7 @@ export class BagCommand implements ICommand {
   aliases = ["bag"];
   help = "Tire un jeton chaos (Nuit de la Zélatrice Standard)";
 
-  constructor(@Inject private chaosBagService: ChaosBagService) {}
+  @Inject private chaosBagService!: ChaosBagService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message } = cmdArgs;

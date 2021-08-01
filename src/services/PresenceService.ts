@@ -7,9 +7,7 @@ import { EnvService } from "./EnvService";
 @Singleton
 @OnlyInstantiableByContainer
 export class PresenceService extends BaseService {
-  constructor(@Inject private envService: EnvService) {
-    super();
-  }
+  @Inject private envService!: EnvService;
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);

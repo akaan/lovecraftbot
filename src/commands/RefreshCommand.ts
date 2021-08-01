@@ -6,7 +6,7 @@ export class RefreshCommand implements ICommand {
   aliases = ["refresh"];
   help = "Recharge les toutes dernières cartes depuis ArkhamDB";
 
-  constructor(@Inject private cardService: CardService) {}
+  @Inject private cardService!: CardService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message } = cmdArgs;

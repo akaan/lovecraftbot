@@ -25,13 +25,9 @@ interface Rule {
 export class RulesService extends BaseService {
   private rulesIndex: Fuse<Rule> = new Fuse<Rule>([]);
 
-  constructor(
-    @Inject private formatService: FormatService,
-    @Inject private logger: LoggerService,
-    @Inject private resources: ResourcesService
-  ) {
-    super();
-  }
+  @Inject private formatService!: FormatService;
+  @Inject private logger!: LoggerService;
+  @Inject private resources!: ResourcesService;
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);

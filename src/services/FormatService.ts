@@ -34,9 +34,7 @@ const ICONS: { [key: string]: string } = {
 export class FormatService extends BaseService {
   private turndownService = new TurndownService();
 
-  constructor(@Inject private emojiService: EmojiService) {
-    super();
-  }
+  @Inject private emojiService!: EmojiService;
 
   public format(text: string): string {
     const withLineBreaks = this.formatTextForLineBreaks(text);

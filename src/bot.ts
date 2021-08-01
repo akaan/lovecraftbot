@@ -15,18 +15,16 @@ import { RulesService } from "./services/RulesService";
 export class Bot {
   private client?: Discord.Client;
 
-  constructor(
-    @Inject private cardOfTheDayService: CardOfTheDayService,
-    @Inject private cardService: CardService,
-    @Inject private envService: EnvService,
-    @Inject private emojiService: EmojiService,
-    @Inject private logger: LoggerService,
-    @Inject private presenceService: PresenceService,
-    @Inject private rulesService: RulesService,
+  @Inject private cardOfTheDayService!: CardOfTheDayService;
+  @Inject private cardService!: CardService;
+  @Inject private envService!: EnvService;
+  @Inject private emojiService!: EmojiService;
+  @Inject private logger!: LoggerService;
+  @Inject private presenceService!: PresenceService;
+  @Inject private rulesService!: RulesService;
 
-    // Celui-là doit arriver en dernier
-    @Inject private commandParser: CommandParser
-  ) {}
+  // Celui-là doit arriver en dernier
+  @Inject private commandParser!: CommandParser;
 
   public async init(): Promise<void> {
     const DISCORD_TOKEN = this.envService.discordToken;

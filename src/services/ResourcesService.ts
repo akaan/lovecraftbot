@@ -11,9 +11,7 @@ const exists = util.promisify(fs.exists);
 @Singleton
 @OnlyInstantiableByContainer
 export class ResourcesService extends BaseService {
-  constructor(@Inject private logger: LoggerService) {
-    super();
-  }
+  @Inject private logger!: LoggerService;
 
   public resourceExists(filename: string): Promise<boolean> {
     return exists(`./data/${filename}`);

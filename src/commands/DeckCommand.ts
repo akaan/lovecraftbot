@@ -7,7 +7,7 @@ export class DeckCommand implements ICommand {
   aliases = ["deck"];
   help = "Affiche le deck correspondant à l'ID fourni";
 
-  constructor(@Inject private deckService: DeckService) {}
+  @Inject private deckService!: DeckService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;
