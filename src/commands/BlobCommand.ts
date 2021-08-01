@@ -87,16 +87,12 @@ __Commandes pour les organisateurs__:
         }
       }
 
+      if (!this.blobGameService.isGameRunning(message.guild))
+        return this.noGame(message);
+
       // COMMANDES JOUEURS
-      if (subCmd === "stats") {
-        await message.reply(
-          `Le Blob a ${
-            this.blobGameService.getBlobRemainingHealth(message.guild) || 0
-          } points de vie restants`
-        );
-        return {
-          resultString: `[BlobCommand] Stats envoyées`,
-        };
+      if (subCmd === "state") {
+        return this.gameState(message.guild, message);
       }
     }
 
@@ -122,6 +118,8 @@ __Commandes pour les organisateurs__:
     await message.reply(
       `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
     );
+    const gameState = this.blobGameService.createGameStateEmbed(guild);
+    if (gameState) await message.reply(gameState);
     return {
       resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
     };
@@ -143,6 +141,22 @@ __Commandes pour les organisateurs__:
     await message.reply(`partie terminée !`);
     return {
       resultString: `[BlobCommand] Fin de partie}`,
+    };
+  }
+
+  private async gameState(
+    guild: Guild,
+    message: Message
+  ): Promise<ICommandResult> {
+    const gameState = this.blobGameService.createGameStateEmbed(guild);
+    if (gameState) {
+      await message.reply(gameState);
+      return {
+        resultString: `[BlobCommand] Stats envoyées`,
+      };
+    }
+    return {
+      resultString: `[BlobCommand] Problème à l'envoi de l'état de la partie : pas de partie.`,
     };
   }
 }

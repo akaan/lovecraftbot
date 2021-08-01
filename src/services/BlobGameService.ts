@@ -1,4 +1,4 @@
-import { Client, Guild } from "discord.js";
+import { Client, Guild, MessageEmbed } from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
@@ -54,6 +54,36 @@ export class BlobGameService extends BaseService {
 
   public isGameRunning(guild: Guild): boolean {
     return !!this.currentGameByGuildId[guild.id];
+  }
+
+  public createGameStateEmbed(guild: Guild): MessageEmbed | undefined {
+    if (!this.isGameRunning(guild)) return undefined;
+    const game = this.currentGameByGuildId[guild.id];
+
+    const embed = new MessageEmbed();
+
+    embed.setTitle(
+      `Le Dévoreur de Toute Chose - ${game
+        .getDateCreated()
+        .toLocaleDateString()}`
+    );
+    embed.addFields([
+      { name: "Nombre de joueurs", value: game.getNumberOfPlayers() },
+      {
+        name: "Points de vie restants / total",
+        value: `${game.getBlobRemainingHealth()} / ${game.getBlobTotalHealth()}`,
+      },
+      {
+        name: "Indices sur l'Acte 1",
+        value: `${game.getNumberOfCluesOnAct1()} / ${game.getAct1ClueThreshold()}`,
+      },
+      {
+        name: "Nombre de contre-mesures",
+        value: game.getNumberOfCounterMeasures(),
+      },
+    ]);
+
+    return embed;
   }
 
   public async endGame(guild: Guild): Promise<void> {
