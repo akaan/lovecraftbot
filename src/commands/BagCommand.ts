@@ -6,13 +6,9 @@ export class BagCommand implements ICommand {
   aliases = ["bag"];
   help = "Tire un jeton chaos (Nuit de la Zélatrice Standard)";
 
-  @Inject chaosBagService?: ChaosBagService;
+  constructor(@Inject private chaosBagService: ChaosBagService) {}
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    if (!this.chaosBagService) {
-      return { resultString: `[BagCommand] ChaosBagService absent` };
-    }
-
     const { message } = cmdArgs;
     await message.channel.send(this.chaosBagService.pullToken() || "??");
     return { resultString: "BagCommand: Jeton envoyé" };
