@@ -7,7 +7,12 @@ import { BlobGameService } from "../services/BlobGameService";
 
 export class BlobCommand implements ICommand {
   aliases = ["blob"];
-  help = ``;
+  help = `Commandes pour gérer une partie massivement multijoueurs du **Dévoreur de Toute Chose**.
+
+__Commandes pour les organisateurs__:
+
+- \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
+  `;
 
   @Inject private blobGameService!: BlobGameService;
   @Inject private envService!: EnvService;
@@ -56,12 +61,18 @@ export class BlobCommand implements ICommand {
           const [adminAction, ...adminActionParams] = params;
 
           if (adminAction === "start") {
-            const [numberOfPlayers] = adminActionParams;
-            if (numberOfPlayers && !isNaN(parseInt(numberOfPlayers, 10))) {
+            const [numberOfPlayers, numberOfGroups] = adminActionParams;
+            if (
+              numberOfPlayers &&
+              !isNaN(parseInt(numberOfPlayers, 10)) &&
+              numberOfGroups &&
+              !isNaN(parseInt(numberOfGroups, 10))
+            ) {
               return this.startGame(
                 message.guild,
                 massMultiplayerEventCategoryName,
                 parseInt(numberOfPlayers, 10),
+                parseInt(numberOfGroups, 10),
                 message
               );
             }
@@ -90,21 +101,22 @@ export class BlobCommand implements ICommand {
     guild: Guild,
     massMultiplayerEventCategoryName: string,
     numberOfPlayers: number,
+    numberOfGroups: number,
     message: Message
   ): Promise<ICommandResult> {
     await this.massMultiplayerEventService.createGroupChannels(
       guild,
       massMultiplayerEventCategoryName,
-      numberOfPlayers
+      numberOfGroups
     );
 
     await this.blobGameService.startNewGame(guild, numberOfPlayers);
 
     await message.reply(
-      `la partie est démarrée pour ${numberOfPlayers} joueurs !`
+      `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
     );
     return {
-      resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs`,
+      resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
     };
   }
 }
