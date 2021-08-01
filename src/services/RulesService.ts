@@ -25,9 +25,13 @@ interface Rule {
 export class RulesService extends BaseService {
   private rulesIndex: Fuse<Rule> = new Fuse<Rule>([]);
 
-  @Inject formatService?: FormatService;
-  @Inject logger?: LoggerService;
-  @Inject resources?: ResourcesService;
+  constructor(
+    @Inject private formatService: FormatService,
+    @Inject private logger: LoggerService,
+    @Inject private resources: ResourcesService
+  ) {
+    super();
+  }
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
@@ -48,11 +52,7 @@ export class RulesService extends BaseService {
 
     if (rule.text) {
       const ruleText = this.deleteLinks(rule.text);
-      if (this.formatService) {
-        mainEmbed.setDescription(this.formatService.format(ruleText));
-      } else {
-        mainEmbed.setDescription(ruleText);
-      }
+      mainEmbed.setDescription(this.formatService.format(ruleText));
     }
 
     if (rule.rules) {
@@ -61,11 +61,7 @@ export class RulesService extends BaseService {
           const subRuleText = this.deleteLinks(subRule.text);
           const subEmbed = new Discord.MessageEmbed();
           subEmbed.setAuthor(subRule.title);
-          if (this.formatService) {
-            subEmbed.setDescription(this.formatService.format(subRuleText));
-          } else {
-            subEmbed.setDescription(subRuleText);
-          }
+          subEmbed.setDescription(this.formatService.format(subRuleText));
           subEmbeds.push(subEmbed);
         }
         if (subRule.table) {
@@ -79,11 +75,7 @@ export class RulesService extends BaseService {
             .join("\n");
           const tableEmbed = new Discord.MessageEmbed();
           tableEmbed.setAuthor(subRule.title);
-          if (this.formatService) {
-            tableEmbed.setDescription(this.formatService.format(tableAsText));
-          } else {
-            tableEmbed.setDescription(tableAsText);
-          }
+          tableEmbed.setDescription(this.formatService.format(tableAsText));
           subEmbeds.push(tableEmbed);
         }
       });
@@ -107,10 +99,6 @@ export class RulesService extends BaseService {
   }
 
   private async loadRules() {
-    if (!this.resources) {
-      return;
-    }
-
     const rawData = await this.resources.readResource("rules_fr.json");
     if (rawData) {
       try {
@@ -126,7 +114,7 @@ export class RulesService extends BaseService {
           },
         });
       } catch (err) {
-        if (this.logger) this.logger.error(err);
+        this.logger.error(err);
       }
     }
   }

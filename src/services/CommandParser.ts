@@ -18,7 +18,9 @@ const AvailableCommands = Commands as unknown as CommandsDictionary;
 @Singleton
 @OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
-  @Inject private helpService?: HelpService;
+  constructor(@Inject private helpService: HelpService) {
+    super();
+  }
 
   private executableCommands: { [key: string]: ICommand } = {};
 
@@ -96,7 +98,7 @@ export class CommandParser extends BaseService {
   }
 
   private registerCommand(cmdInst: ICommand) {
-    if (this.helpService && cmdInst.help && cmdInst.aliases) {
+    if (cmdInst.help && cmdInst.aliases) {
       this.helpService.addHelp({
         command: cmdInst.constructor.name,
         aliases: cmdInst.aliases,

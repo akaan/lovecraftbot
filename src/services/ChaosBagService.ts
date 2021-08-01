@@ -6,8 +6,12 @@ import { EmojiService } from "./EmojiService";
 @Singleton
 @OnlyInstantiableByContainer
 export class ChaosBagService extends BaseService {
-  @Inject randomService?: RandomService;
-  @Inject emojiService?: EmojiService;
+  constructor(
+    @Inject private randomService: RandomService,
+    @Inject private emojiService: EmojiService
+  ) {
+    super();
+  }
 
   NIGHT_OF_THE_ZEALOT_STANDARD_BAG = [
     "p1",
@@ -43,13 +47,6 @@ export class ChaosBagService extends BaseService {
   };
 
   public pullToken(): string | undefined {
-    if (!this.randomService) {
-      return undefined;
-    }
-    if (!this.emojiService) {
-      return undefined;
-    }
-
     const tokenString =
       this.NIGHT_OF_THE_ZEALOT_STANDARD_BAG[
         this.randomService.getRandomInt(

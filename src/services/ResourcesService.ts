@@ -11,7 +11,9 @@ const exists = util.promisify(fs.exists);
 @Singleton
 @OnlyInstantiableByContainer
 export class ResourcesService extends BaseService {
-  @Inject logger?: LoggerService;
+  constructor(@Inject private logger: LoggerService) {
+    super();
+  }
 
   public resourceExists(filename: string): Promise<boolean> {
     return exists(`./data/${filename}`);
@@ -19,14 +21,14 @@ export class ResourcesService extends BaseService {
 
   public readResource(filename: string): Promise<string | undefined> {
     return readFile(`./data/${filename}`, "utf-8").catch((err) => {
-      if (this.logger) this.logger.error(err);
+      this.logger.error(err);
       return undefined as string | undefined;
     });
   }
 
   public saveResource(filename: string, content: string): Promise<void> {
     return writeFile(`./data/${filename}`, content).catch((err) => {
-      if (this.logger) this.logger.error(err);
+      this.logger.error(err);
     });
   }
 }

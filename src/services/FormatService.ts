@@ -2,7 +2,6 @@ import TurndownService from "turndown";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { LoggerService } from "./LoggerService";
 import { EmojiService } from "./EmojiService";
 
 const ICONS: { [key: string]: string } = {
@@ -33,9 +32,11 @@ const ICONS: { [key: string]: string } = {
 @Singleton
 @OnlyInstantiableByContainer
 export class FormatService extends BaseService {
-  @Inject logger?: LoggerService;
-  @Inject emojiService?: EmojiService;
   private turndownService = new TurndownService();
+
+  constructor(@Inject private emojiService: EmojiService) {
+    super();
+  }
 
   public format(text: string): string {
     const withLineBreaks = this.formatTextForLineBreaks(text);
@@ -64,11 +65,6 @@ export class FormatService extends BaseService {
   }
 
   private formatTextForEmojis(text: string): string {
-    if (!this.emojiService) {
-      return text;
-    }
-    const emojiService = this.emojiService;
-
     const matches = text.match(/\[[^\]]+\]/g);
     if (!matches || !matches[0]) {
       return text;
@@ -78,7 +74,7 @@ export class FormatService extends BaseService {
       const arkhamdbCode = match.substring(1, match.length - 1);
       const frenchCode = ICONS[arkhamdbCode];
       if (frenchCode) {
-        const maybeEmoji = emojiService.getEmoji(frenchCode);
+        const maybeEmoji = this.emojiService.getEmoji(frenchCode);
         if (maybeEmoji) {
           text = text.replace(match, maybeEmoji);
         }

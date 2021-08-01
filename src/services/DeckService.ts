@@ -114,9 +114,13 @@ const byCardName = (c1: CardInDeck, c2: CardInDeck): number => {
 @Singleton
 @OnlyInstantiableByContainer
 export class DeckService extends BaseService {
-  @Inject private cardService?: CardService;
-  @Inject private emojiService?: EmojiService;
-  @Inject private logger?: LoggerService;
+  constructor(
+    @Inject private cardService: CardService,
+    @Inject private emojiService: EmojiService,
+    @Inject private logger: LoggerService
+  ) {
+    super();
+  }
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
@@ -133,9 +137,7 @@ export class DeckService extends BaseService {
       }
     } catch (error) {
       if (axios.isAxiosError(error) && !error.response && error.request) {
-        if (this.logger) {
-          this.logger.error(error);
-        }
+        this.logger.error(error);
       }
     }
   }
@@ -191,15 +193,10 @@ export class DeckService extends BaseService {
   }
 
   private addCardData(slots: Slots): CardInDeck[] {
-    if (!this.cardService) {
-      return [];
-    }
-    const surelyCardService = this.cardService;
-
     const cardsInDeck: CardInDeck[] = [];
 
     Object.keys(slots).forEach((cardCode) => {
-      const card = surelyCardService.getCards({
+      const card = this.cardService.getCards({
         searchString: cardCode,
         searchCardPool: CardPool.PLAYER,
         searchType: SearchType.BY_CODE,
@@ -218,7 +215,7 @@ export class DeckService extends BaseService {
     let classEmoji = "";
 
     const classIcon = CLASS_ICONS[cardInDeck.faction_code];
-    if (classIcon && this.emojiService) {
+    if (classIcon) {
       classEmoji = this.emojiService.getEmoji(classIcon);
     }
 

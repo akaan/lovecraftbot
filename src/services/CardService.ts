@@ -106,9 +106,13 @@ export class CardService extends BaseService {
   private playerCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
   private encounterCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
 
-  @Inject formatService?: FormatService;
-  @Inject logger?: LoggerService;
-  @Inject resources?: ResourcesService;
+  constructor(
+    @Inject private formatService: FormatService,
+    @Inject private logger: LoggerService,
+    @Inject private resources: ResourcesService
+  ) {
+    super();
+  }
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
@@ -198,11 +202,7 @@ export class CardService extends BaseService {
 
     if (embedOptions.extended || !maybeCardImageLink) {
       if (cardText) {
-        if (this.formatService) {
-          embed.setDescription(this.formatService.format(cardText));
-        } else {
-          embed.setDescription(cardText);
-        }
+        embed.setDescription(this.formatService.format(cardText));
       }
 
       if (!embedOptions.back) {
@@ -250,11 +250,7 @@ export class CardService extends BaseService {
         tabooText.push(`XP: ${maybeTaboo.xp}`);
       }
       if (maybeTaboo.text) {
-        if (this.formatService) {
-          tabooText.push(this.formatService.format(maybeTaboo.text));
-        } else {
-          tabooText.push(maybeTaboo.text);
-        }
+        tabooText.push(this.formatService.format(maybeTaboo.text));
       }
       embed.addField("Taboo", tabooText.join("\n"));
     }
@@ -267,10 +263,6 @@ export class CardService extends BaseService {
   }
 
   public async downloadLatestCardDb(): Promise<void> {
-    if (!this.resources) {
-      return;
-    }
-
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await axios.get<any[]>(
@@ -282,17 +274,11 @@ export class CardService extends BaseService {
       );
       await this.loadCards();
     } catch (error) {
-      if (this.logger) {
-        this.logger.error(error);
-      }
+      this.logger.error(error);
     }
   }
 
   public async downloadLatestTaboos(): Promise<void> {
-    if (!this.resources) {
-      return;
-    }
-
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await axios.get<any[]>(
@@ -304,9 +290,7 @@ export class CardService extends BaseService {
       );
       await this.loadCards();
     } catch (error) {
-      if (this.logger) {
-        this.logger.error(error);
-      }
+      this.logger.error(error);
     }
   }
 
@@ -355,52 +339,39 @@ export class CardService extends BaseService {
   }
 
   private async loadFactions() {
-    if (!this.resources) {
-      return;
-    }
     const rawData = await this.resources.readResource("factions.json");
     if (rawData) {
       try {
         this.factions = JSON.parse(rawData) as CodeAndName[];
       } catch (err) {
-        if (this.logger) this.logger.error(err);
+        this.logger.error(err);
       }
     }
   }
 
   private async loadPacks() {
-    if (!this.resources) {
-      return;
-    }
     const rawData = await this.resources.readResource("packs.json");
     if (rawData) {
       try {
         this.packs = JSON.parse(rawData) as CodeAndName[];
       } catch (err) {
-        if (this.logger) this.logger.error(err);
+        this.logger.error(err);
       }
     }
   }
 
   private async loadTypes() {
-    if (!this.resources) {
-      return;
-    }
     const rawData = await this.resources.readResource("types.json");
     if (rawData) {
       try {
         this.types = JSON.parse(rawData) as CodeAndName[];
       } catch (err) {
-        if (this.logger) this.logger.error(err);
+        this.logger.error(err);
       }
     }
   }
 
   private async loadCards() {
-    if (!this.resources) {
-      return;
-    }
-
     const dataAvailable = await this.resources.resourceExists("cards.fr.json");
     if (!dataAvailable) {
       await this.downloadLatestCardDb();
@@ -438,16 +409,12 @@ export class CardService extends BaseService {
           indexOptions
         );
       } catch (err) {
-        if (this.logger) this.logger.error(err);
+        this.logger.error(err);
       }
     }
   }
 
   private async loadTaboos() {
-    if (!this.resources) {
-      return;
-    }
-
     const dataAvailable = await this.resources.resourceExists("taboos.json");
     if (!dataAvailable) {
       await this.downloadLatestTaboos();
@@ -462,7 +429,7 @@ export class CardService extends BaseService {
           this.taboos = JSON.parse(latestTaboo.cards) as Taboo[];
         }
       } catch (err) {
-        if (this.logger) this.logger.error(err);
+        this.logger.error(err);
       }
     }
   }

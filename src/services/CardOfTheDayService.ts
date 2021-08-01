@@ -11,19 +11,20 @@ import { ResourcesService } from "./ResourcesService";
 @Singleton
 @OnlyInstantiableByContainer
 export class CardOfTheDayService extends BaseService {
-  @Inject private cardService?: CardService;
-  @Inject private envService?: EnvService;
-  @Inject private logger?: LoggerService;
-  @Inject private randomService?: RandomService;
-  @Inject private resourcesService?: ResourcesService;
   private cardCodesSent: string[] = [];
+
+  constructor(
+    @Inject private cardService: CardService,
+    @Inject private envService: EnvService,
+    @Inject private logger: LoggerService,
+    @Inject private randomService: RandomService,
+    @Inject private resourcesService: ResourcesService
+  ) {
+    super();
+  }
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
-
-    if (!this.envService) {
-      return;
-    }
 
     if (!this.envService.cardOfTheDayChannelId) {
       if (this.logger) {
@@ -39,7 +40,7 @@ export class CardOfTheDayService extends BaseService {
   }
 
   public start(): void {
-    if (!this.envService || !this.client) {
+    if (!this.client) {
       return;
     }
     const cardOfTheDayHour = this.envService.cardOfTheDayHour;
@@ -51,20 +52,13 @@ export class CardOfTheDayService extends BaseService {
       }
     }, 1000 * 60);
 
-    if (this.logger) {
-      this.logger.log(
-        `[CardOfTheDayService] La carte du jour sera envoyée chaque jour à ${cardOfTheDayHour}H.`
-      );
-    }
+    this.logger.log(
+      `[CardOfTheDayService] La carte du jour sera envoyée chaque jour à ${cardOfTheDayHour}H.`
+    );
   }
 
   private async sendCardOfTheDay(): Promise<void> {
-    if (
-      !this.client ||
-      !this.envService ||
-      !this.cardService ||
-      !this.randomService
-    ) {
+    if (!this.client) {
       return;
     }
 
@@ -95,31 +89,21 @@ export class CardOfTheDayService extends BaseService {
           this.cardCodesSent.push(randomCode);
           await this.saveCardCodesSent();
 
-          if (this.logger) {
-            this.logger.log(`[CardOfTheDayService] Carte du jour envoyée.`);
-          }
+          this.logger.log(`[CardOfTheDayService] Carte du jour envoyée.`);
         } else {
-          if (this.logger) {
-            this.logger.log(
-              `[CardOfTheDayService] Problème lors de la récupération de la carte du jour (code: ${randomCode}).`
-            );
-          }
-        }
-      } else {
-        if (this.logger) {
           this.logger.log(
-            `[CardOfTheDayService] Le channel d'ID ${this.envService.cardOfTheDayChannelId} n'a pas été trouvé.`
+            `[CardOfTheDayService] Problème lors de la récupération de la carte du jour (code: ${randomCode}).`
           );
         }
+      } else {
+        this.logger.log(
+          `[CardOfTheDayService] Le channel d'ID ${this.envService.cardOfTheDayChannelId} n'a pas été trouvé.`
+        );
       }
     }
   }
 
   private async loadCardCodesSent() {
-    if (!this.resourcesService) {
-      return;
-    }
-
     const dataAvailable = await this.resourcesService.resourceExists(
       "cardOfTheDay.json"
     );
@@ -138,9 +122,6 @@ export class CardOfTheDayService extends BaseService {
   }
 
   private async saveCardCodesSent() {
-    if (!this.resourcesService) {
-      return;
-    }
     await this.resourcesService.saveResource(
       "cardOfTheDay.json",
       JSON.stringify(this.cardCodesSent)
