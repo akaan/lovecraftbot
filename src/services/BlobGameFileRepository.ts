@@ -9,6 +9,7 @@ import { ResourcesService } from "./ResourcesService";
 interface BlobGameSaved {
   id: number;
   dateCreated: string;
+  dateEnded?: string;
   numberOfPlayers: number;
   numberOfDamageDealtToBlob: number;
   numberOfCluesOnAct1: number;
@@ -52,17 +53,28 @@ export class BlobGameFileRepository implements IBlobGameRepository {
         this.guild,
         "blobGames.json",
         JSON.stringify(
-          updatedBlobGames.map((updatedBlobGame) => ({
-            id: updatedBlobGame.getId(),
-            dateCreated: updatedBlobGame.getDateCreated(),
-            numberOfPlayers: updatedBlobGame.getNumberOfPlayers(),
-            numberOfDamageDealtToBlob:
-              updatedBlobGame.getNumberOfDamageDealtToBlob(),
-            numberOfCluesOnAct1: updatedBlobGame.getNumberOfCluesOnAct1(),
-            numberOfCounterMeasures:
-              updatedBlobGame.getNumberOfCounterMeasures(),
-            story: updatedBlobGame.getStory(),
-          })),
+          updatedBlobGames.map((updatedBlobGame) => {
+            const toSave = {
+              id: updatedBlobGame.getId(),
+              dateCreated: updatedBlobGame.getDateCreated(),
+              numberOfPlayers: updatedBlobGame.getNumberOfPlayers(),
+              numberOfDamageDealtToBlob:
+                updatedBlobGame.getNumberOfDamageDealtToBlob(),
+              numberOfCluesOnAct1: updatedBlobGame.getNumberOfCluesOnAct1(),
+              numberOfCounterMeasures:
+                updatedBlobGame.getNumberOfCounterMeasures(),
+            };
+
+            if (updatedBlobGame.getStory())
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+              (toSave as any).story = updatedBlobGame.getStory();
+
+            if (updatedBlobGame.getDateEnded())
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-explicit-any
+              (toSave as any).dateEnded = updatedBlobGame.getDateEnded();
+
+            return toSave;
+          }),
           null,
           "  "
         )
@@ -104,6 +116,8 @@ export class BlobGameFileRepository implements IBlobGameRepository {
           blobGame.placeCluesOnAct1(blobGameSaved.numberOfCluesOnAct1);
           blobGame.gainCounterMeasures(blobGameSaved.numberOfCounterMeasures);
           if (blobGameSaved.story) blobGame.chooseStory(blobGameSaved.story);
+          if (blobGameSaved.dateEnded)
+            blobGame.endGame(new Date(blobGameSaved.dateEnded));
           return blobGame;
         });
       }
@@ -128,7 +142,10 @@ export class BlobGameFileRepository implements IBlobGameRepository {
         typeof blobGame.numberOfCluesOnAct1 === "number" &&
         typeof blobGame.numberOfCounterMeasures === "number" &&
         (typeof blobGame.story === "string" ||
-          typeof blobGame.story === "undefined")
+          typeof blobGame.story === "undefined") &&
+        (typeof blobGame.dateEnded === "undefined" ||
+          (blobGame.dateEnded === "string" &&
+            !isNaN(Date.parse(blobGame.dateEnded))))
     );
   }
 }

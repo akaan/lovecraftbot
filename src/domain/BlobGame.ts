@@ -10,6 +10,7 @@ export class BlobGame {
 
   private id: number;
   private dateCreated: Date;
+  private dateEnded?: Date;
   private numberOfPlayers: number;
 
   private numberOfDamageDealtToBlob: number;
@@ -92,6 +93,15 @@ export class BlobGame {
       throw new Error(`"${story}" n'est pas une valeur possible de story.`);
     }
     this.story = story;
+    return this;
+  }
+
+  public getDateEnded(): Date | undefined {
+    return this.dateEnded;
+  }
+
+  public endGame(dateEnded: Date): this {
+    this.dateEnded = dateEnded;
     return this;
   }
 }

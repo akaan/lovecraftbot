@@ -42,13 +42,20 @@ export class BlobGameService extends BaseService {
     return;
   }
 
-  public async continueLatestGame(guild: Guild): Promise<boolean> {
+  public async continueLatestGame(guild: Guild): Promise<Date | undefined> {
     const repository = this.getBlobGameRepository(guild);
+
     const availableBlobGames = await repository.load();
-    if (availableBlobGames.length === 0) return false;
-    this.currentGameByGuildId[guild.id] =
-      availableBlobGames.sort(sortByDateDesc)[0];
-    return true;
+    if (availableBlobGames.length === 0) return undefined;
+
+    const runningGames = availableBlobGames.filter(
+      (game) => typeof game.getDateEnded() === "undefined"
+    );
+
+    if (runningGames.length === 0) return undefined;
+
+    this.currentGameByGuildId[guild.id] = runningGames.sort(sortByDateDesc)[0];
+    return this.currentGameByGuildId[guild.id].getDateCreated();
   }
 
   public getBlobTotalHealth(guild: Guild): number | undefined {

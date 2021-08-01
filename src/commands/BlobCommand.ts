@@ -12,6 +12,7 @@ export class BlobCommand implements ICommand {
 __Commandes pour les organisateurs__:
 
 - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
+- \`admin continue\` reprendre la partie en cours (après redémarrage du bot)
   `;
 
   @Inject private blobGameService!: BlobGameService;
@@ -77,6 +78,10 @@ __Commandes pour les organisateurs__:
               );
             }
           }
+
+          if (adminAction === "continue") {
+            return this.continueGame(message.guild, message);
+          }
         }
       }
 
@@ -118,5 +123,27 @@ __Commandes pour les organisateurs__:
     return {
       resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
     };
+  }
+
+  private async continueGame(
+    guild: Guild,
+    message: Message
+  ): Promise<ICommandResult> {
+    const dateCreated = await this.blobGameService.continueLatestGame(guild);
+    if (dateCreated) {
+      await message.reply(
+        `reprise de la partie commencée le ${dateCreated.toLocaleDateString()}`
+      );
+      return {
+        resultString: `[BlobCommand] Reprise de la partie commencée le ${dateCreated.toLocaleDateString()}`,
+      };
+    } else {
+      await message.reply(
+        `désolé, impossible de reprendre une partie commencée.`
+      );
+      return {
+        resultString: `[BlobCommand] Impossible de reprendre une partie commencée`,
+      };
+    }
   }
 }
