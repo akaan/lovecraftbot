@@ -1,6 +1,6 @@
 export class BlobGame {
   private static PER_INVESTIGATOR_TOTAL_HEALTH = 15;
-  private static PER_INVESTIGATOR_ACT1_CLUE_THRESHOLD = 15;
+  private static PER_INVESTIGATOR_ACT1_CLUE_THRESHOLD = 2;
   public static POSSIBLE_STORIES = [
     "RESCUE_THE_CHEMIST",
     "RECOVER_THE_SAMPLE",
