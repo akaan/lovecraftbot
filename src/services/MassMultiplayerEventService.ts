@@ -58,6 +58,8 @@ export class MassMultiplayerEventService extends BaseService {
         return channel ? channel.delete() : Promise.resolve(null);
       })
     );
+    this.groupChannelsIdByGuildId[guild.id] = [];
+    await this.saveState(guild);
   }
 
   private getCategoryIdByName(
