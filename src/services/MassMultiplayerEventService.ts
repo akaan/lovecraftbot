@@ -86,13 +86,20 @@ export class MassMultiplayerEventService extends BaseService {
 
   private async loadState(guild: Guild): Promise<void> {
     try {
-      const raw = await this.resourcesService.readGuildResource(
-        guild,
-        `massMultiplayerEventsGroups.json`
-      );
-      if (raw) {
-        const groupsId = JSON.parse(raw) as string[];
-        this.groupChannelsIdByGuildId[guild.id] = groupsId;
+      if (
+        await this.resourcesService.guildResourceExists(
+          guild,
+          `massMultiplayerEventsGroups.json`
+        )
+      ) {
+        const raw = await this.resourcesService.readGuildResource(
+          guild,
+          `massMultiplayerEventsGroups.json`
+        );
+        if (raw) {
+          const groupsId = JSON.parse(raw) as string[];
+          this.groupChannelsIdByGuildId[guild.id] = groupsId;
+        }
       }
     } catch (err) {
       this.logger.error(err);
