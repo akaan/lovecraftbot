@@ -6,7 +6,7 @@ import {
   CardPool,
   CardService,
   SearchType,
-} from "../services/card";
+} from "../services/CardService";
 import { DiscordMenu } from "../utils/DiscordMenu";
 
 const ERROR_NO_CARD_SERVICE = {

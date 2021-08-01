@@ -1,7 +1,7 @@
 import * as Discord from "discord.js";
 import { ICommand } from "../interfaces";
 import { Inject } from "typescript-ioc";
-import { EmojiService } from "../services/emoji";
+import { EmojiService } from "../services/EmojiService";
 
 export class HasturCommand implements ICommand {
   aliases = undefined;

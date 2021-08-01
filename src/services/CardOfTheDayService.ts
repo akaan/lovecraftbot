@@ -2,11 +2,11 @@ import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import * as Discord from "discord.js";
 
 import { BaseService } from "../base/BaseService";
-import { CardPool, CardService, SearchType } from "./card";
-import { EnvService } from "./env";
-import { LoggerService } from "./logger";
-import { RandomService } from "./random";
-import { ResourcesService } from "./resources";
+import { CardPool, CardService, SearchType } from "./CardService";
+import { EnvService } from "./EnvService";
+import { LoggerService } from "./LoggerService";
+import { RandomService } from "./RandomService";
+import { ResourcesService } from "./ResourcesService";
 
 @Singleton
 @OnlyInstantiableByContainer

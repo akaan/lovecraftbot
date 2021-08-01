@@ -2,7 +2,7 @@
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { RulesService } from "../services/rules";
+import { RulesService } from "../services/RulesService";
 import { DiscordMenu } from "../utils/DiscordMenu";
 
 export class RuleCommand implements ICommand {

@@ -4,9 +4,9 @@ import Fuse from "fuse.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { FormatService } from "./format";
-import { LoggerService } from "./logger";
-import { ResourcesService } from "./resources";
+import { FormatService } from "./FormatService";
+import { LoggerService } from "./LoggerService";
+import { ResourcesService } from "./ResourcesService";
 
 interface TableRow {
   row: Array<{ color?: string; text?: string }>;

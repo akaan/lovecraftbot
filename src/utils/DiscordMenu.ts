@@ -1,5 +1,5 @@
 import * as Discord from "discord.js";
-import { LoggerService } from "../services/logger";
+import { LoggerService } from "../services/LoggerService";
 import { Inject } from "typescript-ioc";
 
 export class DiscordMenu {

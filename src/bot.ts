@@ -3,14 +3,14 @@ import { Inject } from "typescript-ioc";
 
 import { nameOfConstructor } from "./ClassUtils";
 
-import { LoggerService } from "./services/logger";
-import { CommandParser } from "./services/command-parser";
-import { PresenceService } from "./services/presence";
-import { EnvService } from "./services/env";
-import { EmojiService } from "./services/emoji";
-import { CardService } from "./services/card";
-import { CardOfTheDayService } from "./services/cardOfTheDay";
-import { RulesService } from "./services/rules";
+import { LoggerService } from "./services/LoggerService";
+import { CommandParser } from "./services/CommandParser";
+import { PresenceService } from "./services/PresenceService";
+import { EnvService } from "./services/EnvService";
+import { EmojiService } from "./services/EmojiService";
+import { CardService } from "./services/CardService";
+import { CardOfTheDayService } from "./services/CardOfTheDayService";
+import { RulesService } from "./services/RulesService";
 
 export class Bot {
   private client?: Discord.Client;

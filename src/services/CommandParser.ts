@@ -10,7 +10,7 @@ import { ICommandResult, ICommand, CommandConstructor } from "../interfaces";
 import { BaseService } from "../base/BaseService";
 
 import * as Commands from "../commands";
-import { HelpService } from "./help";
+import { HelpService } from "./HelpService";
 
 type CommandsDictionary = { [key: string]: CommandConstructor };
 const AvailableCommands = Commands as unknown as CommandsDictionary;

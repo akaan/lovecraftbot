@@ -1,8 +1,8 @@
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { HelpService } from "../services/help";
-import { EnvService } from "../services/env";
+import { HelpService } from "../services/HelpService";
+import { EnvService } from "../services/EnvService";
 
 export class HelpCommand implements ICommand {
   aliases = ["help", "aide"];

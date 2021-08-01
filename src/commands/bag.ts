@@ -1,5 +1,5 @@
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { ChaosBagService } from "../services/chaosbag";
+import { ChaosBagService } from "../services/ChaosBagService";
 import { Inject } from "typescript-ioc";
 
 export class BagCommand implements ICommand {

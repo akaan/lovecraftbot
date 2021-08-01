@@ -2,8 +2,8 @@ import TurndownService from "turndown";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { LoggerService } from "./logger";
-import { EmojiService } from "./emoji";
+import { LoggerService } from "./LoggerService";
+import { EmojiService } from "./EmojiService";
 
 const ICONS: { [key: string]: string } = {
   guardian: "ClassGuardian",

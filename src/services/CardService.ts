@@ -5,9 +5,9 @@ import Fuse from "fuse.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { FormatService } from "./format";
-import { ResourcesService } from "./resources";
-import { LoggerService } from "./logger";
+import { FormatService } from "./FormatService";
+import { ResourcesService } from "./ResourcesService";
+import { LoggerService } from "./LoggerService";
 
 const CLASS_COLORS = {
   guardian: 0x2b80c5,

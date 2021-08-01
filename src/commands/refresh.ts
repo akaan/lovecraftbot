@@ -1,5 +1,5 @@
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { CardService } from "../services/card";
+import { CardService } from "../services/CardService";
 import { Inject } from "typescript-ioc";
 
 export class RefreshCommand implements ICommand {

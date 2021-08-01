@@ -1,7 +1,7 @@
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { DeckService } from "../services/deck";
+import { DeckService } from "../services/DeckService";
 
 export class DeckCommand implements ICommand {
   aliases = ["deck"];

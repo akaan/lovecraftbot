@@ -2,7 +2,7 @@ import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import * as Discord from "discord.js";
 
 import { BaseService } from "../base/BaseService";
-import { EnvService } from "./env";
+import { EnvService } from "./EnvService";
 
 @Singleton
 @OnlyInstantiableByContainer

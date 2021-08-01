@@ -3,9 +3,9 @@ import * as Discord from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import { ArkhamDBCard, CardPool, CardService, SearchType } from "./card";
-import { EmojiService } from "./emoji";
-import { LoggerService } from "./logger";
+import { ArkhamDBCard, CardPool, CardService, SearchType } from "./CardService";
+import { EmojiService } from "./EmojiService";
+import { LoggerService } from "./LoggerService";
 
 type Slots = { [cardCode: string]: number };
 

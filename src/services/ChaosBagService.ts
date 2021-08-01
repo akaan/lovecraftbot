@@ -1,7 +1,7 @@
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
-import { RandomService } from "./random";
-import { EmojiService } from "./emoji";
+import { RandomService } from "./RandomService";
+import { EmojiService } from "./EmojiService";
 
 @Singleton
 @OnlyInstantiableByContainer
@@ -50,12 +50,13 @@ export class ChaosBagService extends BaseService {
       return undefined;
     }
 
-    const tokenString = this.NIGHT_OF_THE_ZEALOT_STANDARD_BAG[
-      this.randomService.getRandomInt(
-        0,
-        this.NIGHT_OF_THE_ZEALOT_STANDARD_BAG.length
-      )
-    ];
+    const tokenString =
+      this.NIGHT_OF_THE_ZEALOT_STANDARD_BAG[
+        this.randomService.getRandomInt(
+          0,
+          this.NIGHT_OF_THE_ZEALOT_STANDARD_BAG.length
+        )
+      ];
     const emoji = this.emojiService.getEmoji(tokenString);
     return emoji || this.TOKENS[tokenString];
   }

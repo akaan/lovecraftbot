@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as util from "util";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
-import { LoggerService } from "./logger";
+import { LoggerService } from "./LoggerService";
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
