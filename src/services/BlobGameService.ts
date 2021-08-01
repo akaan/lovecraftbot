@@ -1,4 +1,4 @@
-import { Guild } from "discord.js";
+import { Client, Guild } from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
@@ -21,6 +21,16 @@ export class BlobGameService extends BaseService {
 
   @Inject private randomService!: RandomService;
 
+  public async init(client: Client): Promise<void> {
+    await super.init(client);
+
+    await Promise.all(
+      client.guilds.cache.map((guild) => {
+        return this.continueLatestGame(guild);
+      })
+    );
+  }
+
   public async startNewGame(
     guild: Guild,
     numberOfPlayers: number
@@ -42,20 +52,8 @@ export class BlobGameService extends BaseService {
     return;
   }
 
-  public async continueLatestGame(guild: Guild): Promise<Date | undefined> {
-    const repository = this.getBlobGameRepository(guild);
-
-    const availableBlobGames = await repository.load();
-    if (availableBlobGames.length === 0) return undefined;
-
-    const runningGames = availableBlobGames.filter(
-      (game) => typeof game.getDateEnded() === "undefined"
-    );
-
-    if (runningGames.length === 0) return undefined;
-
-    this.currentGameByGuildId[guild.id] = runningGames.sort(sortByDateDesc)[0];
-    return this.currentGameByGuildId[guild.id].getDateCreated();
+  public isGameRunning(guild: Guild): boolean {
+    return !!this.currentGameByGuildId[guild.id];
   }
 
   public async endGame(guild: Guild): Promise<void> {
@@ -151,5 +149,21 @@ export class BlobGameService extends BaseService {
       );
     }
     return this.blobGameRepositoryByGuildId[guild.id];
+  }
+
+  private async continueLatestGame(guild: Guild): Promise<Date | undefined> {
+    const repository = this.getBlobGameRepository(guild);
+
+    const availableBlobGames = await repository.load();
+    if (availableBlobGames.length === 0) return undefined;
+
+    const runningGames = availableBlobGames.filter(
+      (game) => typeof game.getDateEnded() === "undefined"
+    );
+
+    if (runningGames.length === 0) return undefined;
+
+    this.currentGameByGuildId[guild.id] = runningGames.sort(sortByDateDesc)[0];
+    return this.currentGameByGuildId[guild.id].getDateCreated();
   }
 }

@@ -12,10 +12,12 @@ import { CardService } from "./services/CardService";
 import { CardOfTheDayService } from "./services/CardOfTheDayService";
 import { RulesService } from "./services/RulesService";
 import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
+import { BlobGameService } from "./services/BlobGameService";
 
 export class Bot {
   private client?: Discord.Client;
 
+  @Inject private blobGameService!: BlobGameService;
   @Inject private cardOfTheDayService!: CardOfTheDayService;
   @Inject private cardService!: CardService;
   @Inject private envService!: EnvService;
@@ -49,6 +51,7 @@ export class Bot {
         this.cardService,
         this.cardOfTheDayService,
         this.rulesService,
+        this.blobGameService,
         this.massMultiplayerEventService,
         this.commandParser,
       ].map((service) => {
