@@ -275,6 +275,16 @@ export class BlobGameService extends BaseService {
       `${groupChannel.name} a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
       [groupChannel.id]
     );
+
+    if (
+      this.currentGameByGuildId[guild.id].getNumberOfCluesOnAct1() ===
+      this.currentGameByGuildId[guild.id].getAct1ClueThreshold()
+    ) {
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `Les investigateurs ont réunis l'ensemble des indices nécessaires. Dès le prochain round, vous pouvez faire avancer l'Acte 1.`
+      );
+    }
   }
 
   public getNumberOfCounterMeasures(guild: Guild): number | undefined {
