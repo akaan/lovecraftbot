@@ -25,7 +25,7 @@ export class BlobGame {
 
     this.numberOfDamageDealtToBlob = 0;
     this.numberOfCluesOnAct1 = 0;
-    this.numberOfCounterMeasures = Math.ceil(this.numberOfPlayers / 2);
+    this.numberOfCounterMeasures = 0;
   }
 
   public getId(): number {
@@ -74,12 +74,22 @@ export class BlobGame {
     return this.numberOfCounterMeasures;
   }
 
+  public initNumberOfCounterMeasure(): this {
+    this.numberOfCounterMeasures = Math.ceil(this.numberOfPlayers / 2);
+    return this;
+  }
+
   public gainCounterMeasures(numberOfCounterMeasures: number): this {
     this.numberOfCounterMeasures += numberOfCounterMeasures;
     return this;
   }
 
   public spendCounterMeasures(numberOfCounterMeasures: number): this {
+    if (numberOfCounterMeasures > this.numberOfCounterMeasures) {
+      throw new Error(
+        "Impossible, pas suffisamment de contre-mesures disponibles"
+      );
+    }
     this.numberOfCounterMeasures -= numberOfCounterMeasures;
     return this;
   }

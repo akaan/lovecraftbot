@@ -8,12 +8,17 @@ import { BlobGameService } from "../services/BlobGameService";
 export class BlobCommand implements ICommand {
   aliases = ["blob"];
   help = `Commandes pour gérer une partie massivement multijoueurs du **Dévoreur de Toute Chose**.
+Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'état de la partie sera affichée.
 
-__Commandes pour les organisateurs__:
+    __*Commandes pour les joueurs*__:
+    - \`d [nombre de dégâts]\` inflige ce nombre de dégâts au Dévoreur
+    - \`i [nombre d'indices]\` place ce nombre d'indices sur l'Acte 1
+    - \`cm [nombre de contre-mesures]\` utilise ce nombre de contre-mesures
+    - \`cm+ [nombre de contre-mesures]\` ajoute ce nombre de contre-mesures
 
-- \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
-- \`admin end\` termine la partie
-  `;
+    __*Commandes pour les organisateurs*__:
+    - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
+    - \`admin end\` termine la partie`;
 
   @Inject private blobGameService!: BlobGameService;
   @Inject private envService!: EnvService;
@@ -91,8 +96,49 @@ __Commandes pour les organisateurs__:
         return this.noGame(message);
 
       // COMMANDES JOUEURS
-      if (subCmd === "state") {
+
+      if (subCmd === "") {
         return this.gameState(message.guild, message);
+      }
+
+      if (
+        subCmd === "d" &&
+        params.length > 0 &&
+        !isNaN(parseInt(params[0], 10))
+      ) {
+        return this.dealDamage(message.guild, parseInt(params[0], 10), message);
+      }
+
+      if (
+        subCmd === "i" &&
+        params.length > 0 &&
+        !isNaN(parseInt(params[0], 10))
+      ) {
+        return this.placeClues(message.guild, parseInt(params[0], 10), message);
+      }
+
+      if (
+        subCmd === "cm" &&
+        params.length > 0 &&
+        !isNaN(parseInt(params[0], 10))
+      ) {
+        return this.spendCounterMeasure(
+          message.guild,
+          parseInt(params[0], 10),
+          message
+        );
+      }
+
+      if (
+        subCmd === "cm+" &&
+        params.length > 0 &&
+        !isNaN(parseInt(params[0], 10))
+      ) {
+        return this.gainCounterMeasure(
+          message.guild,
+          parseInt(params[0], 10),
+          message
+        );
       }
     }
 
@@ -152,11 +198,109 @@ __Commandes pour les organisateurs__:
     if (gameState) {
       await message.reply(gameState);
       return {
-        resultString: `[BlobCommand] Stats envoyées`,
+        resultString: `[BlobCommand] Etat de la partie envoyée`,
       };
     }
     return {
-      resultString: `[BlobCommand] Problème à l'envoi de l'état de la partie : pas de partie.`,
+      resultString: `[BlobCommand] Problème à l'envoi de l'état de la partie : pas de partie`,
     };
+  }
+
+  private async dealDamage(
+    guild: Guild,
+    numberOfDamageDealt: number,
+    message: Message
+  ): Promise<ICommandResult> {
+    try {
+      await this.blobGameService.dealDamageToBlob(guild, numberOfDamageDealt);
+      await message.reply(
+        `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
+      );
+      return {
+        resultString: `[BlobCommand] ${numberOfDamageDealt} dégât(s) infligé(s)`,
+      };
+    } catch (err) {
+      await message.reply(`impossible: ${(err as Error).message}`);
+      return {
+        resultString: `[BlobCommand] Impossible d'infliger des dégâts : ${
+          (err as Error).message
+        }`,
+      };
+    }
+  }
+
+  private async placeClues(
+    guild: Guild,
+    numberOfClues: number,
+    message: Message
+  ): Promise<ICommandResult> {
+    try {
+      await this.blobGameService.placeCluesOnAct1(guild, numberOfClues);
+      await message.reply(
+        `c'est pris en compte, ${numberOfClues} indice(s) placés sur l'Acte 1 !`
+      );
+      return {
+        resultString: `[BlobCommand] ${numberOfClues} indice(s) placés`,
+      };
+    } catch (err) {
+      await message.reply(`impossible: ${(err as Error).message}`);
+      return {
+        resultString: `[BlobCommand] Impossible de placer des indices : ${
+          (err as Error).message
+        }`,
+      };
+    }
+  }
+
+  private async spendCounterMeasure(
+    guild: Guild,
+    numberOfCounterMeasures: number,
+    message: Message
+  ): Promise<ICommandResult> {
+    try {
+      await this.blobGameService.spendCounterMeasures(
+        guild,
+        numberOfCounterMeasures
+      );
+      await message.reply(
+        `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures dépensée(s) !`
+      );
+      return {
+        resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures dépensée(s)`,
+      };
+    } catch (err) {
+      await message.reply(`impossible: ${(err as Error).message}`);
+      return {
+        resultString: `[BlobCommand] Impossible de dépenser des contre-mesures : ${
+          (err as Error).message
+        }`,
+      };
+    }
+  }
+
+  private async gainCounterMeasure(
+    guild: Guild,
+    numberOfCounterMeasures: number,
+    message: Message
+  ): Promise<ICommandResult> {
+    try {
+      await this.blobGameService.gainCounterMeasures(
+        guild,
+        numberOfCounterMeasures
+      );
+      await message.reply(
+        `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures ajoutée(s) !`
+      );
+      return {
+        resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures ajoutée(s)`,
+      };
+    } catch (err) {
+      await message.reply(`impossible: ${(err as Error).message}`);
+      return {
+        resultString: `[BlobCommand] Impossible d'ajouter des contre-mesures : ${
+          (err as Error).message
+        }`,
+      };
+    }
   }
 }

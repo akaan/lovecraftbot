@@ -43,6 +43,7 @@ export class BlobGameService extends BaseService {
       new Date(),
       numberOfPlayers
     ));
+    game.initNumberOfCounterMeasure();
     const randomStory =
       BlobGame.POSSIBLE_STORIES[
         this.randomService.getRandomInt(0, BlobGame.POSSIBLE_STORIES.length - 1)
@@ -91,6 +92,7 @@ export class BlobGameService extends BaseService {
     const repository = this.getBlobGameRepository(guild);
     this.currentGameByGuildId[guild.id].endGame(new Date());
     await repository.save(this.currentGameByGuildId[guild.id]);
+    delete this.currentGameByGuildId[guild.id];
   }
 
   public getBlobTotalHealth(guild: Guild): number | undefined {
@@ -112,7 +114,8 @@ export class BlobGameService extends BaseService {
     guild: Guild,
     numberOfDamageDealt: number
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    if (!this.currentGameByGuildId[guild.id])
+      return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].dealDamageToBlob(numberOfDamageDealt);
     return this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
@@ -130,7 +133,8 @@ export class BlobGameService extends BaseService {
   }
 
   public placeCluesOnAct1(guild: Guild, numberOfClues: number): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    if (!this.currentGameByGuildId[guild.id])
+      return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
     return this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
@@ -146,7 +150,8 @@ export class BlobGameService extends BaseService {
     guild: Guild,
     numberOfCounterMeasures: number
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    if (!this.currentGameByGuildId[guild.id])
+      return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].gainCounterMeasures(
       numberOfCounterMeasures
     );
@@ -159,7 +164,8 @@ export class BlobGameService extends BaseService {
     guild: Guild,
     numberOfCounterMeasures: number
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id]) return Promise.reject();
+    if (!this.currentGameByGuildId[guild.id])
+      return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].spendCounterMeasures(
       numberOfCounterMeasures
     );
