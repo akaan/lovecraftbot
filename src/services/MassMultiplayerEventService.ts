@@ -1,4 +1,4 @@
-import { Client, Guild } from "discord.js";
+import { Client, Guild, MessageEmbed, TextChannel } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { LoggerService } from "./LoggerService";
@@ -60,6 +60,28 @@ export class MassMultiplayerEventService extends BaseService {
     );
     this.groupChannelsIdByGuildId[guild.id] = [];
     await this.saveState(guild);
+  }
+
+  public async broadcastMessage(
+    guild: Guild,
+    content: string | MessageEmbed,
+    excludeGroupIds?: string[]
+  ): Promise<void> {
+    let groupsId = this.groupChannelsIdByGuildId[guild.id];
+    if (excludeGroupIds) {
+      groupsId = groupsId.filter((id) => !excludeGroupIds.includes(id));
+    }
+    await Promise.all(
+      groupsId.map((groupId) => {
+        const channel = guild.channels.cache.find(
+          (channel) => channel.id === groupId
+        );
+        if (channel && channel.type === "text") {
+          return (channel as TextChannel).send(content);
+        }
+        return Promise.resolve(null);
+      })
+    );
   }
 
   private getCategoryIdByName(

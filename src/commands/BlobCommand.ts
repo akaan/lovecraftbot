@@ -2,7 +2,7 @@ import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { Inject } from "typescript-ioc";
 import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
 import { EnvService } from "../services/EnvService";
-import { Guild, Message } from "discord.js";
+import { Guild, Message, TextChannel } from "discord.js";
 import { BlobGameService } from "../services/BlobGameService";
 
 export class BlobCommand implements ICommand {
@@ -216,6 +216,13 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await message.reply(
         `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
       );
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `${
+          (message.channel as TextChannel).name
+        } a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        [message.channel.id]
+      );
       return {
         resultString: `[BlobCommand] ${numberOfDamageDealt} dégât(s) infligé(s)`,
       };
@@ -238,6 +245,13 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await this.blobGameService.placeCluesOnAct1(guild, numberOfClues);
       await message.reply(
         `c'est pris en compte, ${numberOfClues} indice(s) placés sur l'Acte 1 !`
+      );
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `${
+          (message.channel as TextChannel).name
+        } a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
+        [message.channel.id]
       );
       return {
         resultString: `[BlobCommand] ${numberOfClues} indice(s) placés`,
@@ -265,6 +279,13 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await message.reply(
         `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures dépensée(s) !`
       );
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `${
+          (message.channel as TextChannel).name
+        } a dépensé ${numberOfCounterMeasures} contre-mesures(s) !`,
+        [message.channel.id]
+      );
       return {
         resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures dépensée(s)`,
       };
@@ -290,6 +311,13 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       );
       await message.reply(
         `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures ajoutée(s) !`
+      );
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `${
+          (message.channel as TextChannel).name
+        } a ajouté ${numberOfCounterMeasures} contre-mesures(s) !`,
+        [message.channel.id]
       );
       return {
         resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures ajoutée(s)`,
