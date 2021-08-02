@@ -53,7 +53,10 @@ export class BlobGame {
   }
 
   public dealDamageToBlob(amount: number): this {
-    this.numberOfDamageDealtToBlob += amount;
+    this.numberOfDamageDealtToBlob = Math.min(
+      this.getBlobTotalHealth(),
+      this.numberOfDamageDealtToBlob + amount
+    );
     return this;
   }
 
