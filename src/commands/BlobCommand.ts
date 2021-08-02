@@ -1,7 +1,5 @@
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { Inject } from "typescript-ioc";
-import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
-import { EnvService } from "../services/EnvService";
 import { Guild, Message, TextChannel } from "discord.js";
 import { BlobGameService } from "../services/BlobGameService";
 
@@ -22,8 +20,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     - \`admin end\` termine la partie`;
 
   @Inject private blobGameService!: BlobGameService;
-  @Inject private envService!: EnvService;
-  @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;
@@ -37,15 +33,7 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       };
     }
 
-    const massMultiplayerEventCategoryName =
-      this.envService.massMultiplayerEventCategoryName;
-    const massMultiplayerEventAdminChannelName =
-      this.envService.massMultiplayerEventAdminChannelName;
-
-    if (
-      !massMultiplayerEventCategoryName ||
-      !massMultiplayerEventAdminChannelName
-    ) {
+    if (!this.blobGameService.ready()) {
       await message.reply("désolé mais j'ai un problème de configuration.");
       return {
         resultString: `[BlobCommand] Impossible de traiter la commande en l'absence de configuration.`,
@@ -54,17 +42,10 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
 
     const [subCmd, ...params] = args.split(" ");
 
-    if (
-      message.channel.type === "text" &&
-      message.channel.parent &&
-      message.channel.parent.name === massMultiplayerEventCategoryName
-    ) {
+    if (this.blobGameService.isEventChannel(message.channel)) {
       // COMMANDES ADMIN
       if (subCmd === "admin") {
-        if (
-          message.channel.type === "text" &&
-          message.channel.name === massMultiplayerEventAdminChannelName
-        ) {
+        if (this.blobGameService.isAdminChannel(message.channel)) {
           const [adminAction, ...adminActionParams] = params;
 
           if (adminAction === "start") {
@@ -77,7 +58,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
             ) {
               return this.startGame(
                 message.guild,
-                massMultiplayerEventCategoryName,
                 parseInt(numberOfPlayers, 10),
                 parseInt(numberOfGroups, 10),
                 message
@@ -167,27 +147,33 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
 
   private async startGame(
     guild: Guild,
-    massMultiplayerEventCategoryName: string,
     numberOfPlayers: number,
     numberOfGroups: number,
     message: Message
   ): Promise<ICommandResult> {
-    await this.massMultiplayerEventService.createGroupChannels(
-      guild,
-      massMultiplayerEventCategoryName,
-      numberOfGroups
-    );
+    try {
+      await this.blobGameService.startNewGame(
+        guild,
+        numberOfPlayers,
+        numberOfGroups
+      );
 
-    await this.blobGameService.startNewGame(guild, numberOfPlayers);
-
-    await message.reply(
-      `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
-    );
-    const gameState = this.blobGameService.createGameStateEmbed(guild);
-    if (gameState) await message.reply(gameState);
-    return {
-      resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
-    };
+      await message.reply(
+        `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
+      );
+      const gameState = this.blobGameService.createGameStateEmbed(guild);
+      if (gameState) await message.reply(gameState);
+      return {
+        resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
+      };
+    } catch (err) {
+      await message.reply(`j'ai eu un problème : ${(err as Error).message}.`);
+      return {
+        resultString: `[BlobCommand] Impossible de démarrer la partie : ${
+          (err as Error).message
+        }`,
+      };
+    }
   }
 
   private async noGame(message: Message): Promise<ICommandResult> {
@@ -202,7 +188,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     message: Message
   ): Promise<ICommandResult> {
     await this.blobGameService.endGame(guild);
-    await this.massMultiplayerEventService.cleanGroupChannels(guild);
     await message.reply(`partie terminée !`);
     return {
       resultString: `[BlobCommand] Fin de partie}`,
@@ -234,33 +219,11 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await this.blobGameService.dealDamageToBlob(
         guild,
         numberOfDamageDealt,
-        message.channel.id
+        message.channel as TextChannel
       );
-
-      if (this.blobGameService.getBlobRemainingHealth(guild) === 0) {
-        await message.reply(
-          `vous portez le coup fatal avec ${numberOfDamageDealt} infligé(s) ! Bravo !`
-        );
-        await this.massMultiplayerEventService.broadcastMessage(
-          guild,
-          `${
-            (message.channel as TextChannel).name
-          } a porté le coup fatal en infligeant ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
-          [message.channel.id]
-        );
-        await this.gameWon(guild);
-      } else {
-        await message.reply(
-          `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
-        );
-        await this.massMultiplayerEventService.broadcastMessage(
-          guild,
-          `${
-            (message.channel as TextChannel).name
-          } a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
-          [message.channel.id]
-        );
-      }
+      await message.reply(
+        `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
+      );
       return {
         resultString: `[BlobCommand] ${numberOfDamageDealt} dégât(s) infligé(s)`,
       };
@@ -283,17 +246,10 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await this.blobGameService.placeCluesOnAct1(
         guild,
         numberOfClues,
-        message.channel.id
+        message.channel as TextChannel
       );
       await message.reply(
         `c'est pris en compte, ${numberOfClues} indice(s) placés sur l'Acte 1 !`
-      );
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        `${
-          (message.channel as TextChannel).name
-        } a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
-        [message.channel.id]
       );
       return {
         resultString: `[BlobCommand] ${numberOfClues} indice(s) placés`,
@@ -317,17 +273,10 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await this.blobGameService.spendCounterMeasures(
         guild,
         numberOfCounterMeasures,
-        message.channel.id
+        message.channel as TextChannel
       );
       await message.reply(
         `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures dépensée(s) !`
-      );
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        `${
-          (message.channel as TextChannel).name
-        } a dépensé ${numberOfCounterMeasures} contre-mesures(s) !`,
-        [message.channel.id]
       );
       return {
         resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures dépensée(s)`,
@@ -351,17 +300,10 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       await this.blobGameService.gainCounterMeasures(
         guild,
         numberOfCounterMeasures,
-        message.channel.id
+        message.channel as TextChannel
       );
       await message.reply(
         `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures ajoutée(s) !`
-      );
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        `${
-          (message.channel as TextChannel).name
-        } a ajouté ${numberOfCounterMeasures} contre-mesures(s) !`,
-        [message.channel.id]
       );
       return {
         resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures ajoutée(s)`,
@@ -373,20 +315,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
           (err as Error).message
         }`,
       };
-    }
-  }
-
-  private async gameWon(guild: Guild): Promise<void> {
-    await this.massMultiplayerEventService.broadcastMessage(
-      guild,
-      `Félications, vous avez vaincu le Dévoreur !`
-    );
-    const statsEmbed = this.blobGameService.createGameStatsEmbed(guild);
-    if (statsEmbed) {
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        statsEmbed
-      );
     }
   }
 }

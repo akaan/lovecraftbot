@@ -1,4 +1,5 @@
 import {
+  Channel,
   Client,
   EmbedFieldData,
   Guild,
@@ -10,6 +11,7 @@ import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
 import { BlobGameFileRepository } from "./BlobGameFileRepository";
 import { LoggerService } from "./LoggerService";
+import { MassMultiplayerEventService } from "./MassMultiplayerEventService";
 import { RandomService } from "./RandomService";
 import { ResourcesService } from "./ResourcesService";
 
@@ -40,6 +42,7 @@ export class BlobGameService extends BaseService {
   @Inject private logger!: LoggerService;
   @Inject private randomService!: RandomService;
   @Inject private resourcesService!: ResourcesService;
+  @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
@@ -57,10 +60,28 @@ export class BlobGameService extends BaseService {
     );
   }
 
+  public ready(): boolean {
+    return this.massMultiplayerEventService.ready();
+  }
+
+  public isEventChannel(channel: Channel): boolean {
+    return this.massMultiplayerEventService.isEventChannel(channel);
+  }
+
+  public isAdminChannel(channel: Channel): boolean {
+    return this.massMultiplayerEventService.isAdminChannel(channel);
+  }
+
   public async startNewGame(
     guild: Guild,
-    numberOfPlayers: number
+    numberOfPlayers: number,
+    numberOfGroups: number
   ): Promise<void> {
+    if (!this.ready())
+      return Promise.reject(new Error("Problème de configuration"));
+    if (this.massMultiplayerEventService.runningEvent(guild))
+      return Promise.reject(new Error("Il y a déjà un événement en cours"));
+
     const repository = this.getBlobGameRepository(guild);
 
     const nextId = await repository.nextId();
@@ -76,6 +97,12 @@ export class BlobGameService extends BaseService {
       ];
     game.chooseStory(randomStory);
     await repository.save(game);
+
+    await this.massMultiplayerEventService.createGroupChannels(
+      guild,
+      numberOfGroups
+    );
+
     return;
   }
 
@@ -161,6 +188,7 @@ export class BlobGameService extends BaseService {
     delete this.currentGameByGuildId[guild.id];
     this.gameStatsByGuildId[guild.id] = {};
     await this.saveState(guild);
+    await this.massMultiplayerEventService.cleanGroupChannels(guild);
   }
 
   public getBlobTotalHealth(guild: Guild): number | undefined {
@@ -178,18 +206,36 @@ export class BlobGameService extends BaseService {
     return this.currentGameByGuildId[guild.id].getNumberOfDamageDealtToBlob();
   }
 
-  public dealDamageToBlob(
+  public async dealDamageToBlob(
     guild: Guild,
     numberOfDamageDealt: number,
-    groupId: string
+    groupChannel: TextChannel
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].dealDamageToBlob(numberOfDamageDealt);
-    this.recordStat(guild, groupId, "damageDealt", numberOfDamageDealt);
-    return this.getBlobGameRepository(guild).save(
+    this.recordStat(guild, groupChannel.id, "damageDealt", numberOfDamageDealt);
+    await this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
     );
+
+    if (this.getBlobRemainingHealth(guild) === 0) {
+      await groupChannel.send(
+        `vous portez le coup fatal avec ${numberOfDamageDealt} infligé(s) ! Bravo !`
+      );
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `${groupChannel.name} a porté le coup fatal en infligeant ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        [groupChannel.id]
+      );
+      await this.gameWon(guild);
+    } else {
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        `${groupChannel.name} a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        [groupChannel.id]
+      );
+    }
   }
 
   public getAct1ClueThreshold(guild: Guild): number | undefined {
@@ -202,10 +248,10 @@ export class BlobGameService extends BaseService {
     return this.currentGameByGuildId[guild.id].getNumberOfCluesOnAct1();
   }
 
-  public placeCluesOnAct1(
+  public async placeCluesOnAct1(
     guild: Guild,
     numberOfClues: number,
-    groupId: string
+    groupChannel: TextChannel
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
@@ -214,9 +260,20 @@ export class BlobGameService extends BaseService {
         new Error("L'Acte 1 précise qu'on peut dépenser au plus 3 indices")
       );
     this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
-    this.recordStat(guild, groupId, "numberOfCluesAdded", numberOfClues);
-    return this.getBlobGameRepository(guild).save(
+    this.recordStat(
+      guild,
+      groupChannel.id,
+      "numberOfCluesAdded",
+      numberOfClues
+    );
+    await this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
+    );
+
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      `${groupChannel.name} a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
+      [groupChannel.id]
     );
   }
 
@@ -225,10 +282,10 @@ export class BlobGameService extends BaseService {
     return this.currentGameByGuildId[guild.id].getNumberOfCounterMeasures();
   }
 
-  public gainCounterMeasures(
+  public async gainCounterMeasures(
     guild: Guild,
     numberOfCounterMeasures: number,
-    groupId: string
+    groupChannel: TextChannel
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
@@ -237,19 +294,24 @@ export class BlobGameService extends BaseService {
     );
     this.recordStat(
       guild,
-      groupId,
+      groupChannel.id,
       "numberOfCounterMeasuresAdded",
       numberOfCounterMeasures
     );
-    return this.getBlobGameRepository(guild).save(
+    await this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
+    );
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      `${groupChannel.name} a ajouté ${numberOfCounterMeasures} contre-mesures(s) !`,
+      [groupChannel.id]
     );
   }
 
-  public spendCounterMeasures(
+  public async spendCounterMeasures(
     guild: Guild,
     numberOfCounterMeasures: number,
-    groupId: string
+    groupChannel: TextChannel
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
@@ -258,12 +320,17 @@ export class BlobGameService extends BaseService {
     );
     this.recordStat(
       guild,
-      groupId,
+      groupChannel.id,
       "numberOfCounterMeasuresSpent",
       numberOfCounterMeasures
     );
-    return this.getBlobGameRepository(guild).save(
+    await this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
+    );
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      `${groupChannel.name} a dépensé ${numberOfCounterMeasures} contre-mesures(s) !`,
+      [groupChannel.id]
     );
   }
 
@@ -319,6 +386,20 @@ export class BlobGameService extends BaseService {
       this.gameStatsByGuildId[guild.id][groupId][statName] + amount;
 
     this.saveState(guild).catch((err) => this.logger.error(err));
+  }
+
+  private async gameWon(guild: Guild): Promise<void> {
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      `Félications, vous avez vaincu le Dévoreur !`
+    );
+    const statsEmbed = this.createGameStatsEmbed(guild);
+    if (statsEmbed) {
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        statsEmbed
+      );
+    }
   }
 
   private async loadState(guild: Guild): Promise<void> {

@@ -1,12 +1,21 @@
-import { Client, Guild, MessageEmbed, TextChannel } from "discord.js";
+import {
+  Channel,
+  Client,
+  Guild,
+  GuildChannel,
+  MessageEmbed,
+  TextChannel,
+} from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
+import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
 @Singleton
 @OnlyInstantiableByContainer
 export class MassMultiplayerEventService extends BaseService {
+  @Inject envService!: EnvService;
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
 
@@ -22,12 +31,59 @@ export class MassMultiplayerEventService extends BaseService {
     );
   }
 
+  public ready(): boolean {
+    return (
+      !!this.envService.massMultiplayerEventAdminChannelName &&
+      !!this.envService.massMultiplayerEventCategoryName
+    );
+  }
+
+  public runningEvent(guild: Guild): boolean {
+    return (
+      this.groupChannelsIdByGuildId[guild.id] &&
+      this.groupChannelsIdByGuildId[guild.id].length !== 0
+    );
+  }
+
+  public isEventChannel(channel: Channel): boolean {
+    if (!channel.isText()) return false;
+    if (!this.envService.massMultiplayerEventCategoryName) return false;
+
+    const channelParent = (channel as GuildChannel).parent;
+    if (channelParent === null) return false;
+
+    return (
+      channelParent.name === this.envService.massMultiplayerEventCategoryName
+    );
+  }
+
+  public isAdminChannel(channel: Channel): boolean {
+    if (!channel.isText()) return false;
+    if (!this.envService.massMultiplayerEventCategoryName) return false;
+    if (!this.envService.massMultiplayerEventAdminChannelName) return false;
+
+    const channelParent = (channel as GuildChannel).parent;
+    if (channelParent === null) return false;
+
+    return (
+      channelParent.name === this.envService.massMultiplayerEventCategoryName &&
+      (channel as TextChannel).name ===
+        this.envService.massMultiplayerEventAdminChannelName
+    );
+  }
+
+  public getChannel(guild: Guild, groupId: string): Channel | undefined {
+    return guild.channels.cache.find((channel) => channel.id === groupId);
+  }
+
   public async createGroupChannels(
     guild: Guild,
-    categoryName: string,
     numberOfGroups: number
   ): Promise<void> {
-    const categoryId = this.getCategoryIdByName(guild, categoryName);
+    const categoryId = this.getCategoryIdByName(
+      guild,
+      this.envService.massMultiplayerEventCategoryName || ""
+    );
     if (!categoryId)
       throw new Error("Impossible de créer les groupes sans catégorie");
 
