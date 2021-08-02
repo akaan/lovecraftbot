@@ -39,10 +39,23 @@ export class MassMultiplayerEventService extends BaseService {
         }
       );
       await groupChannel.setParent(categoryId);
+
+      const groupVoiceChannel = await guild.channels.create(
+        `voice groupe-${groupNumber}`,
+        {
+          type: "voice",
+        }
+      );
+      await groupVoiceChannel.setParent(categoryId);
+
       if (this.groupChannelsIdByGuildId[guild.id]) {
         this.groupChannelsIdByGuildId[guild.id].push(groupChannel.id);
+        this.groupChannelsIdByGuildId[guild.id].push(groupVoiceChannel.id);
       } else {
-        this.groupChannelsIdByGuildId[guild.id] = [groupChannel.id];
+        this.groupChannelsIdByGuildId[guild.id] = [
+          groupChannel.id,
+          groupVoiceChannel.id,
+        ];
       }
     }
     await this.saveState(guild);
