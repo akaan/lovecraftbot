@@ -135,6 +135,10 @@ export class BlobGameService extends BaseService {
   public placeCluesOnAct1(guild: Guild, numberOfClues: number): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
+    if (numberOfClues > 3)
+      return Promise.reject(
+        new Error("L'Acte 1 précise qu'on peut dépenser au plus 3 indices")
+      );
     this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
     return this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
