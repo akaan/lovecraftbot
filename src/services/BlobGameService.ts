@@ -67,6 +67,7 @@ export class BlobGameService extends BaseService {
         .getDateCreated()
         .toLocaleDateString()}`
     );
+    embed.setColor(0x67c355);
     embed.addFields([
       { name: "Nombre de joueurs", value: game.getNumberOfPlayers() },
       {
