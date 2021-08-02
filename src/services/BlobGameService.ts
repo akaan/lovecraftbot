@@ -3,7 +3,18 @@ import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
 import { BlobGameFileRepository } from "./BlobGameFileRepository";
+import { LoggerService } from "./LoggerService";
 import { RandomService } from "./RandomService";
+import { ResourcesService } from "./ResourcesService";
+
+interface BlobGameStats {
+  damageDealt: number;
+  numberOfCluesAdded: number;
+  numberOfCounterMeasuresSpent: number;
+  numberOfCounterMeasuresAdded: number;
+}
+
+type BlobGameStatsByGroup = { [groupId: string]: BlobGameStats };
 
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
   if (bg1.getDateCreated() < bg2.getDateCreated()) return 1;
@@ -18,8 +29,11 @@ export class BlobGameService extends BaseService {
     [guildId: string]: BlobGameFileRepository;
   } = {};
   private currentGameByGuildId: { [guildId: string]: BlobGame } = {};
+  private gameStatsByGuildId: { [guildId: string]: BlobGameStatsByGroup } = {};
 
+  @Inject private logger!: LoggerService;
   @Inject private randomService!: RandomService;
+  @Inject private resourcesService!: ResourcesService;
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
@@ -27,6 +41,12 @@ export class BlobGameService extends BaseService {
     await Promise.all(
       client.guilds.cache.map((guild) => {
         return this.continueLatestGame(guild);
+      })
+    );
+
+    await Promise.all(
+      client.guilds.cache.map((guild) => {
+        return this.loadState(guild);
       })
     );
   }
@@ -93,6 +113,8 @@ export class BlobGameService extends BaseService {
     this.currentGameByGuildId[guild.id].endGame(new Date());
     await repository.save(this.currentGameByGuildId[guild.id]);
     delete this.currentGameByGuildId[guild.id];
+    this.gameStatsByGuildId[guild.id] = {};
+    await this.saveState(guild);
   }
 
   public getBlobTotalHealth(guild: Guild): number | undefined {
@@ -112,11 +134,13 @@ export class BlobGameService extends BaseService {
 
   public dealDamageToBlob(
     guild: Guild,
-    numberOfDamageDealt: number
+    numberOfDamageDealt: number,
+    groupId: string
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].dealDamageToBlob(numberOfDamageDealt);
+    this.recordStat(guild, groupId, "damageDealt", numberOfDamageDealt);
     return this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
     );
@@ -132,7 +156,11 @@ export class BlobGameService extends BaseService {
     return this.currentGameByGuildId[guild.id].getNumberOfCluesOnAct1();
   }
 
-  public placeCluesOnAct1(guild: Guild, numberOfClues: number): Promise<void> {
+  public placeCluesOnAct1(
+    guild: Guild,
+    numberOfClues: number,
+    groupId: string
+  ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
     if (numberOfClues > 3)
@@ -140,6 +168,7 @@ export class BlobGameService extends BaseService {
         new Error("L'Acte 1 précise qu'on peut dépenser au plus 3 indices")
       );
     this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
+    this.recordStat(guild, groupId, "numberOfCluesAdded", numberOfClues);
     return this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
     );
@@ -152,11 +181,18 @@ export class BlobGameService extends BaseService {
 
   public gainCounterMeasures(
     guild: Guild,
-    numberOfCounterMeasures: number
+    numberOfCounterMeasures: number,
+    groupId: string
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].gainCounterMeasures(
+      numberOfCounterMeasures
+    );
+    this.recordStat(
+      guild,
+      groupId,
+      "numberOfCounterMeasuresAdded",
       numberOfCounterMeasures
     );
     return this.getBlobGameRepository(guild).save(
@@ -166,11 +202,18 @@ export class BlobGameService extends BaseService {
 
   public spendCounterMeasures(
     guild: Guild,
-    numberOfCounterMeasures: number
+    numberOfCounterMeasures: number,
+    groupId: string
   ): Promise<void> {
     if (!this.currentGameByGuildId[guild.id])
       return Promise.reject(new Error("Pas de partie en cours"));
     this.currentGameByGuildId[guild.id].spendCounterMeasures(
+      numberOfCounterMeasures
+    );
+    this.recordStat(
+      guild,
+      groupId,
+      "numberOfCounterMeasuresSpent",
       numberOfCounterMeasures
     );
     return this.getBlobGameRepository(guild).save(
@@ -206,5 +249,66 @@ export class BlobGameService extends BaseService {
 
     this.currentGameByGuildId[guild.id] = runningGames.sort(sortByDateDesc)[0];
     return this.currentGameByGuildId[guild.id].getDateCreated();
+  }
+
+  private recordStat(
+    guild: Guild,
+    groupId: string,
+    statName: keyof BlobGameStats,
+    amount: number
+  ): void {
+    if (!this.gameStatsByGuildId[guild.id]) {
+      this.gameStatsByGuildId[guild.id] = {};
+    }
+    if (!this.gameStatsByGuildId[guild.id][groupId]) {
+      this.gameStatsByGuildId[guild.id][groupId] = {
+        damageDealt: 0,
+        numberOfCluesAdded: 0,
+        numberOfCounterMeasuresAdded: 0,
+        numberOfCounterMeasuresSpent: 0,
+      };
+    }
+
+    this.gameStatsByGuildId[guild.id][groupId][statName] =
+      this.gameStatsByGuildId[guild.id][groupId][statName] + amount;
+
+    this.saveState(guild).catch((err) => this.logger.error(err));
+  }
+
+  private async loadState(guild: Guild): Promise<void> {
+    try {
+      if (
+        await this.resourcesService.guildResourceExists(
+          guild,
+          `blobGameStats.json`
+        )
+      ) {
+        const raw = await this.resourcesService.readGuildResource(
+          guild,
+          `blobGameStats.json`
+        );
+        if (raw) {
+          const parsed = JSON.parse(raw) as BlobGameStatsByGroup;
+          this.gameStatsByGuildId[guild.id] = parsed;
+        } else {
+          this.gameStatsByGuildId[guild.id] = {};
+        }
+      }
+    } catch (err) {
+      this.logger.error(err);
+    }
+  }
+
+  private async saveState(guild: Guild): Promise<void> {
+    if (!this.gameStatsByGuildId[guild.id]) return;
+    try {
+      await this.resourcesService.saveGuildResource(
+        guild,
+        `blobGameStats.json`,
+        JSON.stringify(this.gameStatsByGuildId[guild.id], null, "  ")
+      );
+    } catch (err) {
+      this.logger.error(err);
+    }
   }
 }

@@ -212,7 +212,11 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     message: Message
   ): Promise<ICommandResult> {
     try {
-      await this.blobGameService.dealDamageToBlob(guild, numberOfDamageDealt);
+      await this.blobGameService.dealDamageToBlob(
+        guild,
+        numberOfDamageDealt,
+        message.channel.id
+      );
 
       if (this.blobGameService.getBlobRemainingHealth(guild) === 0) {
         await message.reply(
@@ -256,7 +260,11 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     message: Message
   ): Promise<ICommandResult> {
     try {
-      await this.blobGameService.placeCluesOnAct1(guild, numberOfClues);
+      await this.blobGameService.placeCluesOnAct1(
+        guild,
+        numberOfClues,
+        message.channel.id
+      );
       await message.reply(
         `c'est pris en compte, ${numberOfClues} indice(s) placés sur l'Acte 1 !`
       );
@@ -288,7 +296,8 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     try {
       await this.blobGameService.spendCounterMeasures(
         guild,
-        numberOfCounterMeasures
+        numberOfCounterMeasures,
+        message.channel.id
       );
       await message.reply(
         `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures dépensée(s) !`
@@ -321,7 +330,8 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     try {
       await this.blobGameService.gainCounterMeasures(
         guild,
-        numberOfCounterMeasures
+        numberOfCounterMeasures,
+        message.channel.id
       );
       await message.reply(
         `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures ajoutée(s) !`
