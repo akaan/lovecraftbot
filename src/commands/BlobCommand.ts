@@ -18,6 +18,7 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
 
     __*Commandes pour les organisateurs*__:
     - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
+    - \`admin stats\` affiche les statistiques
     - \`admin end\` termine la partie`;
 
   @Inject private blobGameService!: BlobGameService;
@@ -84,9 +85,27 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
             }
           }
 
+          if (!this.blobGameService.isGameRunning(message.guild))
+            return this.noGame(message);
+
+          if (adminAction === "stats") {
+            const statsEmbed = this.blobGameService.createGameStatsEmbed(
+              message.guild
+            );
+            if (statsEmbed) {
+              await message.reply(statsEmbed);
+              return {
+                resultString: `[BlobCommand] Statistiques de jeu envoyées`,
+              };
+            } else {
+              await message.reply("pas de statistiques de jeu disponibles.");
+              return {
+                resultString: `[BlobCommand] Pas de statistiques de jeu disponibles`,
+              };
+            }
+          }
+
           if (adminAction === "end") {
-            if (!this.blobGameService.isGameRunning(message.guild))
-              return this.noGame(message);
             return this.endGame(message.guild, message);
           }
         }
@@ -229,6 +248,7 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
           } a porté le coup fatal en infligeant ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
           [message.channel.id]
         );
+        await this.gameWon(guild);
       } else {
         await message.reply(
           `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
@@ -353,6 +373,20 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
           (err as Error).message
         }`,
       };
+    }
+  }
+
+  private async gameWon(guild: Guild): Promise<void> {
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      `Félications, vous avez vaincu le Dévoreur !`
+    );
+    const statsEmbed = this.blobGameService.createGameStatsEmbed(guild);
+    if (statsEmbed) {
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        statsEmbed
+      );
     }
   }
 }

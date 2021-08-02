@@ -1,4 +1,10 @@
-import { Client, Guild, MessageEmbed } from "discord.js";
+import {
+  Client,
+  EmbedFieldData,
+  Guild,
+  MessageEmbed,
+  TextChannel,
+} from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
@@ -104,6 +110,46 @@ export class BlobGameService extends BaseService {
         value: game.getNumberOfCounterMeasures(),
       },
     ]);
+
+    return embed;
+  }
+
+  public createGameStatsEmbed(guild: Guild): MessageEmbed | undefined {
+    if (!this.isGameRunning(guild)) return undefined;
+    const game = this.currentGameByGuildId[guild.id];
+
+    if (!this.gameStatsByGuildId[guild.id]) return undefined;
+    const gameStats = this.gameStatsByGuildId[guild.id];
+
+    const embed = new MessageEmbed();
+
+    embed.setTitle(
+      `Le Dévoreur de Toute Chose - ${game
+        .getDateCreated()
+        .toLocaleDateString()} - Statistiques`
+    );
+    embed.setColor(0x67c355);
+
+    const fields: EmbedFieldData[] = Object.keys(gameStats).reduce(
+      (memo, groupId) => {
+        const group = this.client?.channels.cache.find(
+          (channel) => channel.id === groupId
+        );
+        if (group) {
+          const statsForGroup = gameStats[groupId];
+          const fieldValue = [
+            `Nombre de dégât(s): ${statsForGroup.damageDealt}`,
+            `Nombre d'indice(s): ${statsForGroup.numberOfCluesAdded}`,
+            `Nombre de contre-mesures ajoutée(s): ${statsForGroup.numberOfCounterMeasuresAdded}`,
+            `Nombre de contre-mesures dépensée(s): ${statsForGroup.numberOfCounterMeasuresSpent}`,
+          ].join("\n");
+          memo.push({ name: (group as TextChannel).name, value: fieldValue });
+        }
+        return memo;
+      },
+      [] as EmbedFieldData[]
+    );
+    embed.addFields(fields);
 
     return embed;
   }
