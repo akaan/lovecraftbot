@@ -213,16 +213,30 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
   ): Promise<ICommandResult> {
     try {
       await this.blobGameService.dealDamageToBlob(guild, numberOfDamageDealt);
-      await message.reply(
-        `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
-      );
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        `${
-          (message.channel as TextChannel).name
-        } a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
-        [message.channel.id]
-      );
+
+      if (this.blobGameService.getBlobRemainingHealth(guild) === 0) {
+        await message.reply(
+          `vous portez le coup fatal avec ${numberOfDamageDealt} infligé(s) ! Bravo !`
+        );
+        await this.massMultiplayerEventService.broadcastMessage(
+          guild,
+          `${
+            (message.channel as TextChannel).name
+          } a porté le coup fatal en infligeant ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+          [message.channel.id]
+        );
+      } else {
+        await message.reply(
+          `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
+        );
+        await this.massMultiplayerEventService.broadcastMessage(
+          guild,
+          `${
+            (message.channel as TextChannel).name
+          } a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+          [message.channel.id]
+        );
+      }
       return {
         resultString: `[BlobCommand] ${numberOfDamageDealt} dégât(s) infligé(s)`,
       };
