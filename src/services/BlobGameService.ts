@@ -345,8 +345,11 @@ export class BlobGameService extends BaseService {
   }
 
   public getStory(guild: Guild): string | undefined {
-    if (!this.currentGameByGuildId[guild.id]) return;
-    return this.currentGameByGuildId[guild.id].getStory();
+    const game = this.currentGameByGuildId[guild.id];
+    if (!game) return;
+    if (!(game.getNumberOfCluesOnAct1() === game.getAct1ClueThreshold()))
+      return;
+    return game.getStory();
   }
 
   private getBlobGameRepository(guild: Guild): BlobGameFileRepository {

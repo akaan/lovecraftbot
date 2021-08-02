@@ -13,6 +13,7 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     - \`i [nombre d'indices]\` place ce nombre d'indices sur l'Acte 1
     - \`cm [nombre de contre-mesures]\` utilise ce nombre de contre-mesures
     - \`cm+ [nombre de contre-mesures]\` ajoute ce nombre de contre-mesures
+    - \`story\` obtenir l'histoire retenue pour cette partie
 
     __*Commandes pour les organisateurs*__:
     - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
@@ -138,6 +139,21 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
           parseInt(params[0], 10),
           message
         );
+      }
+
+      if (subCmd === "story") {
+        const story = this.blobGameService.getStory(message.guild);
+        if (story) {
+          await message.reply(`l'histoire retenue est : ${story}`);
+          return {
+            resultString: `[BlobCommand] Histoire envoyée`,
+          };
+        } else {
+          await message.reply(`hmmm, il est peut-être trop tôt pour ça.`);
+          return {
+            resultString: `[BlobCommand] Pas d'histoire disponible`,
+          };
+        }
       }
     }
 
