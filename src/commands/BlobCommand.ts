@@ -18,7 +18,10 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     __*Commandes pour les organisateurs*__:
     - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
     - \`admin stats\` affiche les statistiques
-    - \`admin end\` termine la partie`;
+    - \`admin end\` termine la partie
+    - \`admin timer init [minutes]\` démarre une minuterie du nombre de minutes indiquées
+    - \`admin timer pause\` met en pause la minuterie
+    - \`admin timer resume\` reprend la mintuerie`;
 
   @Inject private blobGameService!: BlobGameService;
 
@@ -88,6 +91,37 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
 
           if (adminAction === "end") {
             return this.endGame(message.guild, message);
+          }
+
+          if (adminAction === "timer") {
+            const [timerAction, ...timerActionParams] = adminActionParams;
+            if (timerAction === "start") {
+              if (
+                timerActionParams.length > 0 &&
+                !isNaN(parseInt(timerActionParams[0], 10))
+              ) {
+                const minutes = parseInt(timerActionParams[0], 10);
+                this.blobGameService.startTimer(message.guild, minutes);
+                await message.reply(`minuterie de ${minutes} minutes lancée !`);
+                return {
+                  resultString: `[BlobCommand] Minuterie de ${minutes} minutes lancée`,
+                };
+              }
+            }
+            if (timerAction === "pause") {
+              this.blobGameService.pauseTimer(message.guild);
+              await message.reply(`la minuterie est arrêtée !`);
+              return {
+                resultString: `[BlobCommand] Arrêt de la minuterie`,
+              };
+            }
+            if (timerAction === "resume") {
+              this.blobGameService.resumeTimer(message.guild);
+              await message.reply(`la minuterie a repris !`);
+              return {
+                resultString: `[BlobCommand] Reprise de la minuterie`,
+              };
+            }
           }
         }
       }

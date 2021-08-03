@@ -24,6 +24,11 @@ interface BlobGameStats {
 
 type BlobGameStatsByGroup = { [groupId: string]: BlobGameStats };
 
+interface BlobGameServiceState {
+  stats?: BlobGameStatsByGroup;
+  timer?: number;
+}
+
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
   if (bg1.getDateCreated() < bg2.getDateCreated()) return 1;
   if (bg1.getDateCreated() > bg2.getDateCreated()) return -1;
@@ -33,11 +38,15 @@ const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
 @Singleton
 @OnlyInstantiableByContainer
 export class BlobGameService extends BaseService {
+  private static STATE_FILE_NAME = "blobGameServiceState.json";
+
   private blobGameRepositoryByGuildId: {
     [guildId: string]: BlobGameFileRepository;
   } = {};
   private currentGameByGuildId: { [guildId: string]: BlobGame } = {};
   private gameStatsByGuildId: { [guildId: string]: BlobGameStatsByGroup } = {};
+  private gameTimerByGuildId: { [guildId: string]: number } = {};
+  private gameTimeoutByGuildId: { [guildId: string]: NodeJS.Timeout } = {};
 
   @Inject private logger!: LoggerService;
   @Inject private randomService!: RandomService;
@@ -106,6 +115,76 @@ export class BlobGameService extends BaseService {
     return;
   }
 
+  private setUpTimerInterval(guild: Guild): void {
+    if (!this.client)
+      throw new Error(
+        "Pas de client Discord, impossible de créer une minuterie"
+      );
+
+    this.gameTimeoutByGuildId[guild.id] = this.client.setInterval(() => {
+      if (guild.id in this.gameTimerByGuildId) {
+        this.gameTimerByGuildId[guild.id] -= 1;
+        this.saveState(guild).catch((err) => this.logger.error(err));
+        if (this.gameTimerByGuildId[guild.id] === 0) {
+          this.timeIsUp(guild);
+          this.clearTimerInterval(guild);
+          return;
+        }
+        if (this.gameTimerByGuildId[guild.id] % 15 === 0) {
+          this.tellTimeRemaining(guild);
+        }
+      }
+    }, 1000 * 60);
+  }
+
+  private clearTimerInterval(guild: Guild) {
+    if (!this.client)
+      throw new Error(
+        "Pas de client Discord, impossible de stopper une minuterie"
+      );
+
+    if (guild.id in this.gameTimeoutByGuildId) {
+      this.client.clearInterval(this.gameTimeoutByGuildId[guild.id]);
+      delete this.gameTimeoutByGuildId[guild.id];
+    }
+  }
+
+  private timeIsUp(guild: Guild): void {
+    this.massMultiplayerEventService
+      .broadcastMessage(guild, "La partie est terminée !")
+      .catch((err) => this.logger.error(err));
+  }
+
+  private tellTimeRemaining(guild: Guild): void {
+    if (guild.id in this.gameTimerByGuildId) {
+      this.massMultiplayerEventService
+        .broadcastMessage(
+          guild,
+          `Le temps passe ... il reste ${
+            this.gameTimerByGuildId[guild.id]
+          } minutes pour vaincre le Dévoreur`
+        )
+        .catch((err) => this.logger.error(err));
+    }
+  }
+
+  public startTimer(guild: Guild, minutes: number): void {
+    if (guild.id in this.gameTimeoutByGuildId)
+      throw new Error("Il y a déjà une minuterie en cours");
+
+    this.gameTimerByGuildId[guild.id] = minutes;
+    this.setUpTimerInterval(guild);
+    this.saveState(guild).catch((err) => this.logger.error(err));
+  }
+
+  public pauseTimer(guild: Guild): void {
+    this.clearTimerInterval(guild);
+  }
+
+  public resumeTimer(guild: Guild): void {
+    this.setUpTimerInterval(guild);
+  }
+
   public isGameRunning(guild: Guild): boolean {
     return !!this.currentGameByGuildId[guild.id];
   }
@@ -113,6 +192,13 @@ export class BlobGameService extends BaseService {
   public createGameStateEmbed(guild: Guild): MessageEmbed | undefined {
     if (!this.isGameRunning(guild)) return undefined;
     const game = this.currentGameByGuildId[guild.id];
+    let minuterie = "Minuterie non initialisée";
+    if (guild.id in this.gameTimerByGuildId) {
+      minuterie = `${this.gameTimerByGuildId[guild.id]} minutes`;
+      if (!(guild.id in this.gameTimeoutByGuildId)) {
+        minuterie += " (en pause)";
+      }
+    }
 
     const embed = new MessageEmbed();
 
@@ -135,6 +221,10 @@ export class BlobGameService extends BaseService {
       {
         name: "Nombre de contre-mesures",
         value: game.getNumberOfCounterMeasures(),
+      },
+      {
+        name: "Temps restant",
+        value: minuterie,
       },
     ]);
 
@@ -420,16 +510,17 @@ export class BlobGameService extends BaseService {
       if (
         await this.resourcesService.guildResourceExists(
           guild,
-          `blobGameStats.json`
+          BlobGameService.STATE_FILE_NAME
         )
       ) {
         const raw = await this.resourcesService.readGuildResource(
           guild,
-          `blobGameStats.json`
+          BlobGameService.STATE_FILE_NAME
         );
         if (raw) {
-          const parsed = JSON.parse(raw) as BlobGameStatsByGroup;
-          this.gameStatsByGuildId[guild.id] = parsed;
+          const parsed = JSON.parse(raw) as BlobGameServiceState;
+          if (parsed.stats) this.gameStatsByGuildId[guild.id] = parsed.stats;
+          if (parsed.timer) this.gameTimerByGuildId[guild.id] = parsed.timer;
         } else {
           this.gameStatsByGuildId[guild.id] = {};
         }
@@ -440,12 +531,17 @@ export class BlobGameService extends BaseService {
   }
 
   private async saveState(guild: Guild): Promise<void> {
-    if (!this.gameStatsByGuildId[guild.id]) return;
     try {
+      const state: BlobGameServiceState = {};
+      if (this.gameStatsByGuildId[guild.id])
+        state.stats = this.gameStatsByGuildId[guild.id];
+      if (this.gameTimerByGuildId[guild.id])
+        state.timer = this.gameTimerByGuildId[guild.id];
+
       await this.resourcesService.saveGuildResource(
         guild,
-        `blobGameStats.json`,
-        JSON.stringify(this.gameStatsByGuildId[guild.id], null, "  ")
+        BlobGameService.STATE_FILE_NAME,
+        JSON.stringify(state, null, "  ")
       );
     } catch (err) {
       this.logger.error(err);
