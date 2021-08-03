@@ -3,6 +3,7 @@ import {
   Client,
   Guild,
   GuildChannel,
+  Message,
   MessageEmbed,
   TextChannel,
 } from "discord.js";
@@ -79,6 +80,23 @@ export class MassMultiplayerEventService extends BaseService {
     );
   }
 
+  public getAdminChannel(guild: Guild): TextChannel | undefined {
+    if (
+      !this.envService.massMultiplayerEventCategoryName &&
+      !this.envService.massMultiplayerEventAdminChannelName
+    )
+      throw MassMultiplayerEventServiceError.configurationMissing();
+
+    return guild.channels.cache.find(
+      (channel) =>
+        channel.parent !== null &&
+        channel.parent.name ===
+          this.envService.massMultiplayerEventCategoryName &&
+        channel.type === "text" &&
+        channel.name === this.envService.massMultiplayerEventAdminChannelName
+    ) as TextChannel | undefined;
+  }
+
   public getChannel(guild: Guild, groupId: string): Channel | undefined {
     return guild.channels.cache.find((channel) => channel.id === groupId);
   }
@@ -147,22 +165,28 @@ export class MassMultiplayerEventService extends BaseService {
     guild: Guild,
     content: string | MessageEmbed,
     excludeGroupIds?: string[]
-  ): Promise<void> {
+  ): Promise<Message[]> {
     let groupsId = this.groupChannelsIdByGuildId[guild.id];
     if (excludeGroupIds) {
       groupsId = groupsId.filter((id) => !excludeGroupIds.includes(id));
     }
-    await Promise.all(
-      groupsId.map((groupId) => {
-        const channel = guild.channels.cache.find(
-          (channel) => channel.id === groupId
-        );
-        if (channel && channel.type === "text") {
-          return (channel as TextChannel).send(content);
-        }
-        return Promise.resolve(null);
-      })
-    );
+
+    const channels = groupsId.reduce((memo, groupId) => {
+      const maybeChannel = guild.channels.cache.find(
+        (channel) => channel.id === groupId
+      );
+      if (maybeChannel && maybeChannel.type === "text") {
+        memo.push(maybeChannel as TextChannel);
+      }
+      return memo;
+    }, [] as TextChannel[]);
+
+    const adminChannel = this.getAdminChannel(guild);
+    if (adminChannel) {
+      channels.push(adminChannel);
+    }
+
+    return await Promise.all(channels.map((channel) => channel.send(content)));
   }
 
   private getCategoryIdByName(

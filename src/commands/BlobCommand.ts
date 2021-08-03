@@ -7,22 +7,22 @@ import { LoggerService } from "../services/LoggerService";
 export class BlobCommand implements ICommand {
   aliases = ["blob"];
   help = `Commandes pour gérer une partie massivement multijoueurs du **Dévoreur de Toute Chose**.
-Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'état de la partie sera affiché.
+Les sous-commandes sont décrites ci-dessous.
 
-    __*Commandes pour les joueurs*__:
-    - \`d [nombre de dégâts]\` inflige ce nombre de dégâts au Dévoreur
-    - \`i [nombre d'indices]\` place ce nombre d'indices sur l'Acte 1
-    - \`cm\` utilise une contre-mesures
-    - \`cm+ \` ajoute une contre-mesures
-    - \`story\` obtenir l'histoire retenue pour cette partie
+  __*Commandes pour les joueurs*__:
+  - \`d [nombre de dégâts]\` inflige ce nombre de dégâts au Dévoreur
+  - \`i [nombre d'indices]\` place ce nombre d'indices sur l'Acte 1
+  - \`cm\` utilise une contre-mesures
+  - \`cm+ \` ajoute une contre-mesures
+  - \`story\` obtenir l'histoire retenue pour cette partie
 
-    __*Commandes pour les organisateurs*__:
-    - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
-    - \`admin stats\` affiche les statistiques
-    - \`admin end\` termine la partie
-    - \`admin timer init [minutes]\` démarre une minuterie du nombre de minutes indiquées
-    - \`admin timer pause\` met en pause la minuterie
-    - \`admin timer resume\` reprend la mintuerie`;
+  __*Commandes pour les organisateurs*__:
+  - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
+  - \`admin stats\` affiche les statistiques
+  - \`admin end\` termine la partie
+  - \`admin timer init [minutes]\` démarre une minuterie du nombre de minutes indiquées
+  - \`admin timer pause\` met en pause la minuterie
+  - \`admin timer resume\` reprend la mintuerie`;
 
   @Inject private blobGameService!: BlobGameService;
   @Inject private logger!: LoggerService;
@@ -123,8 +123,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     await message.reply(
       `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
     );
-    const gameState = this.blobGameService.createGameStateEmbed(guild);
-    if (gameState) await message.reply(gameState);
     return {
       resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
     };
@@ -226,9 +224,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     playerAction: string,
     playerActionParams: string[]
   ): Promise<ICommandResult> {
-    if (playerAction === "") {
-      return await this.handlePlayerStatusCommand(guild, message);
-    }
     if (playerAction === "d") {
       if (
         playerActionParams.length > 0 &&
@@ -260,23 +255,6 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
       return await this.handlePlayerGainCounterMeasureCommand(guild, message);
     }
     return await this.handleUnknownCommand(message);
-  }
-
-  private async handlePlayerStatusCommand(
-    guild: Guild,
-    message: Message
-  ): Promise<ICommandResult> {
-    const gameState = this.blobGameService.createGameStateEmbed(guild);
-    if (gameState) {
-      await message.reply(gameState);
-      return {
-        resultString: `[BlobCommand] Etat de la partie envoyée`,
-      };
-    }
-    await message.reply("pas de partie en cours");
-    return {
-      resultString: `[BlobCommand] Problème à l'envoi de l'état de la partie : pas de partie`,
-    };
   }
 
   private async handlePlayerDamageCommand(

@@ -3,6 +3,7 @@ import {
   Client,
   EmbedFieldData,
   Guild,
+  Message,
   MessageEmbed,
   TextChannel,
 } from "discord.js";
@@ -27,6 +28,7 @@ type BlobGameStatsByGroup = { [groupId: string]: BlobGameStats };
 interface BlobGameServiceState {
   stats?: BlobGameStatsByGroup;
   timer?: number;
+  gameStateMessageIds?: { channelId: string; msgId: string }[];
 }
 
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
@@ -83,6 +85,7 @@ export class BlobGameService extends BaseService {
   private gameStatsByGuildId: { [guildId: string]: BlobGameStatsByGroup } = {};
   private gameTimerByGuildId: { [guildId: string]: number } = {};
   private gameTimeoutByGuildId: { [guildId: string]: NodeJS.Timeout } = {};
+  private gameStateMessagesByGuildId: { [guildId: string]: Message[] } = {};
 
   @Inject private logger!: LoggerService;
   @Inject private randomService!: RandomService;
@@ -94,13 +97,13 @@ export class BlobGameService extends BaseService {
 
     await Promise.all(
       client.guilds.cache.map((guild) => {
-        return this.continueLatestGame(guild);
+        return this.loadState(guild);
       })
     );
 
     await Promise.all(
       client.guilds.cache.map((guild) => {
-        return this.loadState(guild);
+        return this.continueLatestGame(guild);
       })
     );
   }
@@ -146,9 +149,40 @@ export class BlobGameService extends BaseService {
       game.chooseStory(randomStory);
       await repository.save(game);
 
+      await this.publishGameState(guild);
+
       return;
     } catch (err) {
       return Promise.reject(err);
+    }
+  }
+
+  private async publishGameState(guild: Guild): Promise<void> {
+    if (!(guild.id in this.currentGameByGuildId)) return;
+
+    const gameStateEmbed = this.createGameStateEmbed(guild);
+    if (gameStateEmbed) {
+      this.gameStateMessagesByGuildId[guild.id] =
+        await this.massMultiplayerEventService.broadcastMessage(
+          guild,
+          gameStateEmbed
+        );
+      this.saveState(guild).catch((err) => this.logger.error(err));
+    }
+
+    this.gameStateMessagesByGuildId[guild.id].forEach((msg) => void msg.pin());
+  }
+
+  private updateGameState(guild: Guild): void {
+    if (!(guild.id in this.gameStateMessagesByGuildId)) return;
+
+    const gameStateEmbed = this.createGameStateEmbed(guild);
+    if (gameStateEmbed) {
+      Promise.all(
+        this.gameStateMessagesByGuildId[guild.id].map((msg) =>
+          msg.edit(gameStateEmbed)
+        )
+      ).catch((err) => this.logger.error(err));
     }
   }
 
@@ -159,6 +193,7 @@ export class BlobGameService extends BaseService {
       if (guild.id in this.gameTimerByGuildId) {
         this.gameTimerByGuildId[guild.id] -= 1;
         this.saveState(guild).catch((err) => this.logger.error(err));
+        this.updateGameState(guild);
         if (this.gameTimerByGuildId[guild.id] === 0) {
           this.timeIsUp(guild);
           this.clearTimerInterval(guild);
@@ -205,6 +240,7 @@ export class BlobGameService extends BaseService {
 
     this.gameTimerByGuildId[guild.id] = minutes;
     this.setUpTimerInterval(guild);
+    this.updateGameState(guild);
     this.saveState(guild).catch((err) => this.logger.error(err));
   }
 
@@ -213,6 +249,7 @@ export class BlobGameService extends BaseService {
       throw BlobGameServiceError.noTimerToPause();
 
     this.clearTimerInterval(guild);
+    this.updateGameState(guild);
   }
 
   public resumeTimer(guild: Guild): void {
@@ -220,6 +257,7 @@ export class BlobGameService extends BaseService {
       throw BlobGameServiceError.noTimerToResume();
 
     this.setUpTimerInterval(guild);
+    this.updateGameState(guild);
   }
 
   public isTimerRunning(guild: Guild): boolean {
@@ -320,7 +358,10 @@ export class BlobGameService extends BaseService {
     // Stats
     this.gameStatsByGuildId[guild.id] = {};
 
-    await this.saveState(guild);
+    // Game state messages
+    this.gameStateMessagesByGuildId[guild.id] = [];
+
+    this.saveState(guild).catch((err) => this.logger.error(err));
 
     // Game
     const repository = this.getBlobGameRepository(guild);
@@ -362,6 +403,7 @@ export class BlobGameService extends BaseService {
     await this.getBlobGameRepository(guild).save(
       this.currentGameByGuildId[guild.id]
     );
+    this.updateGameState(guild);
 
     if (this.getBlobRemainingHealth(guild) === 0) {
       await groupChannel.send(
@@ -407,6 +449,7 @@ export class BlobGameService extends BaseService {
       return Promise.reject(BlobGameServiceError.tooMuchCluesAtOnce());
 
     this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
+    this.updateGameState(guild);
     this.recordStat(
       guild,
       groupChannel.id,
@@ -453,6 +496,7 @@ export class BlobGameService extends BaseService {
     this.currentGameByGuildId[guild.id].gainCounterMeasures(
       numberOfCounterMeasures
     );
+    this.updateGameState(guild);
     this.recordStat(
       guild,
       groupChannel.id,
@@ -483,6 +527,7 @@ export class BlobGameService extends BaseService {
     this.currentGameByGuildId[guild.id].spendCounterMeasures(
       numberOfCounterMeasures
     );
+    this.updateGameState(guild);
     this.recordStat(
       guild,
       groupChannel.id,
@@ -529,6 +574,7 @@ export class BlobGameService extends BaseService {
     if (runningGames.length === 0) return undefined;
 
     this.currentGameByGuildId[guild.id] = runningGames.sort(sortByDateDesc)[0];
+    this.updateGameState(guild);
     return this.currentGameByGuildId[guild.id].getDateCreated();
   }
 
@@ -586,6 +632,15 @@ export class BlobGameService extends BaseService {
           const parsed = JSON.parse(raw) as BlobGameServiceState;
           if (parsed.stats) this.gameStatsByGuildId[guild.id] = parsed.stats;
           if (parsed.timer) this.gameTimerByGuildId[guild.id] = parsed.timer;
+          if (parsed.gameStateMessageIds) {
+            this.gameStateMessagesByGuildId[guild.id] = [];
+            for (const { channelId, msgId } of parsed.gameStateMessageIds) {
+              const msg = await getMessage(guild, channelId, msgId);
+              if (msg) {
+                this.gameStateMessagesByGuildId[guild.id].push(msg);
+              }
+            }
+          }
         } else {
           this.gameStatsByGuildId[guild.id] = {};
         }
@@ -598,10 +653,14 @@ export class BlobGameService extends BaseService {
   private async saveState(guild: Guild): Promise<void> {
     try {
       const state: BlobGameServiceState = {};
-      if (this.gameStatsByGuildId[guild.id])
+      if (guild.id in this.gameStatsByGuildId)
         state.stats = this.gameStatsByGuildId[guild.id];
-      if (this.gameTimerByGuildId[guild.id])
+      if (guild.id in this.gameTimerByGuildId)
         state.timer = this.gameTimerByGuildId[guild.id];
+      if (guild.id in this.gameStateMessagesByGuildId)
+        state.gameStateMessageIds = this.gameStateMessagesByGuildId[
+          guild.id
+        ].map((msg) => ({ channelId: msg.channel.id, msgId: msg.id }));
 
       await this.resourcesService.saveGuildResource(
         guild,
@@ -612,4 +671,20 @@ export class BlobGameService extends BaseService {
       this.logger.error(err);
     }
   }
+}
+
+async function getMessage(
+  guild: Guild,
+  channelId: string,
+  msgId: string
+): Promise<Message | undefined> {
+  const channel = guild.channels.cache.find((c) => c.id === channelId);
+  if (channel && channel.isText()) {
+    try {
+      return await channel.messages.fetch(msgId);
+    } catch (err) {
+      return undefined;
+    }
+  }
+  return undefined;
 }
