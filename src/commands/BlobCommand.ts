@@ -7,13 +7,13 @@ import { LoggerService } from "../services/LoggerService";
 export class BlobCommand implements ICommand {
   aliases = ["blob"];
   help = `Commandes pour gérer une partie massivement multijoueurs du **Dévoreur de Toute Chose**.
-Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'état de la partie sera affichée.
+Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'état de la partie sera affiché.
 
     __*Commandes pour les joueurs*__:
     - \`d [nombre de dégâts]\` inflige ce nombre de dégâts au Dévoreur
     - \`i [nombre d'indices]\` place ce nombre d'indices sur l'Acte 1
-    - \`cm [nombre de contre-mesures]\` utilise ce nombre de contre-mesures
-    - \`cm+ [nombre de contre-mesures]\` ajoute ce nombre de contre-mesures
+    - \`cm\` utilise une contre-mesures
+    - \`cm+ \` ajoute une contre-mesures
     - \`story\` obtenir l'histoire retenue pour cette partie
 
     __*Commandes pour les organisateurs*__:
