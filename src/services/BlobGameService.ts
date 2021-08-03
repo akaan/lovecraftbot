@@ -35,6 +35,42 @@ const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
   return 0;
 };
 
+export class BlobGameServiceError extends Error {
+  public static eventAlreadyRunning(): BlobGameServiceError {
+    return new this("il y a déjà un événement en cours");
+  }
+
+  public static noGame(): BlobGameServiceError {
+    return new this("pas de partie en cours");
+  }
+
+  public static noTimer(): BlobGameServiceError {
+    return new this("impossible tant que la minuterie n'est pas démarrée");
+  }
+
+  public static noTimerToPause(): BlobGameServiceError {
+    return new this("pas de minuterie en cours");
+  }
+
+  public static noTimerToResume(): BlobGameServiceError {
+    return new this("pas de minuterie en pause");
+  }
+
+  public static timerAlreadyRunning(): BlobGameServiceError {
+    return new this("il y a déjà une minuterie en cours");
+  }
+
+  public static tooMuchCluesAtOnce(): BlobGameServiceError {
+    return new this(
+      "impossible de placer plus de 3 indices à la fois sur l'Acte 1"
+    );
+  }
+
+  public static noDiscordClient(): BlobGameServiceError {
+    return new this("pas de client Discord disponible");
+  }
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class BlobGameService extends BaseService {
@@ -69,10 +105,6 @@ export class BlobGameService extends BaseService {
     );
   }
 
-  public ready(): boolean {
-    return this.massMultiplayerEventService.ready();
-  }
-
   public isEventChannel(channel: Channel): boolean {
     return this.massMultiplayerEventService.isEventChannel(channel);
   }
@@ -86,40 +118,42 @@ export class BlobGameService extends BaseService {
     numberOfPlayers: number,
     numberOfGroups: number
   ): Promise<void> {
-    if (!this.ready())
-      return Promise.reject(new Error("Problème de configuration"));
     if (this.massMultiplayerEventService.runningEvent(guild))
-      return Promise.reject(new Error("Il y a déjà un événement en cours"));
+      return Promise.reject(BlobGameServiceError.eventAlreadyRunning());
 
-    const repository = this.getBlobGameRepository(guild);
+    try {
+      await this.massMultiplayerEventService.createGroupChannels(
+        guild,
+        numberOfGroups
+      );
 
-    const nextId = await repository.nextId();
-    const game = (this.currentGameByGuildId[guild.id] = new BlobGame(
-      nextId,
-      new Date(),
-      numberOfPlayers
-    ));
-    game.initNumberOfCounterMeasure();
-    const randomStory =
-      BlobGame.POSSIBLE_STORIES[
-        this.randomService.getRandomInt(0, BlobGame.POSSIBLE_STORIES.length - 1)
-      ];
-    game.chooseStory(randomStory);
-    await repository.save(game);
+      const repository = this.getBlobGameRepository(guild);
 
-    await this.massMultiplayerEventService.createGroupChannels(
-      guild,
-      numberOfGroups
-    );
+      const nextId = await repository.nextId();
+      const game = (this.currentGameByGuildId[guild.id] = new BlobGame(
+        nextId,
+        new Date(),
+        numberOfPlayers
+      ));
+      game.initNumberOfCounterMeasure();
+      const randomStory =
+        BlobGame.POSSIBLE_STORIES[
+          this.randomService.getRandomInt(
+            0,
+            BlobGame.POSSIBLE_STORIES.length - 1
+          )
+        ];
+      game.chooseStory(randomStory);
+      await repository.save(game);
 
-    return;
+      return;
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   private setUpTimerInterval(guild: Guild): void {
-    if (!this.client)
-      throw new Error(
-        "Pas de client Discord, impossible de créer une minuterie"
-      );
+    if (!this.client) throw BlobGameServiceError.noDiscordClient();
 
     this.gameTimeoutByGuildId[guild.id] = this.client.setInterval(() => {
       if (guild.id in this.gameTimerByGuildId) {
@@ -138,10 +172,7 @@ export class BlobGameService extends BaseService {
   }
 
   private clearTimerInterval(guild: Guild) {
-    if (!this.client)
-      throw new Error(
-        "Pas de client Discord, impossible de stopper une minuterie"
-      );
+    if (!this.client) throw BlobGameServiceError.noDiscordClient();
 
     if (guild.id in this.gameTimeoutByGuildId) {
       this.client.clearInterval(this.gameTimeoutByGuildId[guild.id]);
@@ -169,8 +200,8 @@ export class BlobGameService extends BaseService {
   }
 
   public startTimer(guild: Guild, minutes: number): void {
-    if (guild.id in this.gameTimeoutByGuildId)
-      throw new Error("Il y a déjà une minuterie en cours");
+    if (this.isTimerRunning(guild))
+      throw BlobGameServiceError.timerAlreadyRunning();
 
     this.gameTimerByGuildId[guild.id] = minutes;
     this.setUpTimerInterval(guild);
@@ -178,15 +209,25 @@ export class BlobGameService extends BaseService {
   }
 
   public pauseTimer(guild: Guild): void {
+    if (!this.isTimerRunning(guild))
+      throw BlobGameServiceError.noTimerToPause();
+
     this.clearTimerInterval(guild);
   }
 
   public resumeTimer(guild: Guild): void {
+    if (this.isTimerRunning(guild) || !(guild.id in this.gameTimerByGuildId))
+      throw BlobGameServiceError.noTimerToResume();
+
     this.setUpTimerInterval(guild);
   }
 
+  public isTimerRunning(guild: Guild): boolean {
+    return guild.id in this.gameTimeoutByGuildId;
+  }
+
   public isGameRunning(guild: Guild): boolean {
-    return !!this.currentGameByGuildId[guild.id];
+    return guild.id in this.currentGameByGuildId;
   }
 
   public createGameStateEmbed(guild: Guild): MessageEmbed | undefined {
@@ -272,12 +313,21 @@ export class BlobGameService extends BaseService {
   }
 
   public async endGame(guild: Guild): Promise<void> {
+    // Timer
+    if (this.isTimerRunning(guild)) this.pauseTimer(guild);
+    delete this.gameTimerByGuildId[guild.id];
+
+    // Stats
+    this.gameStatsByGuildId[guild.id] = {};
+
+    await this.saveState(guild);
+
+    // Game
     const repository = this.getBlobGameRepository(guild);
     this.currentGameByGuildId[guild.id].endGame(new Date());
     await repository.save(this.currentGameByGuildId[guild.id]);
     delete this.currentGameByGuildId[guild.id];
-    this.gameStatsByGuildId[guild.id] = {};
-    await this.saveState(guild);
+
     await this.massMultiplayerEventService.cleanGroupChannels(guild);
   }
 
@@ -301,8 +351,12 @@ export class BlobGameService extends BaseService {
     numberOfDamageDealt: number,
     groupChannel: TextChannel
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id])
-      return Promise.reject(new Error("Pas de partie en cours"));
+    if (!this.isGameRunning(guild))
+      return Promise.reject(BlobGameServiceError.noGame());
+
+    if (!this.isTimerRunning(guild))
+      return Promise.reject(BlobGameServiceError.noTimer());
+
     this.currentGameByGuildId[guild.id].dealDamageToBlob(numberOfDamageDealt);
     this.recordStat(guild, groupChannel.id, "damageDealt", numberOfDamageDealt);
     await this.getBlobGameRepository(guild).save(
@@ -343,12 +397,15 @@ export class BlobGameService extends BaseService {
     numberOfClues: number,
     groupChannel: TextChannel
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id])
-      return Promise.reject(new Error("Pas de partie en cours"));
+    if (!this.isGameRunning(guild))
+      return Promise.reject(BlobGameServiceError.noGame());
+
+    if (!this.isTimerRunning(guild))
+      return Promise.reject(BlobGameServiceError.noTimer());
+
     if (numberOfClues > 3)
-      return Promise.reject(
-        new Error("L'Acte 1 précise qu'on peut dépenser au plus 3 indices")
-      );
+      return Promise.reject(BlobGameServiceError.tooMuchCluesAtOnce());
+
     this.currentGameByGuildId[guild.id].placeCluesOnAct1(numberOfClues);
     this.recordStat(
       guild,
@@ -387,8 +444,12 @@ export class BlobGameService extends BaseService {
     numberOfCounterMeasures: number,
     groupChannel: TextChannel
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id])
-      return Promise.reject(new Error("Pas de partie en cours"));
+    if (!this.isGameRunning(guild))
+      return Promise.reject(BlobGameServiceError.noGame());
+
+    if (!this.isTimerRunning(guild))
+      return Promise.reject(BlobGameServiceError.noTimer());
+
     this.currentGameByGuildId[guild.id].gainCounterMeasures(
       numberOfCounterMeasures
     );
@@ -413,8 +474,12 @@ export class BlobGameService extends BaseService {
     numberOfCounterMeasures: number,
     groupChannel: TextChannel
   ): Promise<void> {
-    if (!this.currentGameByGuildId[guild.id])
-      return Promise.reject(new Error("Pas de partie en cours"));
+    if (!this.isGameRunning(guild))
+      return Promise.reject(BlobGameServiceError.noGame());
+
+    if (!this.isTimerRunning(guild))
+      return Promise.reject(BlobGameServiceError.noTimer());
+
     this.currentGameByGuildId[guild.id].spendCounterMeasures(
       numberOfCounterMeasures
     );

@@ -2,6 +2,7 @@ import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { Inject } from "typescript-ioc";
 import { Guild, Message, TextChannel } from "discord.js";
 import { BlobGameService } from "../services/BlobGameService";
+import { LoggerService } from "../services/LoggerService";
 
 export class BlobCommand implements ICommand {
   aliases = ["blob"];
@@ -24,216 +25,112 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     - \`admin timer resume\` reprend la mintuerie`;
 
   @Inject private blobGameService!: BlobGameService;
+  @Inject private logger!: LoggerService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const { message, args } = cmdArgs;
 
-    if (!message.guild) {
-      await message.reply(
-        "désolé, cette commande n'est utilisable que sur un serveur."
-      );
-      return {
-        resultString: `[BlobCommand] Impossible de traiter la commande en dehors d'un serveur.`,
-      };
-    }
-
-    if (!this.blobGameService.ready()) {
-      await message.reply("désolé mais j'ai un problème de configuration.");
-      return {
-        resultString: `[BlobCommand] Impossible de traiter la commande en l'absence de configuration.`,
-      };
-    }
-
-    const [subCmd, ...params] = args.split(" ");
-
-    if (this.blobGameService.isEventChannel(message.channel)) {
-      // COMMANDES ADMIN
-      if (subCmd === "admin") {
-        if (this.blobGameService.isAdminChannel(message.channel)) {
-          const [adminAction, ...adminActionParams] = params;
-
-          if (adminAction === "start") {
-            const [numberOfPlayers, numberOfGroups] = adminActionParams;
-            if (
-              numberOfPlayers &&
-              !isNaN(parseInt(numberOfPlayers, 10)) &&
-              numberOfGroups &&
-              !isNaN(parseInt(numberOfGroups, 10))
-            ) {
-              return this.startGame(
-                message.guild,
-                parseInt(numberOfPlayers, 10),
-                parseInt(numberOfGroups, 10),
-                message
-              );
-            }
-          }
-
-          if (!this.blobGameService.isGameRunning(message.guild))
-            return this.noGame(message);
-
-          if (adminAction === "stats") {
-            const statsEmbed = this.blobGameService.createGameStatsEmbed(
-              message.guild
-            );
-            if (statsEmbed) {
-              await message.reply(statsEmbed);
-              return {
-                resultString: `[BlobCommand] Statistiques de jeu envoyées`,
-              };
-            } else {
-              await message.reply("pas de statistiques de jeu disponibles.");
-              return {
-                resultString: `[BlobCommand] Pas de statistiques de jeu disponibles`,
-              };
-            }
-          }
-
-          if (adminAction === "end") {
-            return this.endGame(message.guild, message);
-          }
-
-          if (adminAction === "timer") {
-            const [timerAction, ...timerActionParams] = adminActionParams;
-            if (timerAction === "start") {
-              if (
-                timerActionParams.length > 0 &&
-                !isNaN(parseInt(timerActionParams[0], 10))
-              ) {
-                const minutes = parseInt(timerActionParams[0], 10);
-                this.blobGameService.startTimer(message.guild, minutes);
-                await message.reply(`minuterie de ${minutes} minutes lancée !`);
-                return {
-                  resultString: `[BlobCommand] Minuterie de ${minutes} minutes lancée`,
-                };
-              }
-            }
-            if (timerAction === "pause") {
-              this.blobGameService.pauseTimer(message.guild);
-              await message.reply(`la minuterie est arrêtée !`);
-              return {
-                resultString: `[BlobCommand] Arrêt de la minuterie`,
-              };
-            }
-            if (timerAction === "resume") {
-              this.blobGameService.resumeTimer(message.guild);
-              await message.reply(`la minuterie a repris !`);
-              return {
-                resultString: `[BlobCommand] Reprise de la minuterie`,
-              };
-            }
-          }
-        }
-      }
-
-      if (!this.blobGameService.isGameRunning(message.guild))
-        return this.noGame(message);
-
-      // COMMANDES JOUEURS
-
-      if (subCmd === "") {
-        return this.gameState(message.guild, message);
-      }
-
-      if (
-        subCmd === "d" &&
-        params.length > 0 &&
-        !isNaN(parseInt(params[0], 10))
-      ) {
-        return this.dealDamage(message.guild, parseInt(params[0], 10), message);
-      }
-
-      if (
-        subCmd === "i" &&
-        params.length > 0 &&
-        !isNaN(parseInt(params[0], 10))
-      ) {
-        return this.placeClues(message.guild, parseInt(params[0], 10), message);
-      }
-
-      if (
-        subCmd === "cm" &&
-        params.length > 0 &&
-        !isNaN(parseInt(params[0], 10))
-      ) {
-        return this.spendCounterMeasure(
-          message.guild,
-          parseInt(params[0], 10),
-          message
-        );
-      }
-
-      if (
-        subCmd === "cm+" &&
-        params.length > 0 &&
-        !isNaN(parseInt(params[0], 10))
-      ) {
-        return this.gainCounterMeasure(
-          message.guild,
-          parseInt(params[0], 10),
-          message
-        );
-      }
-
-      if (subCmd === "story") {
-        const story = this.blobGameService.getStory(message.guild);
-        if (story) {
-          await message.reply(`l'histoire retenue est : ${story}`);
-          return {
-            resultString: `[BlobCommand] Histoire envoyée`,
-          };
-        } else {
-          await message.reply(`hmmm, il est peut-être trop tôt pour ça.`);
-          return {
-            resultString: `[BlobCommand] Pas d'histoire disponible`,
-          };
-        }
-      }
-    }
-
-    await message.reply("désolé, je n'ai pas compris.");
-    return { resultString: `[BlobCommand] Commande "${args}" non comprise.` };
-  }
-
-  private async startGame(
-    guild: Guild,
-    numberOfPlayers: number,
-    numberOfGroups: number,
-    message: Message
-  ): Promise<ICommandResult> {
     try {
-      await this.blobGameService.startNewGame(
-        guild,
-        numberOfPlayers,
-        numberOfGroups
-      );
+      if (!message.guild) {
+        await message.reply(
+          "désolé, cette commande n'est utilisable que sur un serveur."
+        );
+        return {
+          resultString: `[BlobCommand] Impossible de traiter la commande en dehors d'un serveur.`,
+        };
+      }
 
-      await message.reply(
-        `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
-      );
-      const gameState = this.blobGameService.createGameStateEmbed(guild);
-      if (gameState) await message.reply(gameState);
-      return {
-        resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
-      };
+      const [subCmd, ...params] = args.split(" ");
+      if (subCmd === "admin" && params.length > 0) {
+        return await this.handleAdminCommand(
+          message.guild,
+          message,
+          params[0],
+          params.slice(1)
+        );
+      } else {
+        return await this.handlePlayerCommand(
+          message.guild,
+          message,
+          subCmd,
+          params
+        );
+      }
     } catch (err) {
-      await message.reply(`j'ai eu un problème : ${(err as Error).message}.`);
+      this.logger.error(err);
+      await message.reply(`ouch, impossible : ${(err as Error).message}`);
       return {
-        resultString: `[BlobCommand] Impossible de démarrer la partie : ${
-          (err as Error).message
-        }`,
+        resultString: `[BlobCommand] Erreur: ${(err as Error).message}`,
       };
     }
   }
 
-  private async noGame(message: Message): Promise<ICommandResult> {
-    await message.reply(`pas possible, il n'y a pas de partie en cours.`);
+  private async handleAdminCommand(
+    guild: Guild,
+    message: Message,
+    adminAction: string,
+    adminActionParams: string[]
+  ): Promise<ICommandResult> {
+    if (this.blobGameService.isAdminChannel(message.channel)) {
+      if (adminAction === "start") {
+        const [numberOfPlayers, numberOfGroups] = adminActionParams;
+        if (
+          numberOfPlayers &&
+          !isNaN(parseInt(numberOfPlayers, 10)) &&
+          numberOfGroups &&
+          !isNaN(parseInt(numberOfGroups, 10))
+        ) {
+          return await this.handleAdminStartCommand(
+            guild,
+            message,
+            parseInt(numberOfPlayers, 10),
+            parseInt(numberOfGroups, 10)
+          );
+        }
+      }
+      if (adminAction === "end") {
+        return await this.handleAdminEndCommand(guild, message);
+      }
+      if (adminAction === "stats") {
+        return await this.handleAdminStatsCommand(guild, message);
+      }
+      if (adminAction === "timer") {
+        if (adminActionParams.length > 0) {
+          return await this.handleAdminTimerCommand(
+            guild,
+            message,
+            adminActionParams[0],
+            adminActionParams.slice(1)
+          );
+        }
+      }
+    }
+    return await this.handleUnknownCommand(message);
+  }
+
+  private async handleAdminStartCommand(
+    guild: Guild,
+    message: Message,
+    numberOfPlayers: number,
+    numberOfGroups: number
+  ): Promise<ICommandResult> {
+    await this.blobGameService.startNewGame(
+      guild,
+      numberOfPlayers,
+      numberOfGroups
+    );
+
+    await message.reply(
+      `la partie est démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes !`
+    );
+    const gameState = this.blobGameService.createGameStateEmbed(guild);
+    if (gameState) await message.reply(gameState);
     return {
-      resultString: `[BlobCommand] Impossible de traiter la commande, pas de partie en cours`,
+      resultString: `[BlobCommand] Partie démarrée pour ${numberOfPlayers} joueurs répartis sur ${numberOfGroups} groupes`,
     };
   }
 
-  private async endGame(
+  private async handleAdminEndCommand(
     guild: Guild,
     message: Message
   ): Promise<ICommandResult> {
@@ -244,7 +141,128 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
     };
   }
 
-  private async gameState(
+  private async handleAdminStatsCommand(
+    guild: Guild,
+    message: Message
+  ): Promise<ICommandResult> {
+    const statsEmbed = this.blobGameService.createGameStatsEmbed(guild);
+    if (statsEmbed) {
+      await message.reply(statsEmbed);
+      return {
+        resultString: `[BlobCommand] Statistiques de jeu envoyées`,
+      };
+    } else {
+      await message.reply("pas de statistiques de jeu disponibles.");
+      return {
+        resultString: `[BlobCommand] Pas de statistiques de jeu disponibles`,
+      };
+    }
+  }
+
+  private async handleAdminTimerCommand(
+    guild: Guild,
+    message: Message,
+    timerAction: string,
+    timerActionParams: string[]
+  ): Promise<ICommandResult> {
+    if (timerAction === "start") {
+      if (
+        timerActionParams.length > 0 &&
+        !isNaN(parseInt(timerActionParams[0], 10))
+      ) {
+        return await this.handleAdminTimerStartCommand(
+          guild,
+          message,
+          parseInt(timerActionParams[0], 10)
+        );
+      }
+    }
+    if (timerAction === "pause") {
+      return await this.handleAdminTimerPauseCommand(guild, message);
+    }
+    if (timerAction === "resume") {
+      return await this.handleAdminTimerResumeCommand(guild, message);
+    }
+    return await this.handleUnknownCommand(message);
+  }
+
+  private async handleAdminTimerStartCommand(
+    guild: Guild,
+    message: Message,
+    minutes: number
+  ): Promise<ICommandResult> {
+    this.blobGameService.startTimer(guild, minutes);
+    await message.reply(`minuterie de ${minutes} minutes lancée !`);
+    return {
+      resultString: `[BlobCommand] Minuterie de ${minutes} minutes lancée`,
+    };
+  }
+
+  private async handleAdminTimerPauseCommand(
+    guild: Guild,
+    message: Message
+  ): Promise<ICommandResult> {
+    this.blobGameService.pauseTimer(guild);
+    await message.reply(`la minuterie est arrêtée !`);
+    return {
+      resultString: `[BlobCommand] Arrêt de la minuterie`,
+    };
+  }
+
+  private async handleAdminTimerResumeCommand(
+    guild: Guild,
+    message: Message
+  ): Promise<ICommandResult> {
+    this.blobGameService.resumeTimer(guild);
+    await message.reply(`la minuterie a repris !`);
+    return {
+      resultString: `[BlobCommand] Reprise de la minuterie`,
+    };
+  }
+
+  private async handlePlayerCommand(
+    guild: Guild,
+    message: Message,
+    playerAction: string,
+    playerActionParams: string[]
+  ): Promise<ICommandResult> {
+    if (playerAction === "") {
+      return await this.handlePlayerStatusCommand(guild, message);
+    }
+    if (playerAction === "d") {
+      if (
+        playerActionParams.length > 0 &&
+        !isNaN(parseInt(playerActionParams[0], 10))
+      ) {
+        return await this.handlePlayerDamageCommand(
+          guild,
+          message,
+          parseInt(playerActionParams[0], 10)
+        );
+      }
+    }
+    if (playerAction === "i") {
+      if (
+        playerActionParams.length > 0 &&
+        !isNaN(parseInt(playerActionParams[0], 10))
+      ) {
+        return await this.handlePlayerClueCommand(
+          guild,
+          message,
+          parseInt(playerActionParams[0], 10)
+        );
+      }
+    }
+    if (playerAction === "cm") {
+      return await this.handlePlayerSpendCounterMeasureCommand(guild, message);
+    }
+    if (playerAction === "cm+") {
+      return await this.handlePlayerGainCounterMeasureCommand(guild, message);
+    }
+    return await this.handleUnknownCommand(message);
+  }
+
+  private async handlePlayerStatusCommand(
     guild: Guild,
     message: Message
   ): Promise<ICommandResult> {
@@ -255,116 +273,82 @@ Les sous-commandes sont décrites ci-dessous. Sans sous-commande précisée, l'�
         resultString: `[BlobCommand] Etat de la partie envoyée`,
       };
     }
+    await message.reply("pas de partie en cours");
     return {
       resultString: `[BlobCommand] Problème à l'envoi de l'état de la partie : pas de partie`,
     };
   }
 
-  private async dealDamage(
+  private async handlePlayerDamageCommand(
     guild: Guild,
-    numberOfDamageDealt: number,
-    message: Message
+    message: Message,
+    numberOfDamageDealt: number
   ): Promise<ICommandResult> {
-    try {
-      await this.blobGameService.dealDamageToBlob(
-        guild,
-        numberOfDamageDealt,
-        message.channel as TextChannel
-      );
-      await message.reply(
-        `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
-      );
-      return {
-        resultString: `[BlobCommand] ${numberOfDamageDealt} dégât(s) infligé(s)`,
-      };
-    } catch (err) {
-      await message.reply(`impossible: ${(err as Error).message}`);
-      return {
-        resultString: `[BlobCommand] Impossible d'infliger des dégâts : ${
-          (err as Error).message
-        }`,
-      };
-    }
+    await this.blobGameService.dealDamageToBlob(
+      guild,
+      numberOfDamageDealt,
+      message.channel as TextChannel
+    );
+    await message.reply(
+      `c'est pris en compte, ${numberOfDamageDealt} infligé(s) !`
+    );
+    return {
+      resultString: `[BlobCommand] ${numberOfDamageDealt} dégât(s) infligé(s)`,
+    };
   }
 
-  private async placeClues(
+  private async handlePlayerClueCommand(
     guild: Guild,
-    numberOfClues: number,
-    message: Message
+    message: Message,
+    numberOfClues: number
   ): Promise<ICommandResult> {
-    try {
-      await this.blobGameService.placeCluesOnAct1(
-        guild,
-        numberOfClues,
-        message.channel as TextChannel
-      );
-      await message.reply(
-        `c'est pris en compte, ${numberOfClues} indice(s) placés sur l'Acte 1 !`
-      );
-      return {
-        resultString: `[BlobCommand] ${numberOfClues} indice(s) placés`,
-      };
-    } catch (err) {
-      await message.reply(`impossible: ${(err as Error).message}`);
-      return {
-        resultString: `[BlobCommand] Impossible de placer des indices : ${
-          (err as Error).message
-        }`,
-      };
-    }
+    await this.blobGameService.placeCluesOnAct1(
+      guild,
+      numberOfClues,
+      message.channel as TextChannel
+    );
+    await message.reply(
+      `c'est pris en compte, ${numberOfClues} indice(s) placés sur l'Acte 1 !`
+    );
+    return {
+      resultString: `[BlobCommand] ${numberOfClues} indice(s) placés`,
+    };
   }
 
-  private async spendCounterMeasure(
+  private async handlePlayerSpendCounterMeasureCommand(
     guild: Guild,
-    numberOfCounterMeasures: number,
     message: Message
   ): Promise<ICommandResult> {
-    try {
-      await this.blobGameService.spendCounterMeasures(
-        guild,
-        numberOfCounterMeasures,
-        message.channel as TextChannel
-      );
-      await message.reply(
-        `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures dépensée(s) !`
-      );
-      return {
-        resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures dépensée(s)`,
-      };
-    } catch (err) {
-      await message.reply(`impossible: ${(err as Error).message}`);
-      return {
-        resultString: `[BlobCommand] Impossible de dépenser des contre-mesures : ${
-          (err as Error).message
-        }`,
-      };
-    }
+    await this.blobGameService.spendCounterMeasures(
+      guild,
+      1,
+      message.channel as TextChannel
+    );
+    await message.reply(`c'est pris en compte, 1 contre-mesures dépensée !`);
+    return {
+      resultString: `[BlobCommand] 1 contre-mesures dépensée`,
+    };
   }
 
-  private async gainCounterMeasure(
+  private async handlePlayerGainCounterMeasureCommand(
     guild: Guild,
-    numberOfCounterMeasures: number,
     message: Message
   ): Promise<ICommandResult> {
-    try {
-      await this.blobGameService.gainCounterMeasures(
-        guild,
-        numberOfCounterMeasures,
-        message.channel as TextChannel
-      );
-      await message.reply(
-        `c'est pris en compte, ${numberOfCounterMeasures} contre-mesures ajoutée(s) !`
-      );
-      return {
-        resultString: `[BlobCommand] ${numberOfCounterMeasures} contre-mesures ajoutée(s)`,
-      };
-    } catch (err) {
-      await message.reply(`impossible: ${(err as Error).message}`);
-      return {
-        resultString: `[BlobCommand] Impossible d'ajouter des contre-mesures : ${
-          (err as Error).message
-        }`,
-      };
-    }
+    await this.blobGameService.gainCounterMeasures(
+      guild,
+      1,
+      message.channel as TextChannel
+    );
+    await message.reply(`c'est pris en compte, 1 contre-mesures ajoutée !`);
+    return {
+      resultString: `[BlobCommand] 1 contre-mesures ajoutée`,
+    };
+  }
+
+  private async handleUnknownCommand(
+    message: Message
+  ): Promise<ICommandResult> {
+    await message.reply("désolé, je n'ai pas compris.");
+    return { resultString: `[BlobCommand] Commande non comprise.` };
   }
 }

@@ -12,9 +12,23 @@ import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
+export class MassMultiplayerEventServiceError extends Error {
+  public static configurationMissing(): MassMultiplayerEventServiceError {
+    return new this("MassMultiplayerEventService: configuration absente");
+  }
+  public static eventCategoryNotFound(
+    categoryName: string
+  ): MassMultiplayerEventServiceError {
+    return new this(
+      `MassMultiplayerEventService: impossible de trouver la catégorie ${categoryName}`
+    );
+  }
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class MassMultiplayerEventService extends BaseService {
+  private static STATE_FILE_NAME = "massMultiplayerEventsGroups.json";
   @Inject envService!: EnvService;
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
@@ -28,13 +42,6 @@ export class MassMultiplayerEventService extends BaseService {
       client.guilds.cache.map((guild) => {
         return this.loadState(guild);
       })
-    );
-  }
-
-  public ready(): boolean {
-    return (
-      !!this.envService.massMultiplayerEventAdminChannelName &&
-      !!this.envService.massMultiplayerEventCategoryName
     );
   }
 
@@ -80,12 +87,17 @@ export class MassMultiplayerEventService extends BaseService {
     guild: Guild,
     numberOfGroups: number
   ): Promise<void> {
+    if (!this.envService.massMultiplayerEventCategoryName)
+      throw MassMultiplayerEventServiceError.configurationMissing();
+
     const categoryId = this.getCategoryIdByName(
       guild,
-      this.envService.massMultiplayerEventCategoryName || ""
+      this.envService.massMultiplayerEventCategoryName
     );
     if (!categoryId)
-      throw new Error("Impossible de créer les groupes sans catégorie");
+      throw MassMultiplayerEventServiceError.eventCategoryNotFound(
+        this.envService.massMultiplayerEventCategoryName
+      );
 
     for (let groupNumber = 1; groupNumber <= numberOfGroups; groupNumber++) {
       const groupChannel = await guild.channels.create(
@@ -97,7 +109,7 @@ export class MassMultiplayerEventService extends BaseService {
       await groupChannel.setParent(categoryId);
 
       const groupVoiceChannel = await guild.channels.create(
-        `voice groupe-${groupNumber}`,
+        `voice-groupe-${groupNumber}`,
         {
           type: "voice",
         }
@@ -167,7 +179,7 @@ export class MassMultiplayerEventService extends BaseService {
     try {
       await this.resourcesService.saveGuildResource(
         guild,
-        `massMultiplayerEventsGroups.json`,
+        MassMultiplayerEventService.STATE_FILE_NAME,
         JSON.stringify(this.groupChannelsIdByGuildId[guild.id])
       );
     } catch (err) {
@@ -180,7 +192,7 @@ export class MassMultiplayerEventService extends BaseService {
       if (
         await this.resourcesService.guildResourceExists(
           guild,
-          `massMultiplayerEventsGroups.json`
+          MassMultiplayerEventService.STATE_FILE_NAME
         )
       ) {
         const raw = await this.resourcesService.readGuildResource(
