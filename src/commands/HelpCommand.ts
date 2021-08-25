@@ -3,6 +3,7 @@ import { Inject } from "typescript-ioc";
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { HelpService } from "../services/HelpService";
 import { EnvService } from "../services/EnvService";
+import { EmbedFieldData, MessageEmbed } from "discord.js";
 
 export class HelpCommand implements ICommand {
   aliases = ["help", "aide"];
@@ -15,16 +16,19 @@ export class HelpCommand implements ICommand {
     const commandPrefix = this.envService.commandPrefix;
 
     const { message } = cmdArgs;
-    await message.author.send(`
-**__Toutes les commandes__**
-${this.helpService.allHelp
-  .map(({ aliases, help }) => {
-    return `__${aliases
-      .map((x) => `\`${commandPrefix}${x}\``)
-      .join(", ")}__\n${help}\n`;
-  })
-  .join("\n")}
-`);
+
+    const embed = new MessageEmbed();
+    embed.setTitle(`Toutes les commandes`);
+    const fieldsData: EmbedFieldData[] = this.helpService.allHelp.map(
+      ({ aliases, help }) => {
+        return {
+          name: aliases.map((alias) => `${commandPrefix}${alias}`).join(", "),
+          value: help,
+        };
+      }
+    );
+    embed.addFields(fieldsData);
+    await message.author.send(embed);
 
     return { resultString: "[HelpCommand] Aide envoyée" };
   }
