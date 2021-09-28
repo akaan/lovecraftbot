@@ -215,6 +215,7 @@ export class DeckService extends BaseService {
     ].filter((faction) => faction !== undefined);
 
     const factionIcons = factions
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .map((faction) => CLASS_ICONS[faction!])
       .filter((faction) => faction !== undefined);
 
