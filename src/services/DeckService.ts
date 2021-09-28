@@ -207,14 +207,22 @@ export class DeckService extends BaseService {
   private formatCard(cardInDeck: CardInDeck): string {
     const level = cardInDeck.xp || 0;
     const signature = typeof cardInDeck.xp === "undefined";
-    let classEmoji = "";
 
-    const classIcon = CLASS_ICONS[cardInDeck.faction_code];
-    if (classIcon) {
-      classEmoji = this.emojiService.getEmoji(classIcon);
-    }
+    const factions = [
+      cardInDeck.faction_code,
+      cardInDeck.faction2_code,
+      cardInDeck.faction3_code,
+    ].filter((faction) => faction !== undefined);
 
-    return `${cardInDeck.quantity}x ${classEmoji} [${
+    const factionIcons = factions
+      .map((faction) => CLASS_ICONS[faction!])
+      .filter((faction) => faction !== undefined);
+
+    const factionEmojis = factionIcons.map((icon) =>
+      this.emojiService.getEmoji(icon)
+    );
+
+    return `${cardInDeck.quantity}x ${factionEmojis.join(" ")} [${
       cardInDeck.name
     }](https://fr.arkhamdb.com/card/${cardInDeck.code}) ${"•".repeat(level)}${
       signature ? " ★" : ""

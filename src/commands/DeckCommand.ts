@@ -4,7 +4,7 @@ import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { DeckService } from "../services/DeckService";
 
 export class DeckCommand implements ICommand {
-  aliases = ["deck"];
+  aliases = ["d", "deck"];
   help = "Affiche le deck correspondant à l'ID fourni";
 
   @Inject private deckService!: DeckService;
