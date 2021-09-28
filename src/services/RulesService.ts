@@ -20,9 +20,19 @@ interface Rule {
   rules?: Rule[];
 }
 
+function flattenRules(rules: Rule[]): Rule[] {
+  return rules.reduce((flat, rule) => {
+    if (rule.rules) {
+      return [...flat, rule, ...flattenRules(rule.rules)];
+    }
+    return [...flat, rule];
+  }, [] as Rule[]);
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class RulesService extends BaseService {
+  private rules: Rule[] = [];
   private rulesIndex: Fuse<Rule> = new Fuse<Rule>([]);
 
   @Inject private formatService!: FormatService;
@@ -35,9 +45,20 @@ export class RulesService extends BaseService {
   }
 
   public getRule(search: string): Rule | undefined {
+    const foundRules = this.rules.filter((rule) =>
+      diacritics
+        .remove(rule.title.toLowerCase())
+        .includes(diacritics.remove(search.toLowerCase()))
+    );
+    if (foundRules.length > 0) {
+      return foundRules[0];
+    }
+  }
+
+  public searchRule(search: string): string[] | undefined {
     const foundRules = this.rulesIndex.search(diacritics.remove(search));
     if (foundRules.length > 0) {
-      return foundRules[0].item;
+      return foundRules.map((found) => found.item.title);
     }
   }
 
@@ -98,9 +119,9 @@ export class RulesService extends BaseService {
     const rawData = await this.resources.readResource("rules_fr.json");
     if (rawData) {
       try {
-        const rules = JSON.parse(rawData) as Rule[];
+        this.rules = flattenRules(JSON.parse(rawData) as Rule[]);
 
-        this.rulesIndex = new Fuse<Rule>(rules, {
+        this.rulesIndex = new Fuse<Rule>(this.rules, {
           keys: ["title"],
           getFn: function (...args) {
             return diacritics.remove(
