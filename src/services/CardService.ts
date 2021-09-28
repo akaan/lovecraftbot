@@ -13,9 +13,19 @@ const CLASS_COLORS = {
   rogue: 0x107116,
   mystic: 0x6d2aa9,
   survivor: 0xcc3038,
+  multiclass: 0xc0c000,
   neutral: 0x808080,
   mythos: 0xfcfcfc,
 };
+
+export type FactionCode =
+  | "guardian"
+  | "seeker"
+  | "rogue"
+  | "mystic"
+  | "survivor"
+  | "neutral"
+  | "mythos";
 
 export interface ArkhamDBCard {
   code: string;
@@ -24,14 +34,9 @@ export interface ArkhamDBCard {
   xp: number;
   permanent: boolean;
   double_sided: boolean;
-  faction_code:
-    | "guardian"
-    | "seeker"
-    | "rogue"
-    | "mystic"
-    | "survivor"
-    | "neutral"
-    | "mythos";
+  faction_code: FactionCode;
+  faction2_code?: FactionCode;
+  faction3_code?: FactionCode;
   type_code: string;
   pack_code: string;
   text: string;
@@ -159,21 +164,36 @@ export class CardService extends BaseService {
     const embed = new Discord.MessageEmbed();
 
     const cardFaction = findOrDefaultToCode(this.factions, card.faction_code);
+    const cardFaction2 = card.faction2_code
+      ? findOrDefaultToCode(this.factions, card.faction2_code)
+      : undefined;
+    const cardFaction3 = card.faction3_code
+      ? findOrDefaultToCode(this.factions, card.faction3_code)
+      : undefined;
+
+    const factions = [cardFaction, cardFaction2, cardFaction3]
+      .filter((faction) => faction !== undefined)
+      .join(" / ");
+
     const cardType = findOrDefaultToCode(this.types, card.type_code);
+
+    const isMulticlass = !!card.faction2_code;
 
     embed.setTitle(card.name);
     embed.setURL(`https://fr.arkhamdb.com/card/${card.code}`);
 
-    if (!["neutral", "mythos"].includes(card.faction_code)) {
+    if (!["neutral", "mythos"].includes(card.faction_code) && !isMulticlass) {
       embed.setAuthor(
-        `${cardType} ${cardFaction}`,
+        `${cardType} ${factions}`,
         `https://arkhamdb.com/bundles/app/images/factions/${card.faction_code}.png`
       );
     } else {
-      embed.setAuthor(`${cardType} ${cardFaction}`);
+      embed.setAuthor(`${cardType} ${factions}`);
     }
 
-    embed.setColor(CLASS_COLORS[card.faction_code]);
+    embed.setColor(
+      isMulticlass ? CLASS_COLORS.multiclass : CLASS_COLORS[card.faction_code]
+    );
 
     const maybeCardImageLink = await this.getCardImageLink(
       card,
