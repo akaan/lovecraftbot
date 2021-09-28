@@ -1,16 +1,10 @@
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import {
-  ArkhamDBCard,
-  CardPool,
-  CardService,
-  SearchType,
-} from "../services/CardService";
+import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 import { DiscordMenu } from "../utils/DiscordMenu";
 
 interface SearchOptions {
-  cardPool: CardPool;
   xp: "none" | "all" | number;
   extended: boolean;
   back: boolean;
@@ -19,17 +13,7 @@ interface SearchOptions {
 }
 
 export class CardCommand implements ICommand {
-  aliases = [
-    "!",
-    "c",
-    "carte",
-    "d",
-    "dos",
-    "r",
-    "rencontre",
-    "rd",
-    "rencontred",
-  ];
+  aliases = ["!", "c", "carte", "d", "dos"];
   help = `Pour l'affichage de carte(s).
 
   Usage: \`cmd recherche xp\`
@@ -40,13 +24,9 @@ export class CardCommand implements ICommand {
 
   La distinction entre les commandes \`cmd\` est la suivante :
   - \`!\` ou \`c\`: juste l'image de la carte
-  - \`carte\`: carte joueur avec description
-  - \`d\`: juste l'image du dos de la carte joueur
-  - \`dos\`: dos de carte joueur avec description
-  - \`r\`: juste l'image de la carte rencontre
-  - \`rencontre\`: carte rencontre avec description
-  - \`rd\`: juste l'image du dos de la carte rencontre
-  - \`rencontred\`: dos de carte rencontre avec description`;
+  - \`carte\`: carte avec description
+  - \`d\`: juste l'image du dos de la carte
+  - \`dos\`: dos de carte avec description`;
 
   private CARD_CODE_REGEX = /\d{5}$/;
   private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
@@ -63,7 +43,6 @@ export class CardCommand implements ICommand {
       foundCards = this.cardService.getCards({
         searchString: searchOptions.searchString,
         searchType: searchOptions.searchType,
-        searchCardPool: searchOptions.cardPool,
         includeSameNameCards: searchOptions.xp !== "none",
       });
 
@@ -110,17 +89,8 @@ export class CardCommand implements ICommand {
     cmd: string,
     args: string
   ): SearchOptions | undefined {
-    const extended = [
-      "card",
-      "carte",
-      "dos",
-      "rencontre",
-      "rencontred",
-    ].includes(cmd);
-    const back = ["d", "dos", "rd", "rencontred"].includes(cmd);
-    const cardPool = ["r", "rencontre", "rd", "rencontred"].includes(cmd)
-      ? CardPool.ENCOUNTER
-      : CardPool.PLAYER;
+    const extended = ["carte", "dos"].includes(cmd);
+    const back = ["d", "dos"].includes(cmd);
     const searchType = this.CARD_CODE_REGEX.test(args)
       ? SearchType.BY_CODE
       : SearchType.BY_TITLE;
@@ -130,7 +100,6 @@ export class CardCommand implements ICommand {
       if (cardCodeMatches) {
         return {
           back,
-          cardPool,
           extended,
           searchType,
           searchString: cardCodeMatches[0],
@@ -144,7 +113,6 @@ export class CardCommand implements ICommand {
         const parsedXp = parseInt(xpAsString, 10);
         const xp = isNaN(parsedXp) ? "none" : parsedXp;
         return {
-          cardPool,
           extended,
           back,
           searchType,

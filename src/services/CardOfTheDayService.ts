@@ -2,7 +2,7 @@ import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import * as Discord from "discord.js";
 
 import { BaseService } from "../base/BaseService";
-import { CardPool, CardService, SearchType } from "./CardService";
+import { CardService, SearchType } from "./CardService";
 import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 import { RandomService } from "./RandomService";
@@ -73,7 +73,6 @@ export class CardOfTheDayService extends BaseService {
           ];
         const randomCard = this.cardService.getCards({
           searchString: randomCode,
-          searchCardPool: CardPool.PLAYER,
           searchType: SearchType.BY_CODE,
         });
         if (randomCard.length > 0) {

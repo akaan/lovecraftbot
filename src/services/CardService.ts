@@ -1,7 +1,5 @@
 import axios from "axios";
-import diacritics from "diacritics";
 import * as Discord from "discord.js";
-import Fuse from "fuse.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -78,21 +76,22 @@ export enum SearchType {
   BY_TITLE,
 }
 
-export enum CardPool {
-  PLAYER,
-  ENCOUNTER,
-}
-
 interface SearchParams {
   searchString: string;
   searchType?: SearchType;
-  searchCardPool?: CardPool;
   includeSameNameCards?: boolean;
 }
 
 interface EmbedOptions {
   extended: boolean;
   back: boolean;
+}
+
+function matchCard(card: ArkhamDBCard, searchString: string): boolean {
+  return (
+    card.name.toLowerCase().includes(searchString.toLowerCase()) ||
+    card.real_name.toLowerCase().includes(searchString.toLowerCase())
+  );
 }
 
 @Singleton
@@ -103,8 +102,6 @@ export class CardService extends BaseService {
   private factions: CodeAndName[] = [];
   private packs: CodeAndName[] = [];
   private types: CodeAndName[] = [];
-  private playerCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
-  private encounterCardsIndex: Fuse<ArkhamDBCard> = new Fuse<ArkhamDBCard>([]);
 
   @Inject private formatService!: FormatService;
   @Inject private logger!: LoggerService;
@@ -123,26 +120,18 @@ export class CardService extends BaseService {
   public getCards({
     searchString,
     searchType = SearchType.BY_TITLE,
-    searchCardPool = CardPool.PLAYER,
     includeSameNameCards = false,
   }: SearchParams): ArkhamDBCard[] {
     if (searchType === SearchType.BY_CODE) {
-      const factionFilter =
-        searchCardPool === CardPool.PLAYER
-          ? (card: ArkhamDBCard) => card.faction_code !== "mythos"
-          : (card: ArkhamDBCard) => card.faction_code === "mythos";
-      return this.frenchCards
-        .filter(factionFilter)
-        .filter((card) => card.code === searchString);
+      return this.frenchCards.filter((card) => card.code === searchString);
     }
 
-    const cardsIndex =
-      searchCardPool === CardPool.PLAYER
-        ? this.playerCardsIndex
-        : this.encounterCardsIndex;
-    const foundCards = cardsIndex.search(diacritics.remove(searchString));
+    const foundCards = this.frenchCards.filter((card) =>
+      matchCard(card, searchString)
+    );
+
     if (foundCards.length > 0) {
-      const foundCard = foundCards[0].item;
+      const foundCard = foundCards[0];
       if (!includeSameNameCards) {
         return [foundCard];
       } else {
@@ -377,33 +366,6 @@ export class CardService extends BaseService {
     if (rawData) {
       try {
         this.frenchCards = JSON.parse(rawData) as ArkhamDBCard[];
-
-        const playerCards = this.frenchCards.filter(
-          (card) => card.faction_code !== "mythos"
-        );
-
-        const encounterCards = this.frenchCards.filter(
-          (card) => card.faction_code == "mythos"
-        );
-
-        const indexOptions: Fuse.IFuseOptions<ArkhamDBCard> = {
-          keys: ["real_name", "name"],
-          getFn: function (...args) {
-            return diacritics.remove(
-              /* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
-              (Fuse as any).config.getFn.apply(this, args)
-            );
-          },
-        };
-
-        this.playerCardsIndex = new Fuse<ArkhamDBCard>(
-          playerCards,
-          indexOptions
-        );
-        this.encounterCardsIndex = new Fuse<ArkhamDBCard>(
-          encounterCards,
-          indexOptions
-        );
       } catch (err) {
         this.logger.error(err);
       }
