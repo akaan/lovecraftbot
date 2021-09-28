@@ -7,3 +7,4 @@ export * from "./HasturCommand";
 export * from "./HelpCommand";
 export * from "./RefreshCommand";
 export * from "./RuleCommand";
+export * from "./SearchRuleCommand";

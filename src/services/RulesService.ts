@@ -1,6 +1,4 @@
-import diacritics from "diacritics";
 import * as Discord from "discord.js";
-import Fuse from "fuse.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -29,11 +27,18 @@ function flattenRules(rules: Rule[]): Rule[] {
   }, [] as Rule[]);
 }
 
+function matchRule(rule: Rule, searchString: string): boolean {
+  return (
+    rule.title.toLowerCase().includes(searchString.toLowerCase()) ||
+    (!!rule.text &&
+      rule.text.toLowerCase().includes(searchString.toLowerCase()))
+  );
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 export class RulesService extends BaseService {
   private rules: Rule[] = [];
-  private rulesIndex: Fuse<Rule> = new Fuse<Rule>([]);
 
   @Inject private formatService!: FormatService;
   @Inject private logger!: LoggerService;
@@ -46,9 +51,7 @@ export class RulesService extends BaseService {
 
   public getRule(search: string): Rule | undefined {
     const foundRules = this.rules.filter((rule) =>
-      diacritics
-        .remove(rule.title.toLowerCase())
-        .includes(diacritics.remove(search.toLowerCase()))
+      rule.title.toLowerCase().includes(search.toLowerCase())
     );
     if (foundRules.length > 0) {
       return foundRules[0];
@@ -56,9 +59,9 @@ export class RulesService extends BaseService {
   }
 
   public searchRule(search: string): string[] | undefined {
-    const foundRules = this.rulesIndex.search(diacritics.remove(search));
+    const foundRules = this.rules.filter((rule) => matchRule(rule, search));
     if (foundRules.length > 0) {
-      return foundRules.map((found) => found.item.title);
+      return foundRules.map((found) => found.title);
     }
   }
 
@@ -120,16 +123,6 @@ export class RulesService extends BaseService {
     if (rawData) {
       try {
         this.rules = flattenRules(JSON.parse(rawData) as Rule[]);
-
-        this.rulesIndex = new Fuse<Rule>(this.rules, {
-          keys: ["title"],
-          getFn: function (...args) {
-            return diacritics.remove(
-              /* eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
-              (Fuse as any).config.getFn.apply(this, args)
-            );
-          },
-        });
       } catch (err) {
         this.logger.error(err);
       }

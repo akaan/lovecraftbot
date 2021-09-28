@@ -7,7 +7,7 @@ import { DiscordMenu } from "../utils/DiscordMenu";
 
 export class RuleCommand implements ICommand {
   aliases = ["r", "règle", "regle"];
-  help = "Affiche la règle correspondante";
+  help = "Affiche la règle (correspondance exacte)";
 
   @Inject private rulesService!: RulesService;
 
