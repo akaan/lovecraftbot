@@ -37,6 +37,7 @@ export interface ArkhamDBCard {
   faction_code: FactionCode;
   faction2_code?: FactionCode;
   faction3_code?: FactionCode;
+  encounter_code?: string;
   type_code: string;
   pack_code: string;
   text: string;
@@ -150,6 +151,7 @@ export class CardService extends BaseService {
   public getAllPlayerCardCodes(): string[] {
     return this.frenchCards
       .filter((card) => card.faction_code !== "mythos")
+      .filter((card) => card.encounter_code === undefined)
       .map((card) => card.code);
   }
 
