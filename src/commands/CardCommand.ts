@@ -28,7 +28,7 @@ export class CardCommand implements ICommand {
   - \`d\`: juste l'image du dos de la carte
   - \`dos\`: dos de carte avec description`;
 
-  private CARD_CODE_REGEX = /\d{5}$/;
+  private CARD_CODE_REGEX = /(\d{5})(b?)$/;
   private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
 
   @Inject private cardService!: CardService;
@@ -98,11 +98,12 @@ export class CardCommand implements ICommand {
     if (searchType == SearchType.BY_CODE) {
       const cardCodeMatches = this.CARD_CODE_REGEX.exec(args);
       if (cardCodeMatches) {
+        const [, cardCode, backFlag] = cardCodeMatches;
         return {
-          back,
+          back: back || backFlag !== "",
           extended,
           searchType,
-          searchString: cardCodeMatches[0],
+          searchString: cardCode,
           xp: "none",
         };
       }
