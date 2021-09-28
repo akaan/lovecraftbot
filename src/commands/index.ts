@@ -5,6 +5,7 @@ export * from "./DeckCommand";
 export * from "./EchoCommand";
 export * from "./HasturCommand";
 export * from "./HelpCommand";
+export * from "./PhaseTimingCommand";
 export * from "./RefreshCommand";
 export * from "./RuleCommand";
 export * from "./SearchRuleCommand";
