@@ -53,6 +53,13 @@ export class CardOfTheDayService extends BaseService {
     );
   }
 
+  public async addCardSent(codes: string[]): Promise<void> {
+    for (const code of codes) {
+      this.cardCodesSent.push(code);
+    }
+    await this.saveCardCodesSent();
+  }
+
   private async sendCardOfTheDay(): Promise<void> {
     if (!this.client) {
       return;

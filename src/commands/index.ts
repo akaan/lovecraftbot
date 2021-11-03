@@ -1,6 +1,7 @@
 export * from "./BagCommand";
 export * from "./BlobCommand";
 export * from "./CardCommand";
+export * from "./CardOfTheDayCommand";
 export * from "./DeckCommand";
 export * from "./EchoCommand";
 export * from "./HasturCommand";
