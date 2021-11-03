@@ -5,6 +5,7 @@ interface HelpText {
   command: string;
   aliases: string[];
   help: string;
+  admin: boolean;
 }
 
 @Singleton

@@ -4,6 +4,7 @@ import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { HelpService } from "../services/HelpService";
 import { EnvService } from "../services/EnvService";
 import { EmbedFieldData, MessageEmbed } from "discord.js";
+import { RoleService } from "../services/RoleService";
 
 export class HelpCommand implements ICommand {
   aliases = ["help", "aide"];
@@ -11,18 +12,33 @@ export class HelpCommand implements ICommand {
 
   @Inject private envService!: EnvService;
   @Inject private helpService!: HelpService;
+  @Inject private roleService!: RoleService;
 
   async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
     const commandPrefix = this.envService.commandPrefix;
 
     const { message } = cmdArgs;
 
+    const botAdminRole = this.envService.botAdminRoleName;
+    const isAdmin =
+      botAdminRole !== undefined &&
+      this.roleService.isMessageFromRole(message, botAdminRole);
+
     const embed = new MessageEmbed();
     embed.setTitle(`Toutes les commandes`);
-    const fieldsData: EmbedFieldData[] = this.helpService.allHelp.map(
-      ({ aliases, help }) => {
+    const helpTexts = isAdmin
+      ? this.helpService.allHelp
+      : this.helpService.allHelp.filter(
+          (helpText) => helpText.admin === undefined || helpText.admin === false
+        );
+    const fieldsData: EmbedFieldData[] = helpTexts.map(
+      ({ aliases, help, admin }) => {
         return {
-          name: aliases.map((alias) => `${commandPrefix}${alias}`).join(", "),
+          name: aliases
+            .map(
+              (alias) => `${admin ? "[ADMIN] " : ""}${commandPrefix}${alias}`
+            )
+            .join(", "),
           value: help,
         };
       }

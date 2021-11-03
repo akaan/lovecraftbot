@@ -113,6 +113,7 @@ export class CommandParser extends BaseService {
         command: cmdInst.constructor.name,
         aliases: cmdInst.aliases,
         help: cmdInst.help,
+        admin: cmdInst.admin !== undefined && cmdInst.admin,
       });
     }
 
