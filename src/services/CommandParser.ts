@@ -6,6 +6,8 @@ import { BaseService } from "../base/BaseService";
 
 import * as Commands from "../commands";
 import { HelpService } from "./HelpService";
+import { EnvService } from "./EnvService";
+import { RoleService } from "./RoleService";
 
 type CommandsDictionary = { [key: string]: CommandConstructor };
 const AvailableCommands = Commands as unknown as CommandsDictionary;
@@ -13,6 +15,8 @@ const AvailableCommands = Commands as unknown as CommandsDictionary;
 @Singleton
 @OnlyInstantiableByContainer
 export class CommandParser extends BaseService {
+  @Inject private envService!: EnvService;
+  @Inject private roleService!: RoleService;
   @Inject private helpService!: HelpService;
 
   private executableCommands: { [key: string]: ICommand } = {};
@@ -71,6 +75,20 @@ export class CommandParser extends BaseService {
     const cmdInst = this.executableCommands[cmd.toLowerCase()];
     if (!cmdInst || !cmdInst.execute) {
       return { resultString: `Pas de commande pour ${cmd}` };
+    }
+
+    if (cmdInst.admin) {
+      const botAdminRole = this.envService.botAdminRoleName;
+      if (!botAdminRole) {
+        throw new Error(
+          `La commande ${cmd} requiert des droits Admin mais ce rôle n'a pas été défini via BOT_ADMIN_ROLE`
+        );
+      }
+      if (!this.roleService.isMessageFromRole(message, botAdminRole)) {
+        return {
+          resultString: `La commande ${cmd} est une commande Admin et ${message.author.username} n'a pas ce rôle`,
+        };
+      }
     }
 
     return cmdInst.execute({

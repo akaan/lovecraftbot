@@ -5,6 +5,7 @@ import { BlobGameService } from "../services/BlobGameService";
 import { LoggerService } from "../services/LoggerService";
 
 export class BlobCommand implements ICommand {
+  admin = true;
   aliases = ["blob"];
   help = `Commandes pour gérer une partie massivement multijoueurs du **Dévoreur de Toute Chose**.
 Les sous-commandes sont décrites ci-dessous.

@@ -40,4 +40,8 @@ export class EnvService extends BaseService {
   public get massMultiplayerEventAdminChannelName(): string | undefined {
     return process.env.MASS_MULTIPLAYER_EVENT_ADMIN_CHANNEL;
   }
+
+  public get botAdminRoleName(): string | undefined {
+    return process.env.BOT_ADMIN_ROLE;
+  }
 }

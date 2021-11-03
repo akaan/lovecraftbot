@@ -18,6 +18,7 @@ export interface ICommandArgs {
 export interface ICommand {
   help: string;
   aliases?: string[];
+  admin?: boolean;
 
   // run when the aliases are matched, and if the function is added to the command
   execute?(args: ICommandArgs): Promise<ICommandResult>;

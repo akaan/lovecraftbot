@@ -23,6 +23,7 @@ Mettez les variables suivantes dans un fichier [`.env`](https://www.npmjs.com/pa
 - `CARD_OF_THE_DAY_HOUR` - L'heure à laquelle envoyer la carte du jour (par défaut à `8`)
 - `MASS_MULTIPLAYER_EVENT_CATEGORY` - Le nom de la catégorie de canaux pour l'organisation d'événements multijoueurs
 - `MASS_MULTIPLAYER_EVENT_ADMIN_CHANNEL` - Le nom du canal utilisé pour les organisateurs d'un événement multijoueurs
+- `BOT_ADMIN_ROLE` - Le nom du rôle autorisant l'accès aux commandes "admin" du bot
 
 ### Facultatif
 
