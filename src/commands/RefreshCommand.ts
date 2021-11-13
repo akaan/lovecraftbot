@@ -3,6 +3,7 @@ import { CardService } from "../services/CardService";
 import { Inject } from "typescript-ioc";
 
 export class RefreshCommand implements ICommand {
+  admin = true;
   aliases = ["refresh"];
   help = "Recharge les toutes dernières cartes depuis ArkhamDB";
 
