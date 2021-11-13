@@ -87,7 +87,8 @@ export class CardOfTheDayService extends BaseService {
             back: false,
             extended: true,
           });
-          await (channel as Discord.TextChannel).send(embed);
+          const msg = await (channel as Discord.TextChannel).send(embed);
+          await msg.pin();
           this.cardCodesSent.push(randomCode);
           await this.saveCardCodesSent();
 
