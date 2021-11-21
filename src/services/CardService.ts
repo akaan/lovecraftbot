@@ -123,6 +123,16 @@ export class CardService extends BaseService {
     await this.loadTypes();
   }
 
+  public getFrenchCardName(englishName: string): string | undefined {
+    const foundCard = this.frenchCards.find(
+      (card) =>
+        card.real_name.toLocaleLowerCase() === englishName.toLocaleLowerCase()
+    );
+    if (foundCard && foundCard.name !== foundCard.real_name)
+      return foundCard.name;
+    return undefined;
+  }
+
   public getCards({
     searchString,
     searchType = SearchType.BY_TITLE,
