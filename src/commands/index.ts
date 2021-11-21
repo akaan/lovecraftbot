@@ -4,6 +4,7 @@ export * from "./CardCommand";
 export * from "./CardOfTheDayCommand";
 export * from "./DeckCommand";
 export * from "./EchoCommand";
+export * from "./EnglishCommand";
 export * from "./FrenchCommand";
 export * from "./HasturCommand";
 export * from "./HelpCommand";

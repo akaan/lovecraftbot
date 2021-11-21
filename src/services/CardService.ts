@@ -133,6 +133,15 @@ export class CardService extends BaseService {
     return undefined;
   }
 
+  public getEnglishCardName(frenchName: string): string | undefined {
+    const foundCard = this.frenchCards.find(
+      (card) => card.name.toLocaleLowerCase() === frenchName.toLocaleLowerCase()
+    );
+    if (foundCard && foundCard.real_name !== foundCard.name)
+      return foundCard.real_name;
+    return undefined;
+  }
+
   public getCards({
     searchString,
     searchType = SearchType.BY_TITLE,
