@@ -19,6 +19,6 @@ export class EchoCommand implements ISlashCommand {
   async execute(interaction: CommandInteraction): Promise<ISlashCommandResult> {
     const message = interaction.options.getString("message");
     await interaction.reply(message || "");
-    return { message: "EchoCommand: echoed message back to user" };
+    return { message: "[EchoCommand] echoed message back to user" };
   }
 }
