@@ -1,13 +1,14 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction } from "discord.js";
+import {
+  ChatInputApplicationCommandData,
+  CommandInteraction,
+} from "discord.js";
 
 export interface ISlashCommandResult {
   message: string;
   [key: string]: unknown;
 }
 
-export interface ISlashCommand {
-  data: SlashCommandBuilder;
+export interface ISlashCommand extends ChatInputApplicationCommandData {
   isAdmin: boolean;
   execute(interaction: CommandInteraction): Promise<ISlashCommandResult>;
 }

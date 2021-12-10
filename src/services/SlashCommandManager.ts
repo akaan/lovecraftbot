@@ -1,5 +1,3 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { REST } from "@discordjs/rest";
 import {
   ApplicationCommand,
   ApplicationCommandPermissionData,
@@ -9,7 +7,6 @@ import {
   GuildApplicationCommandPermissionData,
   Role,
 } from "discord.js";
-import { Routes } from "discord-api-types/v9";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -90,7 +87,7 @@ export class SlashCommandManager extends BaseService {
     commandInteraction: CommandInteraction
   ): Promise<ISlashCommandResult> {
     const slashCommand = this.slashCommands.find(
-      (sc) => sc.data.name === commandInteraction.commandName
+      (sc) => sc.name === commandInteraction.commandName
     );
     if (slashCommand) {
       return slashCommand.execute(commandInteraction);
@@ -104,45 +101,27 @@ export class SlashCommandManager extends BaseService {
   private loadSlashCommands(slashCommands: SlashCommandsDictionary): void {
     Object.values(slashCommands).forEach((slashCommandConstructor) => {
       const slashCommandInstance: ISlashCommand = new slashCommandConstructor();
+      if (slashCommandInstance.isAdmin)
+        slashCommandInstance.defaultPermission = false;
       this.slashCommands.push(slashCommandInstance);
     });
   }
 
-  // FIXME: The type should be RESTPostAPIApplicationCommandsJSONBody
-  // but there are bugs.
-  private getSlashCommandsData(): ReturnType<SlashCommandBuilder["toJSON"]>[] {
-    return this.slashCommands.map((slashCommand) => {
-      if (slashCommand.isAdmin) {
-        return slashCommand.data.setDefaultPermission(false).toJSON();
-      } else {
-        return slashCommand.data.toJSON();
-      }
-    });
-  }
-
-  // TODO See if this can be done without a REST request using the discord.js API
-  // https://discord.js.org/#/docs/main/stable/class/ApplicationCommandManager?scrollTo=set
   private async registerSlashCommands(): Promise<void> {
-    const DISCORD_TOKEN = this.envService.discordToken;
-    if (!DISCORD_TOKEN) {
-      throw new Error("No Discord token specified!");
-    }
-
     if (this.client && this.client.application) {
-      const applicationId = this.client.application.id;
+      const client = this.client;
       const guildIds = this.envService.testServerId
         ? [this.envService.testServerId]
         : this.client.guilds.cache.map((guild) => guild.id);
 
-      const commands = this.getSlashCommandsData();
-      const rest = new REST({ version: "9" }).setToken(DISCORD_TOKEN);
       try {
         await Promise.all(
-          guildIds.map((guildId) =>
-            rest.put(Routes.applicationGuildCommands(applicationId, guildId), {
-              body: commands,
-            })
-          )
+          guildIds.map((guildId) => {
+            const guild = client.guilds.cache.find((g) => g.id === guildId);
+            if (guild) {
+              return guild.commands.set(this.slashCommands);
+            }
+          })
         );
       } catch (err) {
         this.logger.error(`Error while registering slash commands`, err);
@@ -160,7 +139,7 @@ export class SlashCommandManager extends BaseService {
     if (botAdminRoleName) {
       const adminCommandNames = this.slashCommands
         .filter((c) => c.isAdmin)
-        .map((c) => c.data.name);
+        .map((c) => c.name);
 
       const guildIds = this.envService.testServerId
         ? [this.envService.testServerId]

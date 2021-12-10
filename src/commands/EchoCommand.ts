@@ -1,18 +1,20 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction } from "discord.js";
+// eslint-disable-next-line import/no-unresolved
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 
 export class EchoCommand implements ISlashCommand {
   isAdmin = false;
-  data = new SlashCommandBuilder()
-    .setName("echo")
-    .setDescription("Retourne ton propre message")
-    .addStringOption((option) =>
-      option
-        .setName("message")
-        .setDescription("Le message à renvoyer")
-        .setRequired(true)
-    ) as SlashCommandBuilder;
+  name = "echo";
+  description = "Retourne ton propre message";
+  options = [
+    {
+      type: ApplicationCommandOptionTypes.STRING,
+      name: "message",
+      description: "Le message à renvoyer",
+      required: true,
+    },
+  ];
 
   async execute(interaction: CommandInteraction): Promise<ISlashCommandResult> {
     const message = interaction.options.getString("message");
