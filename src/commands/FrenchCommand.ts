@@ -37,7 +37,7 @@ export class FrenchCommand implements ISlashCommand {
         return { message: `[FrenchCommand] Pas de nom français trouvé"` };
       }
     } else {
-      return { message: "FrenchCommand: nom anglais non fourni" };
+      return { message: "[FrenchCommand] nom anglais non fourni" };
     }
   }
 }

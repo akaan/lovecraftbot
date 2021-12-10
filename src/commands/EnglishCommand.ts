@@ -1,30 +1,44 @@
+import { CommandInteraction } from "discord.js";
+// eslint-disable-next-line import/no-unresolved
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+
 import { CardService } from "../services/CardService";
 
-export class EnglishCommand implements ICommand {
-  aliases = ["e"];
-  help = `Affiche le nom anglais de la carte indiquée (recherche exacte)`;
-
+export class EnglishCommand implements ISlashCommand {
   @Inject private cardService!: CardService;
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { message, args } = cmdArgs;
-    const maybeFrenchName = this.cardService.getEnglishCardName(args);
+  isAdmin = false;
+  name = "e";
+  description = `Affiche le nom anglais de la carte indiquée (recherche exacte)`;
+  options = [
+    {
+      type: ApplicationCommandOptionTypes.STRING,
+      name: "nom",
+      description: "Nom français de la carte",
+      required: true,
+    },
+  ];
 
-    if (maybeFrenchName) {
-      await message.reply(`${maybeFrenchName}`);
-      return {
-        resultString: `[EnglishCommand] Nom anglais envoyé pour "${args}"`,
-      };
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
+    const frenchName = commandInteraction.options.getString("nom");
+    if (frenchName) {
+      const maybeEnglishName = this.cardService.getEnglishCardName(frenchName);
+      if (maybeEnglishName) {
+        await commandInteraction.reply(`${maybeEnglishName}`);
+        return { message: `[EnglishCommand] Nom anglais envoyé"` };
+      } else {
+        await commandInteraction.reply(
+          `Désolé, je ne trouve pas de nom anglais pour ${frenchName}`
+        );
+        return { message: `[EnglishCommand] Pas de nom anglais trouvé"` };
+      }
     } else {
-      await message.reply(
-        `Désolé, je ne trouve pas de nom anglais pour "${args}`
-      );
-      return {
-        resultString: `[EnglishCommand] Pas de nom anglais trouvé pour "${args}"`,
-      };
+      return { message: "[EnglishCommand] Nom français non fourni" };
     }
   }
 }
