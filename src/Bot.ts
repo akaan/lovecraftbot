@@ -13,6 +13,7 @@ import { CardOfTheDayService } from "./services/CardOfTheDayService";
 import { RulesService } from "./services/RulesService";
 import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
 import { BlobGameService } from "./services/BlobGameService";
+import { SlashCommandManager } from "./services/SlashCommandManager";
 
 export class Bot {
   private client?: Discord.Client;
@@ -27,8 +28,9 @@ export class Bot {
   @Inject private rulesService!: RulesService;
   @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
 
-  // Celui-là doit arriver en dernier
+  // Ces deux là doivent arriver en dernier
   @Inject private commandParser!: CommandParser;
+  @Inject private slashCommandManager!: SlashCommandManager;
 
   public async init(): Promise<void> {
     const DISCORD_TOKEN = this.envService.discordToken;
@@ -60,6 +62,7 @@ export class Bot {
         this.blobGameService,
         this.massMultiplayerEventService,
         this.commandParser,
+        this.slashCommandManager,
       ].map((service) => {
         service
           .init(client)
@@ -73,6 +76,19 @@ export class Bot {
             );
           });
       });
+    });
+
+    this.client.on("interactionCreate", (interaction) => {
+      if (interaction.isCommand()) {
+        this.slashCommandManager
+          .handleCommandInteraction(interaction)
+          .then((slashCommandResult) => {
+            this.logger.log(`Slash command handled:`, slashCommandResult);
+          })
+          .catch((err) =>
+            this.logger.error(`Error while handling slash command`, err)
+          );
+      }
     });
 
     this.client.on("messageCreate", (msg) => {

@@ -17,6 +17,7 @@ export class LoggerService extends BaseService {
 
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   log(...args: any[]): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     console.log(this.timeStamp(), ...args);
   }
 
@@ -29,6 +30,7 @@ export class LoggerService extends BaseService {
 
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   error(...args: any[]): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     console.error(this.timeStamp(), ...args);
   }
 
