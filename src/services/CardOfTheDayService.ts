@@ -60,7 +60,7 @@ export class CardOfTheDayService extends BaseService {
     await this.saveCardCodesSent();
   }
 
-  private async sendCardOfTheDay(): Promise<void> {
+  public async sendCardOfTheDay(): Promise<void> {
     if (!this.client) {
       return;
     }
