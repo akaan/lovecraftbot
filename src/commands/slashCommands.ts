@@ -5,4 +5,5 @@ export * from "./EnglishCommand";
 export * from "./FrenchCommand";
 export * from "./PhaseTimingCommand";
 export * from "./RefreshCommand";
+export * from "./RuleCommand";
 export * from "./SkillTestTimingCommand";

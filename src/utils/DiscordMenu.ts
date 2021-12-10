@@ -27,6 +27,18 @@ export class DiscordMenu {
     return this.sentMessage;
   }
 
+  public async replyToInteraction(
+    interaction: Discord.CommandInteraction
+  ): Promise<Discord.Message> {
+    this.sentMessage = (await interaction.reply({
+      embeds: [this.pages[this.currentPage]],
+      fetchReply: true,
+    })) as Discord.Message;
+    await this.addReactions();
+    this.createCollector();
+    return this.sentMessage;
+  }
+
   private async select(page = 0) {
     if (!this.sentMessage) {
       return;
