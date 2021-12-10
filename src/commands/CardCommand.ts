@@ -1,6 +1,9 @@
+import { CommandInteraction } from "discord.js";
+// eslint-disable-next-line import/no-unresolved
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 import { DiscordMenu } from "../utils/DiscordMenu";
 
@@ -12,34 +15,64 @@ interface SearchOptions {
   searchString: string;
 }
 
-export class CardCommand implements ICommand {
-  aliases = ["!", "c", "carte", "d", "dos"];
-  help = `Pour l'affichage de carte(s).
-
-  Usage: \`cmd recherche xp\`
-  - \`xp\` peut être omis
-  - \`recherche\` peut être un code de carte ou du texte
-  - si \`xp\` est fourni alors recherche d'une carte avec ce niveau d'XP
-  - si \`xp\`= 0 alors envoie de tous les niveaux de la carte trouvée
-
-  La distinction entre les commandes \`cmd\` est la suivante :
-  - \`!\` ou \`c\`: juste l'image de la carte
-  - \`carte\`: carte avec description
-  - \`d\`: juste l'image du dos de la carte
-  - \`dos\`: dos de carte avec description`;
-
-  private CARD_CODE_REGEX = /(\d{5})(b?)$/;
-  private CARD_AND_XP_REGEX = /(\D*)(?:\s(\d))?$/;
-
+export class CardCommand implements ISlashCommand {
   @Inject private cardService!: CardService;
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { cmd, message, args } = cmdArgs;
-    const searchOptions = this.getSearchOptions(cmd, args);
+  isAdmin = false;
+  name = "carte";
+  description = `Pour l'affichage de carte(s)`;
+  options = [
+    {
+      type: ApplicationCommandOptionTypes.STRING,
+      name: "recherche",
+      description:
+        "Code de la carte ou texte à chercher dans le titre de la carte",
+      required: true,
+    },
+    {
+      type: ApplicationCommandOptionTypes.INTEGER,
+      name: "xp",
+      description:
+        "Le niveau d'XP de la carte recherchée ou '0' pour envoyer tous les niveaux de la carte",
+      required: false,
+    },
+    {
+      type: ApplicationCommandOptionTypes.BOOLEAN,
+      name: "complet",
+      description:
+        "Pour envoyer une description complète de la carte (et non seulement l'image)",
+      required: false,
+    },
+    {
+      type: ApplicationCommandOptionTypes.BOOLEAN,
+      name: "dos",
+      description: "Pour envoyer le dos de la carte",
+      required: false,
+    },
+  ];
 
-    let foundCards: ArkhamDBCard[] = [];
+  private CARD_CODE_REGEX = /(\d{5})(b?)$/;
 
-    if (searchOptions) {
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
+    const search = commandInteraction.options.getString("recherche");
+    const xp = commandInteraction.options.getInteger("xp");
+    const extended = commandInteraction.options.getBoolean("complet") || false;
+    const back = commandInteraction.options.getBoolean("dos") || false;
+
+    if (search) {
+      const searchOptions: SearchOptions = {
+        xp: xp !== null ? (xp === 0 ? "all" : xp) : "none",
+        extended,
+        back,
+        searchType: this.CARD_CODE_REGEX.test(search)
+          ? SearchType.BY_CODE
+          : SearchType.BY_TITLE,
+        searchString: search,
+      };
+
+      let foundCards: ArkhamDBCard[] = [];
       foundCards = this.cardService.getCards({
         searchString: searchOptions.searchString,
         searchType: searchOptions.searchType,
@@ -49,78 +82,38 @@ export class CardCommand implements ICommand {
       if (typeof searchOptions.xp === "number") {
         foundCards = foundCards.filter((card) => card.xp === searchOptions.xp);
       }
-    } else {
-      await message.reply("je n'ai pas compris la demande.");
-      return {
-        resultString: `[CardCommand] Impossible d'interpréter "${cmd}" et "${args}"`,
-      };
-    }
 
-    if (foundCards.length > 0) {
-      const embeds = await Promise.all(
-        foundCards.map((card) =>
-          this.cardService.createEmbed(card, {
-            back: searchOptions.back,
-            extended: searchOptions.extended,
-          })
-        )
-      );
-      if (embeds.length > 1) {
-        const menu = new DiscordMenu(embeds);
-        await menu.replyTo(message);
-        return {
-          resultString: `[CardCommand] Cartes envoyées pour la recherche ${cmd} ${args}`,
-        };
+      if (foundCards.length > 0) {
+        const embeds = await Promise.all(
+          foundCards.map((card) =>
+            this.cardService.createEmbed(card, {
+              back: searchOptions.back,
+              extended: searchOptions.extended,
+            })
+          )
+        );
+        if (embeds.length > 1) {
+          const menu = new DiscordMenu(embeds);
+          await menu.replyToInteraction(commandInteraction);
+          return {
+            message: `[CardCommand] Cartes envoyées pour la recherche ${search}`,
+          };
+        } else {
+          await commandInteraction.reply({ embeds: [embeds[0]] });
+          return {
+            message: `[CardCommand] Carte envoyée pour la recherche ${search}`,
+          };
+        }
       } else {
-        await message.channel.send({ embeds: [embeds[0]] });
+        await commandInteraction.reply(
+          "Désolé, le mystère de cette carte reste entier."
+        );
         return {
-          resultString: `[CardCommand] Carte envoyée pour la recherche ${cmd} ${args}`,
+          message: `[CardCommand] Aucune carte correspondant à la recherche ${search}`,
         };
       }
     } else {
-      await message.reply("désolé, le mystère de cette carte reste entier.");
-      return {
-        resultString: `[CardCommand] Aucune carte correspondant à la recherche ${cmd} ${args}`,
-      };
-    }
-  }
-
-  private getSearchOptions(
-    cmd: string,
-    args: string
-  ): SearchOptions | undefined {
-    const extended = ["carte", "dos"].includes(cmd);
-    const back = ["d", "dos"].includes(cmd);
-    const searchType = this.CARD_CODE_REGEX.test(args)
-      ? SearchType.BY_CODE
-      : SearchType.BY_TITLE;
-
-    if (searchType == SearchType.BY_CODE) {
-      const cardCodeMatches = this.CARD_CODE_REGEX.exec(args);
-      if (cardCodeMatches) {
-        const [, cardCode, backFlag] = cardCodeMatches;
-        return {
-          back: back || backFlag !== "",
-          extended,
-          searchType,
-          searchString: cardCode,
-          xp: "none",
-        };
-      }
-    } else {
-      const titleAndXpMatches = this.CARD_AND_XP_REGEX.exec(args);
-      if (titleAndXpMatches) {
-        const [, title, xpAsString] = titleAndXpMatches;
-        const parsedXp = parseInt(xpAsString, 10);
-        const xp = isNaN(parsedXp) ? "none" : parsedXp;
-        return {
-          extended,
-          back,
-          searchType,
-          xp: xp === 0 ? "all" : xp,
-          searchString: title.trim(),
-        };
-      }
+      return { message: "[CardCommand] Texte recherché non fourni" };
     }
   }
 }
