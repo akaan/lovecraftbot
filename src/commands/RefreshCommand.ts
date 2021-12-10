@@ -1,21 +1,25 @@
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { CardService } from "../services/CardService";
 import { Inject } from "typescript-ioc";
+import { CommandInteraction } from "discord.js";
 
-export class RefreshCommand implements ICommand {
-  admin = true;
-  aliases = ["refresh"];
-  help = "Recharge les toutes dernières cartes depuis ArkhamDB";
-
+export class RefreshCommand implements ISlashCommand {
   @Inject private cardService!: CardService;
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { message } = cmdArgs;
+  isAdmin = true;
+  name = "refresh";
+  description = "Recharge les toutes dernières cartes depuis ArkhamDB";
+
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
     await this.cardService.downloadLatestCardDb();
 
-    await message.reply("C'est bon, les cartes ont été rechargées !");
+    await commandInteraction.reply(
+      "C'est bon, les cartes ont été rechargées !"
+    );
     return {
-      resultString: "RefreshCommand: Cartes rechargées depuis ArkhamDB",
+      message: "[RefreshCommand] Cartes rechargées depuis ArkhamDB",
     };
   }
 }
