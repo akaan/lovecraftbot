@@ -15,7 +15,7 @@ export class PresenceService extends BaseService {
     if (this.envService.ignorePresence) {
       return;
     }
-    this.setPresence("faire des bonhommes de neige");
+    this.setPresence("avec les différents jeux de la gamme");
   }
 
   public setPresence(presence: string): void {
