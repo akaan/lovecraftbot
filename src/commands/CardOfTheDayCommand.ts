@@ -1,24 +1,41 @@
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { Inject } from "typescript-ioc";
 import { CardOfTheDayService } from "../services/CardOfTheDayService";
+import { CommandInteraction } from "discord.js";
+// eslint-disable-next-line import/no-unresolved
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
-export class CardOfTheDayCommand implements ICommand {
-  admin = true;
-  aliases = ["cotd"];
-  help =
-    "Ajoute les codes de cartes précisés à la liste des cartes déjà tirées";
-
+export class CardOfTheDayCommand implements ISlashCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { message, args } = cmdArgs;
+  isAdmin = true;
+  name = "cotd";
+  description =
+    "Ajoute les codes de cartes précisés à la liste des cartes déjà tirées";
+  options = [
+    {
+      type: ApplicationCommandOptionTypes.STRING,
+      name: "codes",
+      description:
+        "Codes des cartes (séparés par des virgules) à ajouter à la liste des cartes déjà tirées",
+      required: true,
+    },
+  ];
 
-    const codes = args.split(",").map((s) => s.trim());
-    await this.cardOfTheDayService.addCardSent(codes);
-    await message.reply(
-      `Ces ${codes.length} carte(s) ont été ajoutées à la liste des cartes déjà tirées`
-    );
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
+    const codesText = commandInteraction.options.getString("codes");
+    if (codesText) {
+      const codes = codesText.split(",").map((s) => s.trim());
+      await this.cardOfTheDayService.addCardSent(codes);
+      await commandInteraction.reply(
+        `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`
+      );
 
-    return { resultString: "CardOfTheDayCommand: Codes ajoutés" };
+      return { message: "[CardOfTheDayCommand] Codes ajoutés" };
+    } else {
+      return { message: `[CardOfTheDayCommand] Codes de carte non fournis` };
+    }
   }
 }

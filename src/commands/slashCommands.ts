@@ -1,5 +1,6 @@
 export * from "./BagCommand";
 export * from "./CardCommand";
+export * from "./CardOfTheDayCommand";
 export * from "./DeckCommand";
 export * from "./EchoCommand";
 export * from "./EnglishCommand";
