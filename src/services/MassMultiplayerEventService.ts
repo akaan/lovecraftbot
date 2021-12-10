@@ -92,7 +92,7 @@ export class MassMultiplayerEventService extends BaseService {
         channel.parent !== null &&
         channel.parent.name ===
           this.envService.massMultiplayerEventCategoryName &&
-        channel.type === "text" &&
+        channel.type === "GUILD_TEXT" &&
         channel.name === this.envService.massMultiplayerEventAdminChannelName
     ) as TextChannel | undefined;
   }
@@ -121,7 +121,7 @@ export class MassMultiplayerEventService extends BaseService {
       const groupChannel = await guild.channels.create(
         `groupe-${groupNumber}`,
         {
-          type: "text",
+          type: "GUILD_TEXT",
         }
       );
       await groupChannel.setParent(categoryId);
@@ -129,7 +129,7 @@ export class MassMultiplayerEventService extends BaseService {
       const groupVoiceChannel = await guild.channels.create(
         `voice-groupe-${groupNumber}`,
         {
-          type: "voice",
+          type: "GUILD_VOICE",
         }
       );
       await groupVoiceChannel.setParent(categoryId);
@@ -154,7 +154,9 @@ export class MassMultiplayerEventService extends BaseService {
         const channel = guild.channels.cache.find(
           (channel) => channel.id === groupId
         );
-        return channel ? channel.delete() : Promise.resolve(null);
+        return channel
+          ? channel.delete().then(() => null)
+          : Promise.resolve(null);
       })
     );
     this.groupChannelsIdByGuildId[guild.id] = [];
@@ -175,7 +177,7 @@ export class MassMultiplayerEventService extends BaseService {
       const maybeChannel = guild.channels.cache.find(
         (channel) => channel.id === groupId
       );
-      if (maybeChannel && maybeChannel.type === "text") {
+      if (maybeChannel && maybeChannel.type === "GUILD_TEXT") {
         memo.push(maybeChannel as TextChannel);
       }
       return memo;
@@ -186,7 +188,15 @@ export class MassMultiplayerEventService extends BaseService {
       channels.push(adminChannel);
     }
 
-    return await Promise.all(channels.map((channel) => channel.send(content)));
+    return await Promise.all(
+      channels.map((channel) => {
+        if (typeof content === "string") {
+          return channel.send(content);
+        } else {
+          return channel.send({ embeds: [content] });
+        }
+      })
+    );
   }
 
   private getCategoryIdByName(
@@ -195,7 +205,8 @@ export class MassMultiplayerEventService extends BaseService {
   ): string | undefined {
     return guild.channels.cache.find(
       (guildChannel) =>
-        guildChannel.type === "category" && guildChannel.name === categoryName
+        guildChannel.type === "GUILD_CATEGORY" &&
+        guildChannel.name === categoryName
     )?.id;
   }
 

@@ -1,6 +1,6 @@
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { Inject } from "typescript-ioc";
-import { Guild, Message, TextChannel } from "discord.js";
+import { Channel, Guild, Message, TextChannel } from "discord.js";
 import { BlobGameService } from "../services/BlobGameService";
 import { LoggerService } from "../services/LoggerService";
 
@@ -21,7 +21,7 @@ Les sous-commandes sont décrites ci-dessous.
   - \`admin start [nombre de joueurs] [nombre de groupes]\` pour démarrer une partie
   - \`admin stats\` affiche les statistiques
   - \`admin end\` termine la partie
-  - \`admin timer init [minutes]\` démarre une minuterie du nombre de minutes indiquées
+  - \`admin timer start [minutes]\` démarre une minuterie du nombre de minutes indiquées
   - \`admin timer pause\` met en pause la minuterie
   - \`admin timer resume\` reprend la mintuerie`;
 
@@ -72,7 +72,7 @@ Les sous-commandes sont décrites ci-dessous.
     adminAction: string,
     adminActionParams: string[]
   ): Promise<ICommandResult> {
-    if (this.blobGameService.isAdminChannel(message.channel)) {
+    if (this.blobGameService.isAdminChannel(message.channel as Channel)) {
       if (adminAction === "start") {
         const [numberOfPlayers, numberOfGroups] = adminActionParams;
         if (
@@ -146,7 +146,7 @@ Les sous-commandes sont décrites ci-dessous.
   ): Promise<ICommandResult> {
     const statsEmbed = this.blobGameService.createGameStatsEmbed(guild);
     if (statsEmbed) {
-      await message.reply(statsEmbed);
+      await message.channel.send({ embeds: [statsEmbed] });
       return {
         resultString: `[BlobCommand] Statistiques de jeu envoyées`,
       };

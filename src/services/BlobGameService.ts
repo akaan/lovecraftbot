@@ -180,7 +180,7 @@ export class BlobGameService extends BaseService {
     if (gameStateEmbed) {
       Promise.all(
         this.gameStateMessagesByGuildId[guild.id].map((msg) =>
-          msg.edit(gameStateEmbed)
+          msg.edit({ embeds: [gameStateEmbed] })
         )
       ).catch((err) => this.logger.error(err));
     }
@@ -189,7 +189,7 @@ export class BlobGameService extends BaseService {
   private setUpTimerInterval(guild: Guild): void {
     if (!this.client) throw BlobGameServiceError.noDiscordClient();
 
-    this.gameTimeoutByGuildId[guild.id] = this.client.setInterval(() => {
+    this.gameTimeoutByGuildId[guild.id] = setInterval(() => {
       if (guild.id in this.gameTimerByGuildId) {
         this.gameTimerByGuildId[guild.id] -= 1;
         this.saveState(guild).catch((err) => this.logger.error(err));
@@ -210,7 +210,7 @@ export class BlobGameService extends BaseService {
     if (!this.client) throw BlobGameServiceError.noDiscordClient();
 
     if (guild.id in this.gameTimeoutByGuildId) {
-      this.client.clearInterval(this.gameTimeoutByGuildId[guild.id]);
+      clearInterval(this.gameTimeoutByGuildId[guild.id]);
       delete this.gameTimeoutByGuildId[guild.id];
     }
   }
@@ -288,7 +288,10 @@ export class BlobGameService extends BaseService {
     );
     embed.setColor(0x67c355);
     embed.addFields([
-      { name: "Nombre de joueurs", value: game.getNumberOfPlayers() },
+      {
+        name: "Nombre de joueurs",
+        value: game.getNumberOfPlayers().toString(),
+      },
       {
         name: "Points de vie restants / total",
         value: `${game.getBlobRemainingHealth()} / ${game.getBlobTotalHealth()}`,
@@ -299,7 +302,7 @@ export class BlobGameService extends BaseService {
       },
       {
         name: "Nombre de contre-mesures",
-        value: game.getNumberOfCounterMeasures(),
+        value: game.getNumberOfCounterMeasures().toString(),
       },
       {
         name: "Temps restant",

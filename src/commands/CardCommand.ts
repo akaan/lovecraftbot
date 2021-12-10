@@ -72,7 +72,7 @@ export class CardCommand implements ICommand {
           resultString: `[CardCommand] Cartes envoyées pour la recherche ${cmd} ${args}`,
         };
       } else {
-        await message.reply(embeds[0]);
+        await message.channel.send({ embeds: [embeds[0]] });
         return {
           resultString: `[CardCommand] Carte envoyée pour la recherche ${cmd} ${args}`,
         };

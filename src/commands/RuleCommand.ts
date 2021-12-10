@@ -20,7 +20,7 @@ export class RuleCommand implements ICommand {
         const menu = new DiscordMenu(responses);
         await menu.replyTo(message);
       } else {
-        await message.reply(responses[0]);
+        await message.channel.send({ embeds: [responses[0]] });
       }
 
       return {

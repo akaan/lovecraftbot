@@ -33,8 +33,10 @@ export class EmojiService extends BaseService {
 
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access */
     emojiCollection.forEach((emoji: Discord.Emoji) => {
-      this.emojiHash[emoji.name] = emoji.toString();
-      this.emojiInstanceHash[emoji.name] = emoji;
+      if (emoji.name) {
+        this.emojiHash[emoji.name] = emoji.toString();
+        this.emojiInstanceHash[emoji.name] = emoji;
+      }
     });
   }
 }

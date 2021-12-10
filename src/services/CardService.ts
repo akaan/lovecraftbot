@@ -233,7 +233,7 @@ export class CardService extends BaseService {
 
       if (!embedOptions.back) {
         if (card.xp) {
-          embed.addField("Niveau", card.xp, true);
+          embed.addField("Niveau", card.xp.toString(), true);
         }
 
         if (
@@ -255,7 +255,7 @@ export class CardService extends BaseService {
         }
 
         if (card.cost) {
-          embed.addField("Coût", card.cost, true);
+          embed.addField("Coût", card.cost.toString(), true);
         }
 
         const maybePack = this.packs.find(

@@ -44,7 +44,7 @@ export class HelpCommand implements ICommand {
       }
     );
     embed.addFields(fieldsData);
-    await message.author.send(embed);
+    await message.author.send({ embeds: [embed] });
 
     return { resultString: "[HelpCommand] Aide envoyée" };
   }

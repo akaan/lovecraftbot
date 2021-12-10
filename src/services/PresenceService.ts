@@ -15,13 +15,13 @@ export class PresenceService extends BaseService {
     if (this.envService.ignorePresence) {
       return;
     }
-    await this.setPresence("faire des bonhommes de neige");
+    this.setPresence("faire des bonhommes de neige");
   }
 
-  public async setPresence(presence: string): Promise<void> {
+  public setPresence(presence: string): void {
     if (!this.client || !this.client.user) {
       return;
     }
-    await this.client.user.setPresence({ activity: { name: presence } });
+    this.client.user.setPresence({ activities: [{ name: presence }] });
   }
 }

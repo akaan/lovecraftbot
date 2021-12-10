@@ -38,7 +38,13 @@ export class Bot {
 
     const COMMAND_PREFIX = this.envService.commandPrefix;
 
-    this.client = new Discord.Client();
+    this.client = new Discord.Client({
+      intents: [
+        Discord.Intents.FLAGS.GUILDS,
+        Discord.Intents.FLAGS.GUILD_MESSAGES,
+        Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+      ],
+    });
     const client = this.client;
     this.logger.log("Connecting to Discord ...");
 
@@ -69,7 +75,7 @@ export class Bot {
       });
     });
 
-    this.client.on("message", (msg) => {
+    this.client.on("messageCreate", (msg) => {
       if (
         msg.author.bot ||
         (this.client &&
@@ -104,7 +110,10 @@ export class Bot {
         return;
       }
 
-      this.commandParser.handleEmojiAdd(reaction, user);
+      this.commandParser.handleEmojiAdd(
+        reaction as Discord.MessageReaction,
+        user
+      );
     });
 
     this.client.on("messageReactionRemove", (reaction, user) => {
@@ -112,7 +121,10 @@ export class Bot {
         return;
       }
 
-      this.commandParser.handleEmojiRemove(reaction, user);
+      this.commandParser.handleEmojiRemove(
+        reaction as Discord.MessageReaction,
+        user
+      );
     });
 
     await this.client.login(DISCORD_TOKEN);

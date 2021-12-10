@@ -13,7 +13,9 @@ export class DeckCommand implements ICommand {
     const { message, args } = cmdArgs;
     const deck = await this.deckService.getDeck(args);
     if (deck) {
-      await message.reply(this.deckService.createEmbed(deck));
+      await message.channel.send({
+        embeds: [this.deckService.createEmbed(deck)],
+      });
 
       return {
         resultString: `[DeckCommand] Deck envoyé`,

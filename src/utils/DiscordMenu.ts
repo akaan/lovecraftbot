@@ -19,7 +19,9 @@ export class DiscordMenu {
   }
 
   public async replyTo(msg: Discord.Message): Promise<Discord.Message> {
-    this.sentMessage = await msg.reply(this.pages[this.currentPage]);
+    this.sentMessage = await msg.channel.send({
+      embeds: [this.pages[this.currentPage]],
+    });
     await this.addReactions();
     this.createCollector();
     return this.sentMessage;
@@ -30,14 +32,14 @@ export class DiscordMenu {
       return;
     }
     this.currentPage = page;
-    await this.sentMessage.edit(this.pages[page]);
+    await this.sentMessage.edit({ embeds: [this.pages[page]] });
   }
 
   private createCollector() {
     if (!this.sentMessage) {
       return;
     }
-    const collector = this.sentMessage.createReactionCollector(() => true, {
+    const collector = this.sentMessage.createReactionCollector({
       time: 120000,
     });
 

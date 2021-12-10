@@ -6,10 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index",
-    "start:dev": "nodemon --exec \"ts-node \"-- \"src/index.ts\"",
-    "lint": "eslint -c .eslintrc.json --ext .ts src",
-    "test:unit": "ava-ts src/test/**.test.ts",
-    "test": "yarn run test:lint && yarn run test:unit"
+    "lint": "eslint -c .eslintrc.json --ext .ts src"
   },
   "repository": {
     "type": "git",
@@ -23,24 +20,24 @@
   "homepage": "https://github.com/akaan/lovecraftbot#readme",
   "dependencies": {
     "@types/turndown": "^5.0.1",
-    "axios": "^0.21.1",
-    "discord.js": "12.5.3",
+    "axios": "^0.24.0",
+    "discord.js": "13.3.1",
     "dotenv": "10.0.0",
-    "ts-node": "10.1.0",
+    "ts-node": "10.4.0",
     "turndown": "^7.1.1",
-    "typescript": "4.3.5",
+    "typescript": "4.5.2",
     "typescript-ioc": "3.2.2"
   },
   "devDependencies": {
-    "@types/node": "^16.4.6",
-    "@typescript-eslint/eslint-plugin": "^4.28.5",
-    "@typescript-eslint/parser": "^4.28.5",
-    "eslint": "^7.31.0",
+    "@types/node": "^16.11.11",
+    "@typescript-eslint/eslint-plugin": "^5.5.0",
+    "@typescript-eslint/parser": "^5.5.0",
+    "eslint": "^8.3.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.23.4",
-    "eslint-plugin-jsdoc": "^36.0.6",
+    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-jsdoc": "^37.1.0",
     "eslint-plugin-prefer-arrow": "^1.2.3",
-    "nodemon": "2.0.12",
-    "prettier": "^2.3.2"
+    "nodemon": "2.0.15",
+    "prettier": "^2.5.0"
   }
 }

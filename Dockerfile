@@ -1,4 +1,4 @@
-FROM node:15.5
+FROM node:16.13
 
 # Création du dossier
 RUN mkdir -p /usr/src/bot

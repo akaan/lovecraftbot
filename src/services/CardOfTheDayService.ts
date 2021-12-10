@@ -41,7 +41,7 @@ export class CardOfTheDayService extends BaseService {
     }
     const cardOfTheDayHour = this.envService.cardOfTheDayHour;
 
-    this.client.setInterval(() => {
+    setInterval(() => {
       const now = new Date();
       if (now.getHours() == cardOfTheDayHour && now.getMinutes() == 0) {
         this.sendCardOfTheDay().catch((err) => this.logger.error(err));
@@ -87,7 +87,9 @@ export class CardOfTheDayService extends BaseService {
             back: false,
             extended: true,
           });
-          const msg = await (channel as Discord.TextChannel).send(embed);
+          const msg = await (channel as Discord.TextChannel).send({
+            embeds: [embed],
+          });
           await msg.pin();
           this.cardCodesSent.push(randomCode);
           await this.saveCardCodesSent();
