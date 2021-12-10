@@ -1,16 +1,19 @@
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { ChaosBagService } from "../services/ChaosBagService";
 import { Inject } from "typescript-ioc";
+import { CommandInteraction } from "discord.js";
 
-export class BagCommand implements ICommand {
-  aliases = ["bag"];
-  help = "Tire un jeton chaos (Nuit de la Zélatrice Standard)";
-
+export class BagCommand implements ISlashCommand {
   @Inject private chaosBagService!: ChaosBagService;
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { message } = cmdArgs;
-    await message.channel.send(this.chaosBagService.pullToken() || "??");
-    return { resultString: "BagCommand: Jeton envoyé" };
+  isAdmin = false;
+  name = "bag";
+  description = "Tire un jeton chaos (Nuit de la Zélatrice Standard)";
+
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
+    await commandInteraction.reply(this.chaosBagService.pullToken() || "??");
+    return { message: "[BagCommand] Jeton envoyé" };
   }
 }
