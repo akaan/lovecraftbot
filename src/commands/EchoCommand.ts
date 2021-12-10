@@ -6,10 +6,17 @@ export class EchoCommand implements ISlashCommand {
   isAdmin = false;
   data = new SlashCommandBuilder()
     .setName("echo")
-    .setDescription("Retourne ton propre message");
+    .setDescription("Retourne ton propre message")
+    .addStringOption((option) =>
+      option
+        .setName("message")
+        .setDescription("Le message à renvoyer")
+        .setRequired(true)
+    ) as SlashCommandBuilder;
 
   async execute(interaction: CommandInteraction): Promise<ISlashCommandResult> {
-    await interaction.reply("Ohohoho");
-    return { message: "DONE" };
+    const message = interaction.options.getString("message");
+    await interaction.reply(message || "");
+    return { message: "EchoCommand: echoed message back to user" };
   }
 }
