@@ -1,15 +1,17 @@
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { CommandInteraction } from "discord.js";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 
-export class SkillTestTimingCommand implements ICommand {
-  aliases = ["t"];
-  help = "Affiche le timing d'un test de compétence";
+export class SkillTestTimingCommand implements ISlashCommand {
+  isAdmin = false;
+  name = "t";
+  description = "Affiche le timing d'un test de compétence";
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { message } = cmdArgs;
-
-    await message.reply({ files: ["assets/timing.jpg"] });
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
+    await commandInteraction.reply({ files: ["assets/timing.jpg"] });
     return {
-      resultString: "SkillTestTimingCommand: Timing envoyé",
+      message: "[SkillTestTimingCommand] Timing envoyé",
     };
   }
 }
