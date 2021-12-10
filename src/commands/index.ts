@@ -3,7 +3,6 @@ export * from "./CardCommand";
 export * from "./CardOfTheDayCommand";
 export * from "./HasturCommand";
 export * from "./HelpCommand";
-export * from "./PhaseTimingCommand";
 export * from "./RefreshCommand";
 export * from "./RuleCommand";
 export * from "./SearchRuleCommand";

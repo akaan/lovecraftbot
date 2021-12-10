@@ -1,15 +1,17 @@
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
+import { CommandInteraction } from "discord.js";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 
-export class PhaseTimingCommand implements ICommand {
-  aliases = ["p"];
-  help = "Affiche le timing des phases de jeu";
+export class PhaseTimingCommand implements ISlashCommand {
+  isAdmin = false;
+  name = "p";
+  description = "Affiche le timing des phases de jeu";
 
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const { message } = cmdArgs;
-
-    await message.reply({ files: ["assets/phase.jpg"] });
+  async execute(
+    commandInteraction: CommandInteraction
+  ): Promise<ISlashCommandResult> {
+    await commandInteraction.reply({ files: ["assets/phase.jpg"] });
     return {
-      resultString: "PhaseTimingCommand: Timing des phases envoyé",
+      message: "[PhaseTimingCommand] Timing des phases envoyé",
     };
   }
 }
