@@ -9,4 +9,8 @@ export class BaseService implements IService {
     this.client = client;
     return Promise.resolve();
   }
+
+  shutdown(): Promise<void> {
+    return Promise.resolve();
+  }
 }

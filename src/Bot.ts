@@ -147,11 +147,14 @@ export class Bot {
     return;
   }
 
-  public shutdown(): void {
+  public async shutdown(): Promise<void> {
     if (!this.client) {
       return;
     }
     this.logger.log("Disconnecting...");
+    await Promise.all(
+      [this.slashCommandManager].map((service) => service.shutdown())
+    );
     this.client.destroy();
     this.logger.log("Disconnected.");
   }

@@ -83,6 +83,14 @@ export class SlashCommandManager extends BaseService {
       );
   }
 
+  public async shutdown(): Promise<void> {
+    await this.unregisterSlashCommands()
+      .then(() => this.logger.log("Slash commands unregistered"))
+      .catch((err) =>
+        this.logger.error("rror while unregistering slash commands", err)
+      );
+  }
+
   public handleCommandInteraction(
     commandInteraction: CommandInteraction
   ): Promise<ISlashCommandResult> {
@@ -158,5 +166,15 @@ export class SlashCommandManager extends BaseService {
         })
       );
     }
+  }
+
+  private async unregisterSlashCommands(): Promise<void> {
+    if (!this.client) return;
+
+    const unregisters = this.client.guilds.cache.map((guild) =>
+      guild.commands.set([])
+    );
+
+    await Promise.all(unregisters);
   }
 }
