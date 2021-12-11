@@ -13,7 +13,6 @@ import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 
 interface SearchOptions {
-  xp: "none" | "all" | number;
   extended: boolean;
   back: boolean;
   searchType: SearchType;
@@ -33,13 +32,6 @@ export class CardCommand implements ISlashCommand {
       description:
         "Code de la carte ou texte à chercher dans le titre de la carte",
       required: true,
-    },
-    {
-      type: ApplicationCommandOptionTypes.INTEGER,
-      name: "xp",
-      description:
-        "Le niveau d'XP de la carte recherchée ou '0' pour chercher tous les niveaux de la carte",
-      required: false,
     },
     {
       type: ApplicationCommandOptionTypes.BOOLEAN,
@@ -62,13 +54,11 @@ export class CardCommand implements ISlashCommand {
     commandInteraction: CommandInteraction
   ): Promise<ISlashCommandResult> {
     const search = commandInteraction.options.getString("recherche");
-    const xp = commandInteraction.options.getInteger("xp");
     const extended = commandInteraction.options.getBoolean("complet") || false;
     const back = commandInteraction.options.getBoolean("dos") || false;
 
     if (search) {
       const searchOptions: SearchOptions = {
-        xp: xp !== null ? (xp === 0 ? "all" : xp) : "none",
         extended,
         back,
         searchType: this.CARD_CODE_REGEX.test(search)
@@ -81,12 +71,7 @@ export class CardCommand implements ISlashCommand {
       foundCards = this.cardService.getCards({
         searchString: searchOptions.searchString,
         searchType: searchOptions.searchType,
-        includeSameNameCards: searchOptions.xp !== "none",
       });
-
-      if (typeof searchOptions.xp === "number") {
-        foundCards = foundCards.filter((card) => card.xp === searchOptions.xp);
-      }
 
       if (foundCards.length > 0) {
         if (foundCards.length === 1) {
@@ -133,10 +118,14 @@ export class CardCommand implements ISlashCommand {
     cards: ArkhamDBCard[],
     options: SearchOptions
   ): Promise<ISlashCommandResult> {
-    const cardChoices = cards.map((card) => ({
-      label: `${card.name}${card.xp ? ` (${card.xp})` : ""}`,
-      value: card.code,
-    }));
+    const cardChoices = cards
+      .map((card) => ({
+        label: `${card.name}${card.xp ? ` (${card.xp})` : ""}${
+          card.faction_code === "mythos" ? " (Mythe)" : ""
+        }`,
+        value: card.code,
+      }))
+      .slice(0, 25);
 
     const menuComponent = new MessageActionRow().addComponents([
       new MessageSelectMenu()
@@ -146,7 +135,11 @@ export class CardCommand implements ISlashCommand {
     ]);
 
     const menu = (await interaction.reply({
-      content: `${cards.length} cartes correspondent à la recherche`,
+      content: `${cards.length} cartes correspondent à la recherche.${
+        cards.length > 25
+          ? " Je vous proposent seulement les 25 premières, essayez d'affiner votre recherche."
+          : ""
+      }`,
       components: [menuComponent],
       ephemeral: true,
       fetchReply: true,
@@ -154,7 +147,6 @@ export class CardCommand implements ISlashCommand {
 
     const menuCollector = menu.createMessageComponentCollector({
       componentType: "SELECT_MENU",
-      time: 15000,
     });
 
     const onSelect = async (selectMenuInteraction: SelectMenuInteraction) => {

@@ -85,7 +85,6 @@ export enum SearchType {
 interface SearchParams {
   searchString: string;
   searchType?: SearchType;
-  includeSameNameCards?: boolean;
 }
 
 interface EmbedOptions {
@@ -145,26 +144,12 @@ export class CardService extends BaseService {
   public getCards({
     searchString,
     searchType = SearchType.BY_TITLE,
-    includeSameNameCards = false,
   }: SearchParams): ArkhamDBCard[] {
     if (searchType === SearchType.BY_CODE) {
       return this.frenchCards.filter((card) => card.code === searchString);
     }
 
-    const foundCards = this.frenchCards.filter((card) =>
-      matchCard(card, searchString)
-    );
-
-    if (foundCards.length > 0) {
-      const foundCard = foundCards[0];
-      if (!includeSameNameCards) {
-        return [foundCard];
-      } else {
-        return this.frenchCards.filter((card) => card.name === foundCard.name);
-      }
-    }
-
-    return [];
+    return this.frenchCards.filter((card) => matchCard(card, searchString));
   }
 
   public getAllPlayerCardCodes(): string[] {
