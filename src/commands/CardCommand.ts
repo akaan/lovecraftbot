@@ -1,11 +1,16 @@
-import { CommandInteraction } from "discord.js";
+import {
+  CommandInteraction,
+  Message,
+  MessageActionRow,
+  MessageSelectMenu,
+  SelectMenuInteraction,
+} from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
-import { DiscordMenu } from "../utils/DiscordMenu";
 
 interface SearchOptions {
   xp: "none" | "all" | number;
@@ -33,7 +38,7 @@ export class CardCommand implements ISlashCommand {
       type: ApplicationCommandOptionTypes.INTEGER,
       name: "xp",
       description:
-        "Le niveau d'XP de la carte recherchée ou '0' pour envoyer tous les niveaux de la carte",
+        "Le niveau d'XP de la carte recherchée ou '0' pour chercher tous les niveaux de la carte",
       required: false,
     },
     {
@@ -84,25 +89,18 @@ export class CardCommand implements ISlashCommand {
       }
 
       if (foundCards.length > 0) {
-        const embeds = await Promise.all(
-          foundCards.map((card) =>
-            this.cardService.createEmbed(card, {
-              back: searchOptions.back,
-              extended: searchOptions.extended,
-            })
-          )
-        );
-        if (embeds.length > 1) {
-          const menu = new DiscordMenu(embeds);
-          await menu.replyToInteraction(commandInteraction);
-          return {
-            message: `[CardCommand] Cartes envoyées pour la recherche ${search}`,
-          };
+        if (foundCards.length === 1) {
+          return this.sendCard(
+            commandInteraction,
+            foundCards[0],
+            searchOptions
+          );
         } else {
-          await commandInteraction.reply({ embeds: [embeds[0]] });
-          return {
-            message: `[CardCommand] Carte envoyée pour la recherche ${search}`,
-          };
+          return this.sendCardChoices(
+            commandInteraction,
+            foundCards,
+            searchOptions
+          );
         }
       } else {
         await commandInteraction.reply(
@@ -115,5 +113,62 @@ export class CardCommand implements ISlashCommand {
     } else {
       return { message: "[CardCommand] Texte recherché non fourni" };
     }
+  }
+
+  private async sendCard(
+    interaction: CommandInteraction | SelectMenuInteraction,
+    card: ArkhamDBCard,
+    options: SearchOptions
+  ): Promise<ISlashCommandResult> {
+    const cardEmbed = await this.cardService.createEmbed(card, {
+      back: options.back,
+      extended: options.extended,
+    });
+    await interaction.reply({ embeds: [cardEmbed] });
+    return { message: `[CardCommand] Carte envoyée` };
+  }
+
+  private async sendCardChoices(
+    interaction: CommandInteraction,
+    cards: ArkhamDBCard[],
+    options: SearchOptions
+  ): Promise<ISlashCommandResult> {
+    const cardChoices = cards.map((card) => ({
+      label: `${card.name}${card.xp ? ` (${card.xp})` : ""}`,
+      value: card.code,
+    }));
+
+    const menuComponent = new MessageActionRow().addComponents([
+      new MessageSelectMenu()
+        .setCustomId("cardCode")
+        .setPlaceholder("Choisissez une carte à afficher")
+        .addOptions(cardChoices),
+    ]);
+
+    const menu = (await interaction.reply({
+      content: `${cards.length} cartes correspondent à la recherche`,
+      components: [menuComponent],
+      ephemeral: true,
+      fetchReply: true,
+    })) as Message;
+
+    const menuCollector = menu.createMessageComponentCollector({
+      componentType: "SELECT_MENU",
+      time: 15000,
+    });
+
+    const onSelect = async (selectMenuInteraction: SelectMenuInteraction) => {
+      const cardCodeSelected = selectMenuInteraction.values[0];
+      const cardToSend = cards.find((c) => c.code === cardCodeSelected);
+      if (cardToSend) {
+        await this.sendCard(selectMenuInteraction, cardToSend, options);
+      } else {
+        await selectMenuInteraction.reply(`Oups, il y a eu un problème`);
+      }
+    };
+
+    menuCollector.on("collect", onSelect);
+
+    return { message: `[CardCommand] Menu de sélection de carte envoyé` };
   }
 }
