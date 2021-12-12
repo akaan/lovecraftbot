@@ -18,7 +18,7 @@ import { Rule, RulesService } from "../services/RulesService";
 */
 const MAX_RULES = 25;
 
-export class SearchRuleCommand implements ISlashCommand {
+export class RuleCommand implements ISlashCommand {
   @Inject private rulesService!: RulesService;
 
   isAdmin = false;
@@ -50,13 +50,13 @@ export class SearchRuleCommand implements ISlashCommand {
           `Aucun titre de règle ne contient le temre "${search}"`
         );
         return {
-          message: `[SearchRuleCommand] Aucune règle ne correspondant à "${search}"`,
+          message: `[RuleCommand] Aucune règle ne correspondant à "${search}"`,
         };
       }
     } else {
       await commandInteraction.reply("Oops, il y a eu un problème");
       return {
-        message: `[SearchRuleCommand] Pas de texte recherché fourni`,
+        message: `[RuleCommand] Pas de texte recherché fourni`,
       };
     }
   }
@@ -67,7 +67,7 @@ export class SearchRuleCommand implements ISlashCommand {
   ): Promise<ISlashCommandResult> {
     const ruleEmbeds = this.rulesService.createEmbeds(rule);
     await interaction.reply({ embeds: ruleEmbeds });
-    return { message: `[SearchRuleCommand] Règle(s) envoyée(s)` };
+    return { message: `[RuleCommand] Règle(s) envoyée(s)` };
   }
 
   private async sendRuleChoices(
@@ -115,6 +115,6 @@ export class SearchRuleCommand implements ISlashCommand {
 
     menuCollector.on("collect", onSelect);
 
-    return { message: `[SearchRuleCommand] Menu de sélection de règle envoyé` };
+    return { message: `[RuleCommand] Menu de sélection de règle envoyé` };
   }
 }
