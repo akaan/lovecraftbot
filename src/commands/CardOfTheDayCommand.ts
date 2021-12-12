@@ -1,7 +1,10 @@
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { Inject } from "typescript-ioc";
 import { CardOfTheDayService } from "../services/CardOfTheDayService";
-import { CommandInteraction } from "discord.js";
+import {
+  ApplicationCommandSubCommandData,
+  CommandInteraction,
+} from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
@@ -17,12 +20,12 @@ export class CardOfTheDayCommand implements ISlashCommand {
       type: ApplicationCommandOptionTypes.SUB_COMMAND,
       name: "encore",
       description: "Retire une nouvelle carte du jour",
-    },
+    } as ApplicationCommandSubCommandData,
     {
       type: ApplicationCommandOptionTypes.SUB_COMMAND,
       name: "ajouter",
       description: "Ajoute des cartes à la liste des cartes déjà tirées",
-      userOptions: [
+      options: [
         {
           type: ApplicationCommandOptionTypes.STRING,
           name: "codes",
@@ -31,7 +34,7 @@ export class CardOfTheDayCommand implements ISlashCommand {
           required: true,
         },
       ],
-    },
+    } as ApplicationCommandSubCommandData,
   ];
 
   async execute(
