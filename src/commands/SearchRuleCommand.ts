@@ -1,23 +1,29 @@
-import { CommandInteraction } from "discord.js";
+import {
+  CommandInteraction,
+  Message,
+  MessageActionRow,
+  MessageSelectMenu,
+  SelectMenuInteraction,
+} from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
-import { RulesService } from "../services/RulesService";
+import { Rule, RulesService } from "../services/RulesService";
 
 /*
  Le nombre maximum de points de règles à afficher pour éviter de dépasser
- la limite de l'API Discord (2000 caractères pour un message)
+ la limite de l'API Discord
 */
-const MAX_RULES = 20;
+const MAX_RULES = 25;
 
 export class SearchRuleCommand implements ISlashCommand {
   @Inject private rulesService!: RulesService;
 
   isAdmin = false;
-  name = "s";
-  description = "Affiche la liste des points de règles contenant ces termes";
+  name = "regle";
+  description = "Afficher un point de règle";
   options = [
     {
       type: ApplicationCommandOptionTypes.STRING,
@@ -32,36 +38,83 @@ export class SearchRuleCommand implements ISlashCommand {
   ): Promise<ISlashCommandResult> {
     const search = commandInteraction.options.getString("recherche");
     if (search) {
-      const ruleTitles = this.rulesService.searchRule(search);
-      if (ruleTitles) {
-        let text: string;
-        if (ruleTitles.length > MAX_RULES) {
-          text = `Beaucoup de points de règles correspondent à "${search}"". Voici les ${MAX_RULES} premiers:\n`;
-          text += ruleTitles
-            .slice(0, MAX_RULES)
-            .map((title) => `- ${title}`)
-            .join("\n");
-          text += "- ...";
+      const matchingRules = this.rulesService.getRules(search);
+      if (matchingRules.length > 0) {
+        if (matchingRules.length === 1) {
+          return this.sendRule(commandInteraction, matchingRules[0]);
         } else {
-          text = `Voici la liste des points de règles contenant les termes "${search}":\n`;
-          text += ruleTitles.map((title) => `- ${title}`).join("\n");
+          return this.sendRuleChoices(commandInteraction, matchingRules);
         }
-
-        await commandInteraction.reply(text);
-
-        return {
-          message: `[SearchRuleCommand] Liste des règles envoyée`,
-        };
       } else {
         await commandInteraction.reply(
-          "désolé, je ne trouve pas de règles correspondantes"
+          `Aucun titre de règle ne contient le temre "${search}"`
         );
         return {
-          message: `[SearchRuleCommand] Pas de règles trouvées pour ${search}`,
+          message: `[SearchRuleCommand] Aucune règle ne correspondant à "${search}"`,
         };
       }
     } else {
-      return { message: `[SearchRuleCommand] Texte recherché non fourni` };
+      await commandInteraction.reply("Oops, il y a eu un problème");
+      return {
+        message: `[SearchRuleCommand] Pas de texte recherché fourni`,
+      };
     }
+  }
+
+  private async sendRule(
+    interaction: CommandInteraction | SelectMenuInteraction,
+    rule: Rule
+  ): Promise<ISlashCommandResult> {
+    const ruleEmbeds = this.rulesService.createEmbeds(rule);
+    await interaction.reply({ embeds: ruleEmbeds });
+    return { message: `[SearchRuleCommand] Règle(s) envoyée(s)` };
+  }
+
+  private async sendRuleChoices(
+    interaction: CommandInteraction,
+    rules: Rule[]
+  ): Promise<ISlashCommandResult> {
+    const ruleChoices = rules
+      .map((rule) => ({
+        label: rule.title,
+        value: rule.id,
+      }))
+      .slice(0, MAX_RULES);
+
+    const menuComponent = new MessageActionRow().addComponents([
+      new MessageSelectMenu()
+        .setCustomId("ruleId")
+        .setPlaceholder("Choisissez une règle à afficher")
+        .addOptions(ruleChoices),
+    ]);
+
+    const menu = (await interaction.reply({
+      content: `${rules.length} règles correspondent à la recherche.${
+        rules.length > 25
+          ? " Je vous proposent seulement les 25 premières, essayez d'affiner votre recherche."
+          : ""
+      }`,
+      components: [menuComponent],
+      ephemeral: true,
+      fetchReply: true,
+    })) as Message;
+
+    const menuCollector = menu.createMessageComponentCollector({
+      componentType: "SELECT_MENU",
+    });
+
+    const onSelect = async (selectMenuInteraction: SelectMenuInteraction) => {
+      const ruleIdSelected = selectMenuInteraction.values[0];
+      const ruleToSend = rules.find((r) => r.id === ruleIdSelected);
+      if (ruleToSend) {
+        await this.sendRule(selectMenuInteraction, ruleToSend);
+      } else {
+        await selectMenuInteraction.reply(`Oups, il y a eu un problème`);
+      }
+    };
+
+    menuCollector.on("collect", onSelect);
+
+    return { message: `[SearchRuleCommand] Menu de sélection de règle envoyé` };
   }
 }

@@ -8,6 +8,5 @@ export * from "./FrenchCommand";
 export * from "./NewCardOfTheDayCommand";
 export * from "./PhaseTimingCommand";
 export * from "./RefreshCommand";
-export * from "./RuleCommand";
 export * from "./SearchRuleCommand";
 export * from "./SkillTestTimingCommand";

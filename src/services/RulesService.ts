@@ -10,7 +10,7 @@ interface TableRow {
   row: Array<{ color?: string; text?: string }>;
 }
 
-interface Rule {
+export interface Rule {
   id: string;
   title: string;
   text?: string;
@@ -58,11 +58,8 @@ export class RulesService extends BaseService {
     }
   }
 
-  public searchRule(search: string): string[] | undefined {
-    const foundRules = this.rules.filter((rule) => matchRule(rule, search));
-    if (foundRules.length > 0) {
-      return foundRules.map((found) => found.title);
-    }
+  public getRules(search: string): Rule[] {
+    return this.rules.filter((rule) => matchRule(rule, search));
   }
 
   public createEmbeds(rule: Rule): Discord.MessageEmbed[] {
