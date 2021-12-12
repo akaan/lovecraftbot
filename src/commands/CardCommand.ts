@@ -23,7 +23,7 @@ export class CardCommand implements ISlashCommand {
   @Inject private cardService!: CardService;
 
   isAdmin = false;
-  name = "carte";
+  name = "c";
   description = `Pour l'affichage de carte(s)`;
   options = [
     {
