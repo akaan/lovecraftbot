@@ -47,7 +47,7 @@ export class RuleCommand implements ISlashCommand {
         }
       } else {
         await commandInteraction.reply(
-          `Aucun titre de règle ne contient le temre "${search}"`
+          `Aucun titre de règle ne contient le terme "${search}"`
         );
         return {
           message: `[RuleCommand] Aucune règle ne correspondant à "${search}"`,
