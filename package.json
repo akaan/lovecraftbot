@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index",
-    "lint": "eslint -c .eslintrc.json --ext .ts src"
+    "lint": "eslint -c .eslintrc.json --ext .ts src",
+    "list-slash-commands": "ts-node scripts/listSlashCommands",
+    "unregister-slash-commands": "ts-node scripts/unregisterSlashCommands"
   },
   "repository": {
     "type": "git",

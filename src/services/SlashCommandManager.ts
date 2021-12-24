@@ -20,6 +20,15 @@ import {
 import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 
+function filterGuilds(
+  maybeGuildId: string | undefined
+): (guild: Guild) => boolean {
+  if (maybeGuildId) {
+    return (guild: Guild) => guild.id === maybeGuildId;
+  }
+  return (_guild: Guild) => true;
+}
+
 type SlashCommandsDictionary = { [key: string]: SlashCommandConstructor };
 const AvailableSlashCommands =
   SlashCommands as unknown as SlashCommandsDictionary;
@@ -74,21 +83,28 @@ export class SlashCommandManager extends BaseService {
   public async init(client: Client): Promise<void> {
     await super.init(client);
 
+    this.logger.log(`[SlashCommandManager] Initializing ...`);
+
+    this.logger.log(
+      `[SlashCommandManager] Cleaning up old slash commands if any...`
+    );
+    await this.unregisterSlashCommands();
+    this.logger.log(`[SlashCommandManager] Clean up done`);
+
+    this.logger.log(`[SlashCommandManager] Registering slash commands...`);
     this.loadSlashCommands(AvailableSlashCommands);
-    this.registerSlashCommands()
-      .then(() => this.logger.log("Slash commands registered"))
-      .then(() => this.setSlashCommandPermissions())
-      .catch((err) =>
-        this.logger.error("Error while registering commands", err)
-      );
+    await this.registerSlashCommands();
+    await this.setSlashCommandPermissions();
+    this.logger.log("[SlashCommandManager] Slash commands registered");
   }
 
   public async shutdown(): Promise<void> {
-    await this.unregisterSlashCommands()
-      .then(() => this.logger.log("Slash commands unregistered"))
-      .catch((err) =>
-        this.logger.error("rror while unregistering slash commands", err)
-      );
+    try {
+      await this.unregisterSlashCommands();
+      this.logger.log("Slash commands unregistered");
+    } catch (err) {
+      this.logger.error("Error while unregistering slash commands", err);
+    }
   }
 
   public handleCommandInteraction(
@@ -115,25 +131,53 @@ export class SlashCommandManager extends BaseService {
     });
   }
 
-  private async registerSlashCommands(): Promise<void> {
-    if (this.client && this.client.application) {
-      const client = this.client;
-      const guildIds = this.envService.testServerId
-        ? [this.envService.testServerId]
-        : this.client.guilds.cache.map((guild) => guild.id);
+  private getAdminCommands(): ISlashCommand[] {
+    return this.slashCommands.filter((sc) => sc.isAdmin);
+  }
 
+  private getNonAdminCommands(): ISlashCommand[] {
+    return this.slashCommands.filter((sc) => !sc.isAdmin);
+  }
+
+  private async registerSlashCommands(): Promise<void> {
+    await this.registerNonAdminCommands();
+    await this.registerAdminCommands();
+  }
+
+  private async registerNonAdminCommands(): Promise<void> {
+    if (this.client && this.client.application) {
       try {
-        await Promise.all(
-          guildIds.map((guildId) => {
-            const guild = client.guilds.cache.find((g) => g.id === guildId);
-            if (guild) {
-              return guild.commands.set(this.slashCommands);
-            }
-          })
+        this.logger.log(
+          `[SlashCommandManager] Registering application-level commands...`
+        );
+        await this.client.application.commands.set(this.getNonAdminCommands());
+        this.logger.log(
+          `[SlashCommandManager] Registered application-level commands`
         );
       } catch (err) {
-        this.logger.error(`Error while registering slash commands`, err);
+        this.logger.error(
+          `Error while registering non admin slash commands`,
+          err
+        );
       }
+    }
+  }
+
+  private async registerAdminCommands(): Promise<void> {
+    if (this.client) {
+      const guilds = this.client.guilds.cache.filter(
+        filterGuilds(this.envService.testServerId)
+      );
+      const registers = guilds.map(async (guild) => {
+        this.logger.log(
+          `[SlashCommandManager] Registering guild-level commands for guild ${guild.name}...`
+        );
+        await guild.commands.set(this.getAdminCommands());
+        this.logger.log(
+          `[SlashCommandManager] Registered guild-level commands for guild ${guild.name}`
+        );
+      });
+      await Promise.all(registers);
     }
   }
 
@@ -141,40 +185,51 @@ export class SlashCommandManager extends BaseService {
     if (!this.client) {
       return;
     }
-    const client = this.client;
 
     const botAdminRoleName = this.envService.botAdminRoleName;
     if (botAdminRoleName) {
-      const adminCommandNames = this.slashCommands
-        .filter((c) => c.isAdmin)
-        .map((c) => c.name);
+      const adminCommandNames = this.getAdminCommands().map((c) => c.name);
 
-      const guildIds = this.envService.testServerId
-        ? [this.envService.testServerId]
-        : this.client.guilds.cache.map((guild) => guild.id);
-
-      await Promise.all(
-        guildIds.map((guildId) => {
-          const guild = client.guilds.cache.find((g) => g.id === guildId);
-          if (guild) {
-            return allowCommandsForRoleName(
-              guild,
-              adminCommandNames,
-              botAdminRoleName
-            );
-          }
-        })
-      );
+      try {
+        await Promise.all(
+          this.client.guilds.cache
+            .filter(filterGuilds(this.envService.testServerId))
+            .map((guild) => {
+              return allowCommandsForRoleName(
+                guild,
+                adminCommandNames,
+                botAdminRoleName
+              );
+            })
+        );
+      } catch (err) {
+        this.logger.error(
+          "Error while setting permissions on admin commands",
+          err
+        );
+      }
     }
   }
 
   private async unregisterSlashCommands(): Promise<void> {
     if (!this.client) return;
 
-    const unregisters = this.client.guilds.cache.map((guild) =>
-      guild.commands.set([])
-    );
-
-    await Promise.all(unregisters);
+    try {
+      if (this.client.application) {
+        await this.client.application.commands.set([]);
+      }
+      await Promise.all(
+        this.client.guilds.cache.map((guild) =>
+          guild.commands
+            .set([])
+            .then(() => guild.commands.permissions.set({ fullPermissions: [] }))
+        )
+      );
+    } catch (err) {
+      this.logger.error(
+        "Error while cleaning up before registering slash commands",
+        err
+      );
+    }
   }
 }
