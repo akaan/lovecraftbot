@@ -19,8 +19,10 @@ const main = async () => {
 
     if (client.application) {
       const globalCommands = await client.application.commands.fetch();
-      console.log("Global commands:");
-      console.log(globalCommands.map((command) => command.name).join("\n"));
+      console.log("Global commands:\n===");
+      console.log(
+        globalCommands.map((command) => `- ${command.name}`).join("\n")
+      );
     }
 
     const guildCommands = await client.guilds.cache.reduce(
@@ -33,8 +35,10 @@ const main = async () => {
     );
 
     for (const [guildName, commandNames] of Object.entries(guildCommands)) {
-      console.log(`Commands in guild ${guildName}:`);
-      console.log(commandNames.join("\n"));
+      console.log(`\nCommands in guild ${guildName}:\n===`);
+      console.log(
+        commandNames.map((commandName) => `- ${commandName}`).join("\n")
+      );
     }
 
     client.destroy();
