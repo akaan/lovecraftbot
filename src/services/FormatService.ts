@@ -2,6 +2,7 @@ import TurndownService from "turndown";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
+
 import { EmojiService } from "./EmojiService";
 
 const ICONS: { [key: string]: string } = {

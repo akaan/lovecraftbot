@@ -1,9 +1,9 @@
+import { EmbedFieldData, MessageEmbed } from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { HelpService } from "../services/HelpService";
 import { EnvService } from "../services/EnvService";
-import { EmbedFieldData, MessageEmbed } from "discord.js";
+import { HelpService } from "../services/HelpService";
 import { RoleService } from "../services/RoleService";
 
 export class HelpCommand implements ICommand {

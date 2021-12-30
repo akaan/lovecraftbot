@@ -1,12 +1,12 @@
 import * as Discord from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
-import { ICommandResult, ICommand, CommandConstructor } from "../interfaces";
 import { BaseService } from "../base/BaseService";
-
 import * as Commands from "../commands";
-import { HelpService } from "./HelpService";
+import { ICommandResult, ICommand, CommandConstructor } from "../interfaces";
+
 import { EnvService } from "./EnvService";
+import { HelpService } from "./HelpService";
 import { RoleService } from "./RoleService";
 
 type CommandsDictionary = { [key: string]: CommandConstructor };

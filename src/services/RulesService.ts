@@ -2,6 +2,7 @@ import * as Discord from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
+
 import { FormatService } from "./FormatService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";

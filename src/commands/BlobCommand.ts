@@ -1,6 +1,7 @@
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { Inject } from "typescript-ioc";
 import { Channel, Guild, Message, TextChannel } from "discord.js";
+import { Inject } from "typescript-ioc";
+
+import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
 import { BlobGameService } from "../services/BlobGameService";
 import { LoggerService } from "../services/LoggerService";
 

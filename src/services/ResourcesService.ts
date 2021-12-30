@@ -1,9 +1,12 @@
 import * as fs from "fs";
 import * as util from "util";
-import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
-import { BaseService } from "../base/BaseService";
-import { LoggerService } from "./LoggerService";
+
 import { Guild } from "discord.js";
+import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
+
+import { BaseService } from "../base/BaseService";
+
+import { LoggerService } from "./LoggerService";
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

@@ -3,9 +3,10 @@ import * as Discord from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
+
 import { FormatService } from "./FormatService";
-import { ResourcesService } from "./ResourcesService";
 import { LoggerService } from "./LoggerService";
+import { ResourcesService } from "./ResourcesService";
 
 const CLASS_COLORS = {
   guardian: 0x2b80c5,

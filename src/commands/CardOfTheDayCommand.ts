@@ -1,12 +1,13 @@
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
-import { Inject } from "typescript-ioc";
-import { CardOfTheDayService } from "../services/CardOfTheDayService";
 import {
   ApplicationCommandSubCommandData,
   CommandInteraction,
 } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { Inject } from "typescript-ioc";
+
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { CardOfTheDayService } from "../services/CardOfTheDayService";
 
 export class CardOfTheDayCommand implements ISlashCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;

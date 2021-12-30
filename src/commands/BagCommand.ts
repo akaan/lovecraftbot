@@ -1,7 +1,8 @@
+import { CommandInteraction } from "discord.js";
+import { Inject } from "typescript-ioc";
+
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { ChaosBagService } from "../services/ChaosBagService";
-import { Inject } from "typescript-ioc";
-import { CommandInteraction } from "discord.js";
 
 export class BagCommand implements ISlashCommand {
   @Inject private chaosBagService!: ChaosBagService;

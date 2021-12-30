@@ -1,6 +1,6 @@
 import * as Discord from "discord.js";
-
 import { OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
+
 import { BaseService } from "../base/BaseService";
 
 @Singleton

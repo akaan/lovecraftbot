@@ -8,7 +8,9 @@ import {
   TextChannel,
 } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
+
 import { BaseService } from "../base/BaseService";
+
 import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";

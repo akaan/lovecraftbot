@@ -8,8 +8,10 @@ import {
   TextChannel,
 } from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
+
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
+
 import { BlobGameFileRepository } from "./BlobGameFileRepository";
 import { LoggerService } from "./LoggerService";
 import { MassMultiplayerEventService } from "./MassMultiplayerEventService";

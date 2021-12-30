@@ -1,7 +1,9 @@
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
+
 import { BaseService } from "../base/BaseService";
-import { RandomService } from "./RandomService";
+
 import { EmojiService } from "./EmojiService";
+import { RandomService } from "./RandomService";
 
 @Singleton
 @OnlyInstantiableByContainer

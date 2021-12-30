@@ -1,6 +1,7 @@
 import { CommandInteraction } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 
 export class TimingCommand implements ISlashCommand {

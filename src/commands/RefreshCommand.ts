@@ -1,7 +1,8 @@
+import { CommandInteraction } from "discord.js";
+import { Inject } from "typescript-ioc";
+
 import { ISlashCommand, ISlashCommandResult } from "../interfaces";
 import { CardService } from "../services/CardService";
-import { Inject } from "typescript-ioc";
-import { CommandInteraction } from "discord.js";
 
 export class RefreshCommand implements ISlashCommand {
   @Inject private cardService!: CardService;
