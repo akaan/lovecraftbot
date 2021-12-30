@@ -4,7 +4,7 @@ export * from "./CardOfTheDayCommand";
 export * from "./DeckCommand";
 export * from "./EchoCommand";
 export * from "./TradCommand";
-export * from "./InfoCommand";
+export * from "./HelpCommand";
 export * from "./RefreshCommand";
 export * from "./RuleCommand";
 export * from "./TimingCommand";

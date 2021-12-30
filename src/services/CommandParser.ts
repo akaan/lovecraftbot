@@ -74,6 +74,9 @@ export class CommandParser extends BaseService {
 
     const cmdInst = this.executableCommands[cmd.toLowerCase()];
     if (!cmdInst || !cmdInst.execute) {
+      await message.reply(
+        `Hmmm, je ne connais pas de commande ${this.envService.commandPrefix}${cmd}. Peut-être devrais-tu essayer /aide ?`
+      );
       return { resultString: `Pas de commande pour ${cmd}` };
     }
 

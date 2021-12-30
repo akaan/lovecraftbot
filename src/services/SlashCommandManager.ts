@@ -113,7 +113,7 @@ export class SlashCommandManager extends BaseService {
     return this.slashCommands.filter((sc) => sc.isAdmin);
   }
 
-  private getNonAdminCommands(): ISlashCommand[] {
+  public getNonAdminCommands(): ISlashCommand[] {
     return this.slashCommands.filter((sc) => !sc.isAdmin);
   }
 

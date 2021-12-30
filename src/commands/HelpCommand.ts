@@ -1,51 +1,45 @@
-import { EmbedFieldData, MessageEmbed } from "discord.js";
-import { Inject } from "typescript-ioc";
+import { CommandInteraction, EmbedFieldData, MessageEmbed } from "discord.js";
+import { Container } from "typescript-ioc";
 
-import { ICommand, ICommandArgs, ICommandResult } from "../interfaces";
-import { EnvService } from "../services/EnvService";
-import { HelpService } from "../services/HelpService";
-import { RoleService } from "../services/RoleService";
+import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { SlashCommandManager } from "../services/SlashCommandManager";
 
-export class HelpCommand implements ICommand {
-  aliases = ["help", "aide"];
-  help = "Affiche ce message !";
+export class HelpCommand implements ISlashCommand {
+  isAdmin = false;
+  name = "aide";
+  description =
+    "Affiche quelques informations sur ce bot et comment l'utiliser";
 
-  @Inject private envService!: EnvService;
-  @Inject private helpService!: HelpService;
-  @Inject private roleService!: RoleService;
-
-  async execute(cmdArgs: ICommandArgs): Promise<ICommandResult> {
-    const commandPrefix = this.envService.commandPrefix;
-
-    const { message } = cmdArgs;
-
-    const botAdminRole = this.envService.botAdminRoleName;
-    const isAdmin =
-      botAdminRole !== undefined &&
-      this.roleService.isMessageFromRole(message, botAdminRole);
+  async execute(interaction: CommandInteraction): Promise<ISlashCommandResult> {
+    const slashCommandManager = Container.get(SlashCommandManager);
+    const commandDescriptions: EmbedFieldData[] = slashCommandManager
+      .getNonAdminCommands()
+      .map((command) => ({
+        name: "/" + command.name,
+        value: command.description,
+      }));
 
     const embed = new MessageEmbed();
-    embed.setTitle(`Toutes les commandes`);
-    const helpTexts = isAdmin
-      ? this.helpService.allHelp
-      : this.helpService.allHelp.filter(
-          (helpText) => helpText.admin === undefined || helpText.admin === false
-        );
-    const fieldsData: EmbedFieldData[] = helpTexts.map(
-      ({ aliases, help, admin }) => {
-        return {
-          name: aliases
-            .map(
-              (alias) => `${admin ? "[ADMIN] " : ""}${commandPrefix}${alias}`
-            )
-            .join(", "),
-          value: help,
-        };
-      }
-    );
-    embed.addFields(fieldsData);
-    await message.author.send({ embeds: [embed] });
+    embed.setTitle("Aide");
+    embed.setDescription(`Bonjour ! Je suis à ton service sur ce Discord.
 
-    return { resultString: "[HelpCommand] Aide envoyée" };
+  Je peux t'aider à trouver des cartes, des points de règles, afficher des decks, etc.
+  Ci-dessous mes commandes: `);
+    embed.setFields([
+      ...commandDescriptions,
+      {
+        name: "Version",
+        value: "2.0.0",
+        inline: true,
+      },
+      {
+        name: "Auteur",
+        value: "Akaan Qualrus",
+        inline: true,
+      },
+    ]);
+
+    await interaction.reply({ ephemeral: true, embeds: [embed] });
+    return { message: "[HelpCommand] Aide envoyée" };
   }
 }
