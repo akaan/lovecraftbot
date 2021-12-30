@@ -31,20 +31,33 @@ export class RuleCommand implements ISlashCommand {
       description: "Texte à chercher dans les titres de règles",
       required: true,
     },
+    {
+      type: ApplicationCommandOptionTypes.BOOLEAN,
+      name: "ephemere",
+      description: "Si vrai, seul toi pourra voir la réponse",
+      required: false,
+    },
   ];
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<ISlashCommandResult> {
     const search = commandInteraction.options.getString("recherche");
+    const ephemeral =
+      commandInteraction.options.getBoolean("ephemere") || false;
+
     if (search) {
       const matchingRules = this.rulesService.getRules(search);
       if (matchingRules.length > 0) {
         if (matchingRules.length === 1) {
-          return this.sendRule(commandInteraction, matchingRules[0]);
+          return this.sendRule(commandInteraction, matchingRules[0], {
+            ephemeral,
+          });
         } else {
           if (commandInteraction.inGuild()) {
-            return this.sendRuleChoices(commandInteraction, matchingRules);
+            return this.sendRuleChoices(commandInteraction, matchingRules, {
+              ephemeral,
+            });
           } else {
             await commandInteraction.reply(
               `Désolé mais ${matchingRules.length} règles correspondent à cette recherche et je ne sais pas encore te présenter un menu de sélection dans ce canal. Essaye d'être plus précis ou bien effectue cette recherche sur un serveur.`
@@ -72,16 +85,21 @@ export class RuleCommand implements ISlashCommand {
 
   private async sendRule(
     interaction: CommandInteraction | SelectMenuInteraction,
-    rule: Rule
+    rule: Rule,
+    options = { ephemeral: true }
   ): Promise<ISlashCommandResult> {
     const ruleEmbeds = this.rulesService.createEmbeds(rule);
-    await interaction.reply({ embeds: ruleEmbeds });
+    await interaction.reply({
+      embeds: ruleEmbeds,
+      ephemeral: options.ephemeral,
+    });
     return { message: `[RuleCommand] Règle(s) envoyée(s)` };
   }
 
   private async sendRuleChoices(
     interaction: CommandInteraction,
-    rules: Rule[]
+    rules: Rule[],
+    options = { ephemeral: true }
   ): Promise<ISlashCommandResult> {
     const ruleChoices = rules
       .map((rule) => ({
@@ -116,7 +134,7 @@ export class RuleCommand implements ISlashCommand {
       const ruleIdSelected = selectMenuInteraction.values[0];
       const ruleToSend = rules.find((r) => r.id === ruleIdSelected);
       if (ruleToSend) {
-        await this.sendRule(selectMenuInteraction, ruleToSend);
+        await this.sendRule(selectMenuInteraction, ruleToSend, options);
       } else {
         await selectMenuInteraction.reply(`Oups, il y a eu un problème`);
       }
