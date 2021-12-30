@@ -12,11 +12,13 @@ export class InfoCommand implements ISlashCommand {
   description = "Affiche quelques informations sur ce bot";
 
   async execute(interaction: CommandInteraction): Promise<ISlashCommandResult> {
-    const infos = `Je suis un bot pour Horreur à Arkham développé par Akaan.
-La plupart de mes commandes sont disponibles en commençant à taper "/".
+    const infos = `Bonjour ! Je suis à ton service sur ce Discord.
+Je peux t'aider à trouver des cartes, des points de règles, afficher des decks, etc.
+La plupart de mes commandes sont disponibles en commençant à taper "/". Tu verras alors apparaître un menu pour t'aider.
 
 Version: 2.0.0
-Rôle admin: ${this.envService.botAdminRoleName || "<aucun>"}
+Auteur: Akaan
+Rôle pour les commandes Admin: ${this.envService.botAdminRoleName || "<aucun>"}
     `;
 
     await interaction.reply({ ephemeral: true, content: infos });
