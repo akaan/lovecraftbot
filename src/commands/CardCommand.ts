@@ -17,6 +17,7 @@ interface SearchOptions {
   back: boolean;
   searchType: SearchType;
   searchString: string;
+  ephemeral: boolean;
 }
 
 export class CardCommand implements ISlashCommand {
@@ -46,6 +47,12 @@ export class CardCommand implements ISlashCommand {
       description: "Pour envoyer le dos de la carte",
       required: false,
     },
+    {
+      type: ApplicationCommandOptionTypes.BOOLEAN,
+      name: "ephemere",
+      description: "Si vrai, seul toi pourra voir la réponse",
+      required: false,
+    },
   ];
 
   private CARD_CODE_REGEX = /(\d{5})(b?)$/;
@@ -56,6 +63,8 @@ export class CardCommand implements ISlashCommand {
     const search = commandInteraction.options.getString("recherche");
     const extended = commandInteraction.options.getBoolean("complet") || false;
     const back = commandInteraction.options.getBoolean("dos") || false;
+    const ephemeral =
+      commandInteraction.options.getBoolean("ephemere") || false;
 
     if (search) {
       const searchOptions: SearchOptions = {
@@ -65,6 +74,7 @@ export class CardCommand implements ISlashCommand {
           ? SearchType.BY_CODE
           : SearchType.BY_TITLE,
         searchString: search,
+        ephemeral,
       };
 
       let foundCards: ArkhamDBCard[] = [];
@@ -118,7 +128,10 @@ export class CardCommand implements ISlashCommand {
       back: options.back,
       extended: options.extended,
     });
-    await interaction.reply({ embeds: [cardEmbed] });
+    await interaction.reply({
+      embeds: [cardEmbed],
+      ephemeral: options.ephemeral,
+    });
     return { message: `[CardCommand] Carte envoyée` };
   }
 
