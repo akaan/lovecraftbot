@@ -82,29 +82,7 @@ export class SlashCommandManager extends BaseService {
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
-
-    this.logger.log(`[SlashCommandManager] Initializing ...`);
-
-    this.logger.log(
-      `[SlashCommandManager] Cleaning up old slash commands if any...`
-    );
-    await this.unregisterSlashCommands();
-    this.logger.log(`[SlashCommandManager] Clean up done`);
-
-    this.logger.log(`[SlashCommandManager] Registering slash commands...`);
     this.loadSlashCommands(AvailableSlashCommands);
-    await this.registerSlashCommands();
-    await this.setSlashCommandPermissions();
-    this.logger.log("[SlashCommandManager] Slash commands registered");
-  }
-
-  public async shutdown(): Promise<void> {
-    try {
-      await this.unregisterSlashCommands();
-      this.logger.log("Slash commands unregistered");
-    } catch (err) {
-      this.logger.error("Error while unregistering slash commands", err);
-    }
   }
 
   public handleCommandInteraction(
@@ -139,7 +117,7 @@ export class SlashCommandManager extends BaseService {
     return this.slashCommands.filter((sc) => !sc.isAdmin);
   }
 
-  private async registerSlashCommands(): Promise<void> {
+  public async registerSlashCommands(): Promise<void> {
     await this.registerNonAdminCommands();
     await this.registerAdminCommands();
   }
@@ -181,7 +159,7 @@ export class SlashCommandManager extends BaseService {
     }
   }
 
-  private async setSlashCommandPermissions(): Promise<void> {
+  public async setSlashCommandPermissions(): Promise<void> {
     if (!this.client) {
       return;
     }
@@ -195,10 +173,17 @@ export class SlashCommandManager extends BaseService {
           this.client.guilds.cache
             .filter(filterGuilds(this.envService.testServerId))
             .map((guild) => {
+              this.logger.log(
+                `[SlashCommandManager] Setting permissions for commands in guild ${guild.name}`
+              );
               return allowCommandsForRoleName(
                 guild,
                 adminCommandNames,
                 botAdminRoleName
+              ).then(() =>
+                this.logger.log(
+                  `[SlashCommandManager] Permissions set for commands in guild ${guild.name}`
+                )
               );
             })
         );

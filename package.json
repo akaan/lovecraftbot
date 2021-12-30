@@ -8,6 +8,7 @@
     "start": "ts-node src/index",
     "lint": "eslint -c .eslintrc.json --ext .ts src",
     "list-slash-commands": "ts-node scripts/listSlashCommands",
+    "register-slash-commands": "ts-node scripts/registerSlashCommands",
     "unregister-slash-commands": "ts-node scripts/unregisterSlashCommands"
   },
   "repository": {

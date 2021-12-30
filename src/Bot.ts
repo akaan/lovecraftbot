@@ -2,17 +2,16 @@ import * as Discord from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import { nameOfConstructor } from "./ClassUtils";
-
-import { LoggerService } from "./services/LoggerService";
-import { CommandParser } from "./services/CommandParser";
-import { PresenceService } from "./services/PresenceService";
-import { EnvService } from "./services/EnvService";
-import { EmojiService } from "./services/EmojiService";
-import { CardService } from "./services/CardService";
-import { CardOfTheDayService } from "./services/CardOfTheDayService";
-import { RulesService } from "./services/RulesService";
-import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
 import { BlobGameService } from "./services/BlobGameService";
+import { CardOfTheDayService } from "./services/CardOfTheDayService";
+import { CardService } from "./services/CardService";
+import { CommandParser } from "./services/CommandParser";
+import { EmojiService } from "./services/EmojiService";
+import { EnvService } from "./services/EnvService";
+import { LoggerService } from "./services/LoggerService";
+import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
+import { PresenceService } from "./services/PresenceService";
+import { RulesService } from "./services/RulesService";
 import { SlashCommandManager } from "./services/SlashCommandManager";
 
 export class Bot {
@@ -147,15 +146,13 @@ export class Bot {
     return;
   }
 
-  public async shutdown(): Promise<void> {
+  public shutdown(): Promise<void> {
     if (!this.client) {
-      return;
+      return Promise.resolve();
     }
     this.logger.log("Disconnecting...");
-    await Promise.all(
-      [this.slashCommandManager].map((service) => service.shutdown())
-    );
     this.client.destroy();
     this.logger.log("Disconnected.");
+    return Promise.resolve();
   }
 }
