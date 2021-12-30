@@ -29,7 +29,7 @@ export class HelpCommand implements ISlashCommand {
       ...commandDescriptions,
       {
         name: "Version",
-        value: "2.0.0",
+        value: "2.1.0",
         inline: true,
       },
       {
