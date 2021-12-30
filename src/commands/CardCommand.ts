@@ -81,11 +81,20 @@ export class CardCommand implements ISlashCommand {
             searchOptions
           );
         } else {
-          return this.sendCardChoices(
-            commandInteraction,
-            foundCards,
-            searchOptions
-          );
+          if (commandInteraction.inGuild()) {
+            return this.sendCardChoices(
+              commandInteraction,
+              foundCards,
+              searchOptions
+            );
+          } else {
+            await commandInteraction.reply(
+              `Désolé mais ${foundCards.length} cartes correspondent à cette recherche et je ne sais pas encore te présenter un menu de sélection dans ce canal. Essaye d'être plus précis ou bien effectue cette commande sur un serveur.`
+            );
+            return {
+              message: `[CardCommand] Demande de plusieurs carte hors serveur : pas possible`,
+            };
+          }
         }
       } else {
         await commandInteraction.reply(

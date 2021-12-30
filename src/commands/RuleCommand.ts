@@ -43,7 +43,16 @@ export class RuleCommand implements ISlashCommand {
         if (matchingRules.length === 1) {
           return this.sendRule(commandInteraction, matchingRules[0]);
         } else {
-          return this.sendRuleChoices(commandInteraction, matchingRules);
+          if (commandInteraction.inGuild()) {
+            return this.sendRuleChoices(commandInteraction, matchingRules);
+          } else {
+            await commandInteraction.reply(
+              `Désolé mais ${matchingRules.length} règles correspondent à cette recherche et je ne sais pas encore te présenter un menu de sélection dans ce canal. Essaye d'être plus précis ou bien effectue cette recherche sur un serveur.`
+            );
+            return {
+              message: `[RuleCommand] Demande de plusieurs règles hors serveur : pas possible`,
+            };
+          }
         }
       } else {
         await commandInteraction.reply(
