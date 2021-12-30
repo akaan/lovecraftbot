@@ -1,4 +1,4 @@
-.env
+.env*
 .nvmrc
 node_modules/
 data/
@@ -6,5 +6,4 @@ data/
 !data/packs.json
 !data/rules_fr.json
 !data/types.json
-test.ts
 temp/*
