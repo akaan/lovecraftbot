@@ -179,24 +179,23 @@ export class ApplicationCommandManager extends BaseService {
         this.getGuildApplicationCommands().map((c) => c.name);
 
       try {
-        await Promise.all(
-          this.client.guilds.cache
-            .filter(filterGuilds(this.envService.testServerId))
-            .map((guild) => {
-              this.logger.log(
-                `[ApplicationCommandManager] Setting permissions for guild application commands in guild ${guild.name}`
-              );
-              return allowCommandsForRoleName(
-                guild,
-                guildApplicationCommandNames,
-                botAdminRoleName
-              ).then(() =>
-                this.logger.log(
-                  `[ApplicationCommandManager] Permissions set for guild application commands in guild ${guild.name}`
-                )
-              );
-            })
-        );
+        const setPermissions = this.client.guilds.cache
+          .filter(filterGuilds(this.envService.testServerId))
+          .map(async (guild) => {
+            this.logger.log(
+              `[ApplicationCommandManager] Setting permissions for guild application commands in guild ${guild.name}`
+            );
+            const result = await allowCommandsForRoleName(
+              guild,
+              guildApplicationCommandNames,
+              botAdminRoleName
+            );
+            this.logger.log(
+              `[ApplicationCommandManager] Permissions set for guild application commands in guild ${guild.name}`
+            );
+            return result;
+          });
+        await Promise.all(setPermissions);
       } catch (err) {
         this.logger.error(
           "[ApplicationCommandManager] Error while setting permissions on admin commands",
@@ -213,13 +212,11 @@ export class ApplicationCommandManager extends BaseService {
       if (this.client.application) {
         await this.client.application.commands.set([]);
       }
-      await Promise.all(
-        this.client.guilds.cache.map((guild) =>
-          guild.commands
-            .set([])
-            .then(() => guild.commands.permissions.set({ fullPermissions: [] }))
-        )
-      );
+      const unregisters = this.client.guilds.cache.map(async (guild) => {
+        await guild.commands.set([]);
+        await guild.commands.permissions.set({ fullPermissions: [] });
+      });
+      await Promise.all(unregisters);
     } catch (err) {
       this.logger.error(
         "[ApplicationCommandManager] Error while cleaning up before registering slash commands",
