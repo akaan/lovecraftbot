@@ -9,7 +9,7 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 
 interface SearchOptions {
@@ -20,10 +20,10 @@ interface SearchOptions {
   ephemeral: boolean;
 }
 
-export class CardCommand implements ISlashCommand {
+export class CardCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isAdmin = false;
+  isGuildCommand = false;
   name = "c";
   description = `Pour l'affichage de carte(s)`;
   options = [
@@ -59,7 +59,7 @@ export class CardCommand implements ISlashCommand {
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const search = commandInteraction.options.getString("recherche");
     const extended = commandInteraction.options.getBoolean("complet") || false;
     const back = commandInteraction.options.getBoolean("dos") || false;
@@ -123,7 +123,7 @@ export class CardCommand implements ISlashCommand {
     interaction: CommandInteraction | SelectMenuInteraction,
     card: ArkhamDBCard,
     options: SearchOptions
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const cardEmbed = await this.cardService.createEmbed(card, {
       back: options.back,
       extended: options.extended,
@@ -139,7 +139,7 @@ export class CardCommand implements ISlashCommand {
     interaction: CommandInteraction,
     cards: ArkhamDBCard[],
     options: SearchOptions
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const cardChoices = cards
       .map((card) => ({
         label: `${card.name}${card.xp ? ` (${card.xp})` : ""}${

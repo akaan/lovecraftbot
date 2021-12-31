@@ -10,11 +10,11 @@ import {
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import * as SlashCommands from "../commands/slashCommands";
+import * as ApplicationCommands from "../commands";
 import {
-  ISlashCommand,
-  ISlashCommandResult,
-  SlashCommandConstructor,
+  IApplicationCommand,
+  IApplicationCommandResult,
+  ApplicationCommandConstructor,
 } from "../interfaces";
 
 import { EnvService } from "./EnvService";
@@ -29,9 +29,11 @@ function filterGuilds(
   return (_guild: Guild) => true;
 }
 
-type SlashCommandsDictionary = { [key: string]: SlashCommandConstructor };
-const AvailableSlashCommands =
-  SlashCommands as unknown as SlashCommandsDictionary;
+type ApplicationCommandsDictionary = {
+  [key: string]: ApplicationCommandConstructor;
+};
+const AvailableApplicationCommands =
+  ApplicationCommands as unknown as ApplicationCommandsDictionary;
 
 function createRolePermission(role: Role): ApplicationCommandPermissionData {
   return {
@@ -74,21 +76,21 @@ async function allowCommandsForRoleName(
 
 @Singleton
 @OnlyInstantiableByContainer
-export class SlashCommandManager extends BaseService {
+export class ApplicationCommandManager extends BaseService {
   @Inject private envService!: EnvService;
   @Inject logger!: LoggerService;
 
-  private slashCommands: ISlashCommand[] = [];
+  private applicationCommands: IApplicationCommand[] = [];
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
-    this.loadSlashCommands(AvailableSlashCommands);
+    this.loadApplicationCommands(AvailableApplicationCommands);
   }
 
   public handleCommandInteraction(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
-    const slashCommand = this.slashCommands.find(
+  ): Promise<IApplicationCommandResult> {
+    const slashCommand = this.applicationCommands.find(
       (sc) => sc.name === commandInteraction.commandName
     );
     if (slashCommand) {
@@ -100,73 +102,81 @@ export class SlashCommandManager extends BaseService {
     }
   }
 
-  private loadSlashCommands(slashCommands: SlashCommandsDictionary): void {
-    Object.values(slashCommands).forEach((slashCommandConstructor) => {
-      const slashCommandInstance: ISlashCommand = new slashCommandConstructor();
-      if (slashCommandInstance.isAdmin)
-        slashCommandInstance.defaultPermission = false;
-      this.slashCommands.push(slashCommandInstance);
-    });
+  private loadApplicationCommands(
+    applicationCommands: ApplicationCommandsDictionary
+  ): void {
+    Object.values(applicationCommands).forEach(
+      (applicationCommandConstructor) => {
+        const applicationCommandInstance: IApplicationCommand =
+          new applicationCommandConstructor();
+        if (applicationCommandInstance.isGuildCommand)
+          applicationCommandInstance.defaultPermission = false;
+        this.applicationCommands.push(applicationCommandInstance);
+      }
+    );
   }
 
-  private getAdminCommands(): ISlashCommand[] {
-    return this.slashCommands.filter((sc) => sc.isAdmin);
+  private getGuildApplicationCommands(): IApplicationCommand[] {
+    return this.applicationCommands.filter((sc) => sc.isGuildCommand);
   }
 
-  public getNonAdminCommands(): ISlashCommand[] {
-    return this.slashCommands.filter((sc) => !sc.isAdmin);
+  public getGlobalApplicationCommands(): IApplicationCommand[] {
+    return this.applicationCommands.filter((sc) => !sc.isGuildCommand);
   }
 
-  public async registerSlashCommands(): Promise<void> {
-    await this.registerNonAdminCommands();
-    await this.registerAdminCommands();
+  public async registerApplicationCommands(): Promise<void> {
+    await this.registerGlobalApplicationCommands();
+    await this.registerGuildApplicationCommands();
   }
 
-  private async registerNonAdminCommands(): Promise<void> {
+  private async registerGlobalApplicationCommands(): Promise<void> {
     if (this.client && this.client.application) {
       try {
         this.logger.log(
-          `[SlashCommandManager] Registering application-level commands...`
+          `[ApplicationCommandManager] Registering global application commands...`
         );
-        await this.client.application.commands.set(this.getNonAdminCommands());
+        await this.client.application.commands.set(
+          this.getGlobalApplicationCommands()
+        );
         this.logger.log(
-          `[SlashCommandManager] Registered application-level commands`
+          `[ApplicationCommandManager] Registered global application commands`
         );
       } catch (err) {
         this.logger.error(
-          `Error while registering non admin slash commands`,
+          `[ApplicationCommandManager] Error while registering global application commands`,
           err
         );
       }
     }
   }
 
-  private async registerAdminCommands(): Promise<void> {
+  private async registerGuildApplicationCommands(): Promise<void> {
     if (this.client) {
       const guilds = this.client.guilds.cache.filter(
         filterGuilds(this.envService.testServerId)
       );
       const registers = guilds.map(async (guild) => {
         this.logger.log(
-          `[SlashCommandManager] Registering guild-level commands for guild ${guild.name}...`
+          `[ApplicationCommandManager] Registering guild application commands for guild ${guild.name}...`
         );
-        await guild.commands.set(this.getAdminCommands());
+        await guild.commands.set(this.getGuildApplicationCommands());
         this.logger.log(
-          `[SlashCommandManager] Registered guild-level commands for guild ${guild.name}`
+          `[ApplicationCommandManager] Registered guild application commands for guild ${guild.name}`
         );
       });
       await Promise.all(registers);
     }
   }
 
-  public async setSlashCommandPermissions(): Promise<void> {
+  public async setGuildApplicationCommandsPermissions(): Promise<void> {
     if (!this.client) {
       return;
     }
 
     const botAdminRoleName = this.envService.botAdminRoleName;
     if (botAdminRoleName) {
-      const adminCommandNames = this.getAdminCommands().map((c) => c.name);
+      const guildApplicationCommandNames =
+        this.getGuildApplicationCommands().map((c) => c.name);
 
       try {
         await Promise.all(
@@ -174,29 +184,29 @@ export class SlashCommandManager extends BaseService {
             .filter(filterGuilds(this.envService.testServerId))
             .map((guild) => {
               this.logger.log(
-                `[SlashCommandManager] Setting permissions for commands in guild ${guild.name}`
+                `[ApplicationCommandManager] Setting permissions for guild application commands in guild ${guild.name}`
               );
               return allowCommandsForRoleName(
                 guild,
-                adminCommandNames,
+                guildApplicationCommandNames,
                 botAdminRoleName
               ).then(() =>
                 this.logger.log(
-                  `[SlashCommandManager] Permissions set for commands in guild ${guild.name}`
+                  `[ApplicationCommandManager] Permissions set for guild application commands in guild ${guild.name}`
                 )
               );
             })
         );
       } catch (err) {
         this.logger.error(
-          "Error while setting permissions on admin commands",
+          "[ApplicationCommandManager] Error while setting permissions on admin commands",
           err
         );
       }
     }
   }
 
-  private async unregisterSlashCommands(): Promise<void> {
+  public async unregisterApplicationCommands(): Promise<void> {
     if (!this.client) return;
 
     try {
@@ -212,7 +222,7 @@ export class SlashCommandManager extends BaseService {
       );
     } catch (err) {
       this.logger.error(
-        "Error while cleaning up before registering slash commands",
+        "[ApplicationCommandManager] Error while cleaning up before registering slash commands",
         err
       );
     }

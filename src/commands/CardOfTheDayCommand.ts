@@ -6,13 +6,13 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardOfTheDayService } from "../services/CardOfTheDayService";
 
-export class CardOfTheDayCommand implements ISlashCommand {
+export class CardOfTheDayCommand implements IApplicationCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;
 
-  isAdmin = true;
+  isGuildCommand = true;
   name = "cotd";
   description =
     "Ajoute les codes de cartes précisés à la liste des cartes déjà tirées";
@@ -40,7 +40,7 @@ export class CardOfTheDayCommand implements ISlashCommand {
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     if (commandInteraction.options.getSubcommand() === "encore") {
       await this.cardOfTheDayService.sendCardOfTheDay();
       await commandInteraction.reply("Et voilà!");

@@ -9,7 +9,7 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { Rule, RulesService } from "../services/RulesService";
 
 /*
@@ -18,10 +18,10 @@ import { Rule, RulesService } from "../services/RulesService";
 */
 const MAX_RULES = 25;
 
-export class RuleCommand implements ISlashCommand {
+export class RuleCommand implements IApplicationCommand {
   @Inject private rulesService!: RulesService;
 
-  isAdmin = false;
+  isGuildCommand = false;
   name = "regle";
   description = "Afficher un point de règle";
   options = [
@@ -41,7 +41,7 @@ export class RuleCommand implements ISlashCommand {
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const search = commandInteraction.options.getString("recherche");
     const ephemeral =
       commandInteraction.options.getBoolean("ephemere") || false;
@@ -87,7 +87,7 @@ export class RuleCommand implements ISlashCommand {
     interaction: CommandInteraction | SelectMenuInteraction,
     rule: Rule,
     options = { ephemeral: true }
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const ruleEmbeds = this.rulesService.createEmbeds(rule);
     await interaction.reply({
       embeds: ruleEmbeds,
@@ -100,7 +100,7 @@ export class RuleCommand implements ISlashCommand {
     interaction: CommandInteraction,
     rules: Rule[],
     options = { ephemeral: true }
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const ruleChoices = rules
       .map((rule) => ({
         label: rule.title,

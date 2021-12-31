@@ -1,19 +1,21 @@
 import { CommandInteraction, EmbedFieldData, MessageEmbed } from "discord.js";
 import { Container } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
-import { SlashCommandManager } from "../services/SlashCommandManager";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import { ApplicationCommandManager } from "../services/ApplicationCommandManager";
 
-export class HelpCommand implements ISlashCommand {
-  isAdmin = false;
+export class HelpCommand implements IApplicationCommand {
+  isGuildCommand = false;
   name = "aide";
   description =
     "Affiche quelques informations sur ce bot et comment l'utiliser";
 
-  async execute(interaction: CommandInteraction): Promise<ISlashCommandResult> {
-    const slashCommandManager = Container.get(SlashCommandManager);
-    const commandDescriptions: EmbedFieldData[] = slashCommandManager
-      .getNonAdminCommands()
+  async execute(
+    interaction: CommandInteraction
+  ): Promise<IApplicationCommandResult> {
+    const applicationCommandManager = Container.get(ApplicationCommandManager);
+    const commandDescriptions: EmbedFieldData[] = applicationCommandManager
+      .getGlobalApplicationCommands()
       .map((command) => ({
         name: "/" + command.name,
         value: command.description,

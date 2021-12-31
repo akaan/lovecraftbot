@@ -2,6 +2,7 @@ import * as Discord from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import { nameOfConstructor } from "./ClassUtils";
+import { ApplicationCommandManager } from "./services/ApplicationCommandManager";
 import { BlobGameService } from "./services/BlobGameService";
 import { CardOfTheDayService } from "./services/CardOfTheDayService";
 import { CardService } from "./services/CardService";
@@ -12,7 +13,6 @@ import { LoggerService } from "./services/LoggerService";
 import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
 import { PresenceService } from "./services/PresenceService";
 import { RulesService } from "./services/RulesService";
-import { SlashCommandManager } from "./services/SlashCommandManager";
 
 export class Bot {
   private client?: Discord.Client;
@@ -29,7 +29,7 @@ export class Bot {
 
   // Ces deux là doivent arriver en dernier
   @Inject private commandParser!: CommandParser;
-  @Inject private slashCommandManager!: SlashCommandManager;
+  @Inject private applicationCommandManager!: ApplicationCommandManager;
 
   public async init(): Promise<void> {
     const DISCORD_TOKEN = this.envService.discordToken;
@@ -61,7 +61,7 @@ export class Bot {
         this.blobGameService,
         this.massMultiplayerEventService,
         this.commandParser,
-        this.slashCommandManager,
+        this.applicationCommandManager,
       ].map((service) => {
         service
           .init(client)
@@ -79,13 +79,16 @@ export class Bot {
 
     this.client.on("interactionCreate", (interaction) => {
       if (interaction.isCommand()) {
-        this.slashCommandManager
+        this.applicationCommandManager
           .handleCommandInteraction(interaction)
-          .then((slashCommandResult) => {
-            this.logger.log(`Slash command handled:`, slashCommandResult);
+          .then((applicationCommandResult) => {
+            this.logger.log(
+              `Application command handled:`,
+              applicationCommandResult
+            );
           })
           .catch((err) =>
-            this.logger.error(`Error while handling slash command`, err)
+            this.logger.error(`Error while handling application command`, err)
           );
       }
     });

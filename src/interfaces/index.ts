@@ -1,3 +1,3 @@
 export * from "./ICommand";
 export * from "./IService";
-export * from "./ISlashCommand";
+export * from "./IApplicationCommand";

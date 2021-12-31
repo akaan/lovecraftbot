@@ -1,19 +1,19 @@
 import { CommandInteraction } from "discord.js";
 import { Inject } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardService } from "../services/CardService";
 
-export class RefreshCommand implements ISlashCommand {
+export class RefreshCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isAdmin = true;
+  isGuildCommand = true;
   name = "refresh";
   description = "Recharge les toutes dernières cartes depuis ArkhamDB";
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     await this.cardService.downloadLatestCardDb();
 
     await commandInteraction.reply(

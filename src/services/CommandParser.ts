@@ -2,7 +2,7 @@ import * as Discord from "discord.js";
 import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
-import * as Commands from "../commands";
+import * as Commands from "../commands/nonApplicationCommands";
 import { ICommandResult, ICommand, CommandConstructor } from "../interfaces";
 
 import { EnvService } from "./EnvService";

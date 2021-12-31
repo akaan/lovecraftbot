@@ -3,13 +3,13 @@ import { CommandInteraction } from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { DeckService } from "../services/DeckService";
 
-export class DeckCommand implements ISlashCommand {
+export class DeckCommand implements IApplicationCommand {
   @Inject private deckService!: DeckService;
 
-  isAdmin = false;
+  isGuildCommand = false;
   name = "deck";
   description = "Affiche le deck correspondant à l'ID fourni";
   options = [
@@ -23,7 +23,7 @@ export class DeckCommand implements ISlashCommand {
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const deckId = commandInteraction.options.getString("deckid");
     if (deckId) {
       const deck = await this.deckService.getDeck(deckId);

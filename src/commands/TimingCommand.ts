@@ -2,10 +2,10 @@ import { CommandInteraction } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 
-export class TimingCommand implements ISlashCommand {
-  isAdmin = false;
+export class TimingCommand implements IApplicationCommand {
+  isGuildCommand = false;
   name = "t";
   description = "Affiche un timing";
   options = [
@@ -23,7 +23,7 @@ export class TimingCommand implements ISlashCommand {
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     if (commandInteraction.options.getSubcommand() === "phases") {
       await commandInteraction.reply({ files: ["assets/phase.jpg"] });
       return {

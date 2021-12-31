@@ -6,13 +6,13 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { ISlashCommand, ISlashCommandResult } from "../interfaces";
+import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardService } from "../services/CardService";
 
-export class TradCommand implements ISlashCommand {
+export class TradCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isAdmin = false;
+  isGuildCommand = false;
   name = "trad";
   description = `Traduit un nom de carte`;
   options = [
@@ -58,7 +58,7 @@ export class TradCommand implements ISlashCommand {
 
   async execute(
     commandInteraction: CommandInteraction
-  ): Promise<ISlashCommandResult> {
+  ): Promise<IApplicationCommandResult> {
     const cardName = commandInteraction.options.getString("nom");
     const ephemeral =
       commandInteraction.options.getBoolean("ephemere") || false;

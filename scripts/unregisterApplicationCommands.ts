@@ -2,8 +2,8 @@ import { Client, Intents } from "discord.js";
 import * as dotenv from "dotenv";
 import { Container } from "typescript-ioc";
 
+import { ApplicationCommandManager } from "../src/services/ApplicationCommandManager";
 import { LoggerService } from "../src/services/LoggerService";
-import { SlashCommandManager } from "../src/services/SlashCommandManager";
 
 const main = async () => {
   dotenv.config();
@@ -19,17 +19,14 @@ const main = async () => {
   });
 
   client.on("ready", async () => {
-    logger.log("Connected");
+    console.log("Connected");
 
-    const slashCommandManager = Container.get(SlashCommandManager);
+    const applicationCommandManager = Container.get(ApplicationCommandManager);
     try {
-      await slashCommandManager.init(client);
-      logger.log("Registering slash commands...");
-      await slashCommandManager.registerSlashCommands();
-      logger.log("Slash commands registered");
-      logger.log("Setting up guild commands permissions");
-      await slashCommandManager.setSlashCommandPermissions();
-      logger.log("Guild commands permissions set");
+      await applicationCommandManager.init(client);
+      logger.log("Unregistering application commands...");
+      await applicationCommandManager.unregisterApplicationCommands();
+      logger.log("Application commands unregistered");
     } catch (err) {
       logger.error(err);
     }
