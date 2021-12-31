@@ -31,7 +31,7 @@ export class PresenceService extends BaseService {
     this.setRandomPresence();
     setInterval(() => {
       this.setRandomPresence();
-    }, 1000 * 60);
+    }, 1000 * 60 * 60);
   }
 
   public setRandomPresence(): void {
