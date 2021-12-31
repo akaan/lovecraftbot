@@ -11,6 +11,7 @@ import { EmojiService } from "./services/EmojiService";
 import { EnvService } from "./services/EnvService";
 import { LoggerService } from "./services/LoggerService";
 import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
+import { NewsService } from "./services/NewsService";
 import { PresenceService } from "./services/PresenceService";
 import { RulesService } from "./services/RulesService";
 
@@ -23,6 +24,7 @@ export class Bot {
   @Inject private envService!: EnvService;
   @Inject private emojiService!: EmojiService;
   @Inject private logger!: LoggerService;
+  @Inject private newsService!: NewsService;
   @Inject private presenceService!: PresenceService;
   @Inject private rulesService!: RulesService;
   @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
@@ -57,6 +59,7 @@ export class Bot {
         this.emojiService,
         this.cardService,
         this.cardOfTheDayService,
+        this.newsService,
         this.rulesService,
         this.blobGameService,
         this.massMultiplayerEventService,
