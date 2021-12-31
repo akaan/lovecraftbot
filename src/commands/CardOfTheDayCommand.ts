@@ -14,13 +14,17 @@ export class CardOfTheDayCommand implements IApplicationCommand {
 
   isGuildCommand = true;
   name = "cotd";
-  description =
-    "Ajoute les codes de cartes précisés à la liste des cartes déjà tirées";
+  description = "Commandes de gestion de la carte du jour";
   options = [
     {
       type: ApplicationCommandOptionTypes.SUB_COMMAND,
       name: "encore",
       description: "Retire une nouvelle carte du jour",
+    } as ApplicationCommandSubCommandData,
+    {
+      type: ApplicationCommandOptionTypes.SUB_COMMAND,
+      name: "liste",
+      description: "Liste des cartes déjà tirées",
     } as ApplicationCommandSubCommandData,
     {
       type: ApplicationCommandOptionTypes.SUB_COMMAND,
@@ -43,9 +47,22 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     if (commandInteraction.options.getSubcommand() === "encore") {
       await this.cardOfTheDayService.sendCardOfTheDay();
-      await commandInteraction.reply("Et voilà!");
+      await commandInteraction.reply({
+        content: "Nouvelle carte tirée !",
+        ephemeral: true,
+      });
       return {
         message: `[CardOfTheDayCommand] Nouvelle carte du jour envoyée`,
+      };
+    }
+
+    if (commandInteraction.options.getSubcommand() === "liste") {
+      await commandInteraction.reply({
+        content: this.cardOfTheDayService.getCardCodesSent().join(", "),
+        ephemeral: true,
+      });
+      return {
+        message: `[CardOfTheDayCommand] Liste des cartes du jour déjà tirées envoyée`,
       };
     }
 
@@ -54,9 +71,10 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       if (codesText) {
         const codes = codesText.split(",").map((s) => s.trim());
         await this.cardOfTheDayService.addCardSent(codes);
-        await commandInteraction.reply(
-          `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`
-        );
+        await commandInteraction.reply({
+          content: `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`,
+          ephemeral: true,
+        });
 
         return { message: "[CardOfTheDayCommand] Codes ajoutés" };
       } else {
@@ -64,7 +82,10 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       }
     }
 
-    await commandInteraction.reply(`Oops, il y a eu un problème`);
+    await commandInteraction.reply({
+      content: `Oops, il y a eu un problème`,
+      ephemeral: true,
+    });
     return {
       message: `[CardOfTheDayCommand] Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`,
     };

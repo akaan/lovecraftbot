@@ -54,6 +54,10 @@ export class CardOfTheDayService extends BaseService {
     );
   }
 
+  public getCardCodesSent(): string[] {
+    return this.cardCodesSent;
+  }
+
   public async addCardSent(codes: string[]): Promise<void> {
     for (const code of codes) {
       this.cardCodesSent.push(code);
