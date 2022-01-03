@@ -1,5 +1,6 @@
 import {
   CommandInteraction,
+  InteractionCollector,
   Message,
   MessageActionRow,
   MessageSelectMenu,
@@ -91,20 +92,11 @@ export class CardCommand implements IApplicationCommand {
             searchOptions
           );
         } else {
-          if (commandInteraction.inGuild()) {
-            return this.sendCardChoices(
-              commandInteraction,
-              foundCards,
-              searchOptions
-            );
-          } else {
-            await commandInteraction.reply(
-              `Désolé mais ${foundCards.length} cartes correspondent à cette recherche et je ne sais pas encore te présenter un menu de sélection dans ce canal. Essaye d'être plus précis ou bien effectue cette commande sur un serveur.`
-            );
-            return {
-              message: `[CardCommand] Demande de plusieurs carte hors serveur : pas possible`,
-            };
-          }
+          return this.sendCardChoices(
+            commandInteraction,
+            foundCards,
+            searchOptions
+          );
         }
       } else {
         await commandInteraction.reply(
@@ -167,9 +159,22 @@ export class CardCommand implements IApplicationCommand {
       fetchReply: true,
     })) as Message;
 
-    const menuCollector = menu.createMessageComponentCollector({
-      componentType: "SELECT_MENU",
-    });
+    let menuCollector: InteractionCollector<SelectMenuInteraction> | undefined =
+      undefined;
+    if (menu.createMessageComponentCollector) {
+      menuCollector = menu.createMessageComponentCollector({
+        componentType: "SELECT_MENU",
+      });
+    } else {
+      // Ici on est dans le cas d'un message hors guilde
+      const channelId = interaction.channelId;
+      const channel = await interaction.client.channels.fetch(channelId);
+      if (channel && channel.isText()) {
+        menuCollector = channel.createMessageComponentCollector({
+          componentType: "SELECT_MENU",
+        });
+      }
+    }
 
     const onSelect = async (selectMenuInteraction: SelectMenuInteraction) => {
       const cardCodeSelected = selectMenuInteraction.values[0];
@@ -179,10 +184,21 @@ export class CardCommand implements IApplicationCommand {
       } else {
         await selectMenuInteraction.reply(`Oups, il y a eu un problème`);
       }
+      if (menuCollector) menuCollector.stop();
     };
 
-    menuCollector.on("collect", onSelect);
-
-    return { message: `[CardCommand] Menu de sélection de carte envoyé` };
+    if (menuCollector) {
+      menuCollector.on("collect", onSelect);
+      return { message: `[CardCommand] Menu de sélection de carte envoyé` };
+    } else {
+      await interaction.editReply({
+        content:
+          "Oups, je ne sais pas te proposer un choix de carte dans ce canal.",
+        components: [],
+      });
+      return {
+        message: `[CardCommand] Impossible d'envoyer un menu de sélection de carte`,
+      };
+    }
   }
 }
