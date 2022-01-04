@@ -57,6 +57,7 @@ export class Bot {
       this.logger.info(LOG_LABEL, "Connecté.");
 
       [
+        this.logger,
         this.presenceService,
         this.emojiService,
         this.cardService,
