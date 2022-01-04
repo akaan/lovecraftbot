@@ -12,6 +12,7 @@ type Metadata = { [key: string]: unknown };
  * Service permettant de tracer des événements dans l'exécution du code.
  */
 export class LoggerService extends BaseService {
+  /** Logger racine winston */
   private rootLogger = winston.createLogger({
     level: "debug",
     transports: [
@@ -109,15 +110,55 @@ export class LoggerService extends BaseService {
   }
 }
 
+/** Remise à zéro de la couleur dans le terminal. */
 const ColorReset = "\x1b[0m";
+
+/** Texte en rouge dans le terminal. */
 const ColorFgRed = "\x1b[31m";
+
+/** Texte en vert dans le terminal. */
 const ColorFgGreen = "\x1b[32m";
+
+/** Texte en jaune dans le terminal. */
 const ColorFgYellow = "\x1b[33m";
+
+/** Texte en bleu dans le terminal. */
 const ColorFgBlue = "\x1b[34m";
 
+/**
+ * Renvoie une fonction qui renverra le message fourni encadré par les codes
+ * permettant de positionner la couleur puis de remettre la couleur par défaut.
+ *
+ * @param color Le code permettant d'appliquer la couleur dans le terminal
+ * @returns Une fonction qui applique la couleur au message fourni
+ */
 const colorize = (color: string) => (msg: string) =>
   `${color}${msg}${ColorReset}`;
+
+/**
+ * Colore le texte en jaune.
+ *
+ * @param msg Le texte à colorier
+ */
 const yellow = colorize(ColorFgYellow);
+
+/**
+ * Colore le texte en rouge.
+ *
+ * @param msg Le texte à colorier
+ */
 const red = colorize(ColorFgRed);
+
+/**
+ * Colore le texte en bleu.
+ *
+ * @param msg Le texte à colorier
+ */
 const blue = colorize(ColorFgBlue);
+
+/**
+ * Colore le texte en vert.
+ *
+ * @param msg Le texte à colorier
+ */
 const green = colorize(ColorFgGreen);
