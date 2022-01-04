@@ -52,7 +52,8 @@ export class CardOfTheDayCommand implements IApplicationCommand {
         ephemeral: true,
       });
       return {
-        message: `[CardOfTheDayCommand] Nouvelle carte du jour envoyée`,
+        cmd: "CardOfTheDayCommand",
+        result: `Nouvelle carte du jour envoyée`,
       };
     }
 
@@ -62,7 +63,8 @@ export class CardOfTheDayCommand implements IApplicationCommand {
         ephemeral: true,
       });
       return {
-        message: `[CardOfTheDayCommand] Liste des cartes du jour déjà tirées envoyée`,
+        cmd: "CardOfTheDayCommand",
+        result: `Liste des cartes du jour déjà tirées envoyée`,
       };
     }
 
@@ -76,9 +78,12 @@ export class CardOfTheDayCommand implements IApplicationCommand {
           ephemeral: true,
         });
 
-        return { message: "[CardOfTheDayCommand] Codes ajoutés" };
+        return { cmd: "CardOfTheDayCommand", result: "Codes ajoutés" };
       } else {
-        return { message: `[CardOfTheDayCommand] Codes de carte non fournis` };
+        return {
+          cmd: "CardOfTheDayCommand",
+          result: `Codes de carte non fournis`,
+        };
       }
     }
 
@@ -87,7 +92,8 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return {
-      message: `[CardOfTheDayCommand] Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`,
+      cmd: "CardOfTheDayCommand",
+      result: `Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`,
     };
   }
 }

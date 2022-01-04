@@ -27,20 +27,23 @@ export class TimingCommand implements IApplicationCommand {
     if (commandInteraction.options.getSubcommand() === "phases") {
       await commandInteraction.reply({ files: ["assets/phase.jpg"] });
       return {
-        message: "[TimingCommand] Timing des phases envoyé",
+        cmd: "TimingCommand",
+        result: "Timing des phases envoyé",
       };
     }
 
     if (commandInteraction.options.getSubcommand() === "test") {
       await commandInteraction.reply({ files: ["assets/timing.jpg"] });
       return {
-        message: "[TimingCommand] Timing d'un test envoyé",
+        cmd: "TimingCommand",
+        result: "Timing d'un test envoyé",
       };
     }
 
     await commandInteraction.reply(`Oops, il y a eu un problème`);
     return {
-      message: `[TimingCommand] Sous-commandes ${commandInteraction.options.getSubcommand()} inconnue`,
+      cmd: "TimingCommand",
+      result: `Sous-commandes ${commandInteraction.options.getSubcommand()} inconnue`,
     };
   }
 }

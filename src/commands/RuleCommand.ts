@@ -64,13 +64,15 @@ export class RuleCommand implements IApplicationCommand {
           `Aucun titre de règle ne contient le terme "${search}"`
         );
         return {
-          message: `[RuleCommand] Aucune règle ne correspondant à "${search}"`,
+          cmd: "RuleCommand",
+          result: `Aucune règle ne correspondant à "${search}"`,
         };
       }
     } else {
       await commandInteraction.reply("Oops, il y a eu un problème");
       return {
-        message: `[RuleCommand] Pas de texte recherché fourni`,
+        cmd: "RuleCommand",
+        result: `Pas de texte recherché fourni`,
       };
     }
   }
@@ -85,7 +87,7 @@ export class RuleCommand implements IApplicationCommand {
       embeds: ruleEmbeds,
       ephemeral: options.ephemeral,
     });
-    return { message: `[RuleCommand] Règle(s) envoyée(s)` };
+    return { cmd: "RuleCommand", result: `Règle(s) envoyée(s)` };
   }
 
   private async sendRuleChoices(
@@ -148,7 +150,10 @@ export class RuleCommand implements IApplicationCommand {
 
     if (menuCollector) {
       menuCollector.on("collect", onSelect);
-      return { message: `[RuleCommand] Menu de sélection de règle envoyé` };
+      return {
+        cmd: "RuleCommand",
+        result: `Menu de sélection de règle envoyé`,
+      };
     } else {
       await interaction.editReply({
         content:
@@ -156,7 +161,8 @@ export class RuleCommand implements IApplicationCommand {
         components: [],
       });
       return {
-        message: `[RuleCommand] Impossible d'envoyer un menu de sélection de règle`,
+        cmd: "RuleCommand",
+        result: `Impossible d'envoyer un menu de sélection de règle`,
       };
     }
   }

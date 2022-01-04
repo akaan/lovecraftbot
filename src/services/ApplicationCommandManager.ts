@@ -99,7 +99,8 @@ export class ApplicationCommandManager extends BaseService {
       return slashCommand.execute(commandInteraction);
     } else {
       return Promise.resolve({
-        message: `Unknown command "${commandInteraction.commandName}"`,
+        cmd: commandInteraction.commandName,
+        result: `Commande "${commandInteraction.commandName}" inconnue`,
       });
     }
   }

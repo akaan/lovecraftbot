@@ -22,6 +22,9 @@ export class EchoCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     const message = interaction.options.getString("message");
     await interaction.reply(message || "");
-    return { message: "[EchoCommand] echoed message back to user" };
+    return {
+      cmd: "EchoCommand",
+      result: "Renvoie de son propre message à l'utilisateur",
+    };
   }
 }

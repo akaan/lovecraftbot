@@ -42,6 +42,6 @@ export class HelpCommand implements IApplicationCommand {
     ]);
 
     await interaction.reply({ ephemeral: true, embeds: [embed] });
-    return { message: "[HelpCommand] Aide envoyée" };
+    return { cmd: "HelpCommand", result: "Aide envoyée" };
   }
 }

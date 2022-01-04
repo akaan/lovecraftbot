@@ -20,7 +20,8 @@ export class RefreshCommand implements IApplicationCommand {
       "C'est bon, les cartes ont été rechargées !"
     );
     return {
-      message: "[RefreshCommand] Cartes rechargées depuis ArkhamDB",
+      cmd: "RefreshCommand",
+      result: "Cartes rechargées depuis ArkhamDB",
     };
   }
 }

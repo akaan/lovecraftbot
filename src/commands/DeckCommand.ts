@@ -30,17 +30,18 @@ export class DeckCommand implements IApplicationCommand {
       if (deck) {
         const deckEmbed = this.deckService.createEmbed(deck);
         await commandInteraction.reply({ embeds: [deckEmbed] });
-        return { message: `[DeckCommand] Deck envoyé` };
+        return { cmd: "DeckCommand", result: `Deck envoyé` };
       } else {
         await commandInteraction.reply(
           `désolé, je ne trouve pas de deck avec l'ID ${deckId}.\n*Il est aussi possible que l'auteur n'ait pas rendu ses decks publics.*`
         );
         return {
-          message: `[DeckCommand] Aucun deck correspondant à l'ID ${deckId}`,
+          cmd: "DeckCommand",
+          result: `Aucun deck correspondant à l'ID ${deckId}`,
         };
       }
     } else {
-      return { message: `[DeckCommand] ID de deck non fourni` };
+      return { cmd: "DeckCommand", result: `ID de deck non fourni` };
     }
   }
 }

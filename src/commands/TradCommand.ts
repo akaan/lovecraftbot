@@ -71,13 +71,13 @@ export class TradCommand implements IApplicationCommand {
             content: `${maybeFrenchName}`,
             ephemeral,
           });
-          return { message: `[TradCommand] Nom français envoyé"` };
+          return { cmd: "TradCommand", result: `Nom français envoyé"` };
         } else {
           await commandInteraction.reply({
             content: `Désolé, je ne trouve pas de nom français pour ${cardName}`,
             ephemeral,
           });
-          return { message: `[TradCommand] Pas de nom français trouvé"` };
+          return { cmd: "TradCommand", result: `Pas de nom français trouvé"` };
         }
       }
 
@@ -88,22 +88,23 @@ export class TradCommand implements IApplicationCommand {
             content: `${maybeEnglishName}`,
             ephemeral,
           });
-          return { message: `[TradCommand] Nom anglais envoyé"` };
+          return { cmd: "TradCommand", result: `Nom anglais envoyé` };
         } else {
           await commandInteraction.reply({
             content: `Désolé, je ne trouve pas de nom anglais pour ${cardName}`,
             ephemeral,
           });
-          return { message: `[TradCommand] Pas de nom anglais trouvé"` };
+          return { cmd: "TradCommand", result: `Pas de nom anglais trouvé` };
         }
       }
 
       await commandInteraction.reply(`Oops, il y a eu un problème`);
       return {
-        message: `[TradCommand] Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`,
+        cmd: "TradCommand",
+        result: `Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`,
       };
     } else {
-      return { message: "[TradCommand] Nom non fourni" };
+      return { cmd: "TradCommand", result: "Nom non fourni" };
     }
   }
 }

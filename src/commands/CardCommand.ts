@@ -103,11 +103,12 @@ export class CardCommand implements IApplicationCommand {
           "Désolé, le mystère de cette carte reste entier."
         );
         return {
-          message: `[CardCommand] Aucune carte correspondant à la recherche ${search}`,
+          cmd: "CardCommand",
+          result: `Aucune carte correspondant à la recherche ${search}`,
         };
       }
     } else {
-      return { message: "[CardCommand] Texte recherché non fourni" };
+      return { cmd: "CardCommand", result: "Texte recherché non fourni" };
     }
   }
 
@@ -124,7 +125,7 @@ export class CardCommand implements IApplicationCommand {
       embeds: [cardEmbed],
       ephemeral: options.ephemeral,
     });
-    return { message: `[CardCommand] Carte envoyée` };
+    return { cmd: "CardCommand", result: `Carte envoyée` };
   }
 
   private async sendCardChoices(
@@ -189,7 +190,10 @@ export class CardCommand implements IApplicationCommand {
 
     if (menuCollector) {
       menuCollector.on("collect", onSelect);
-      return { message: `[CardCommand] Menu de sélection de carte envoyé` };
+      return {
+        cmd: "CardCommand",
+        result: `Menu de sélection de carte envoyé`,
+      };
     } else {
       await interaction.editReply({
         content:
@@ -197,7 +201,8 @@ export class CardCommand implements IApplicationCommand {
         components: [],
       });
       return {
-        message: `[CardCommand] Impossible d'envoyer un menu de sélection de carte`,
+        cmd: "CardCommand",
+        result: `Impossible d'envoyer un menu de sélection de carte`,
       };
     }
   }

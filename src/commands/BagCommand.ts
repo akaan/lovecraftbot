@@ -15,6 +15,6 @@ export class BagCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
     await commandInteraction.reply(this.chaosBagService.pullToken() || "??");
-    return { message: "[BagCommand] Jeton envoyé" };
+    return { cmd: "BagCommand", result: "Jeton envoyé" };
   }
 }
