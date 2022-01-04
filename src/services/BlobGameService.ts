@@ -78,6 +78,7 @@ export class BlobGameServiceError extends Error {
 @Singleton
 @OnlyInstantiableByContainer
 export class BlobGameService extends BaseService {
+  private static LOG_LABEL = "BlobGameService";
   private static STATE_FILE_NAME = "blobGameServiceState.json";
 
   private blobGameRepositoryByGuildId: {
@@ -169,7 +170,14 @@ export class BlobGameService extends BaseService {
           guild,
           gameStateEmbed
         );
-      this.saveState(guild).catch((err) => this.logger.error(err));
+      this.saveState(guild).catch((error) =>
+        this.logger.error(
+          BlobGameService.LOG_LABEL,
+          "Erreur à la sauvegarde de l'état de la partie",
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          { error }
+        )
+      );
     }
 
     this.gameStateMessagesByGuildId[guild.id].forEach((msg) => void msg.pin());
@@ -184,7 +192,14 @@ export class BlobGameService extends BaseService {
         this.gameStateMessagesByGuildId[guild.id].map((msg) =>
           msg.edit({ embeds: [gameStateEmbed] })
         )
-      ).catch((err) => this.logger.error(err));
+      ).catch((error) =>
+        this.logger.error(
+          BlobGameService.LOG_LABEL,
+          "Erreur à la mise à jour des messages d'état de la partie",
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          { error }
+        )
+      );
     }
   }
 
@@ -194,7 +209,14 @@ export class BlobGameService extends BaseService {
     this.gameTimeoutByGuildId[guild.id] = setInterval(() => {
       if (guild.id in this.gameTimerByGuildId) {
         this.gameTimerByGuildId[guild.id] -= 1;
-        this.saveState(guild).catch((err) => this.logger.error(err));
+        this.saveState(guild).catch((error) =>
+          this.logger.error(
+            BlobGameService.LOG_LABEL,
+            "Erreur à la sauvegarde de l'état de la partie",
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            { error }
+          )
+        );
         this.updateGameState(guild);
         if (this.gameTimerByGuildId[guild.id] === 0) {
           this.timeIsUp(guild);
@@ -220,7 +242,14 @@ export class BlobGameService extends BaseService {
   private timeIsUp(guild: Guild): void {
     this.massMultiplayerEventService
       .broadcastMessage(guild, "La partie est terminée !")
-      .catch((err) => this.logger.error(err));
+      .catch((error) =>
+        this.logger.error(
+          BlobGameService.LOG_LABEL,
+          "Erreur au broadcasting du message de fin de partie",
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          { error }
+        )
+      );
   }
 
   private tellTimeRemaining(guild: Guild): void {
@@ -232,7 +261,14 @@ export class BlobGameService extends BaseService {
             this.gameTimerByGuildId[guild.id]
           } minutes pour vaincre le Dévoreur`
         )
-        .catch((err) => this.logger.error(err));
+        .catch((error) =>
+          this.logger.error(
+            BlobGameService.LOG_LABEL,
+            "Erreur au broadcasting du message indiquant le temps restant",
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            { error }
+          )
+        );
     }
   }
 
@@ -243,7 +279,14 @@ export class BlobGameService extends BaseService {
     this.gameTimerByGuildId[guild.id] = minutes;
     this.setUpTimerInterval(guild);
     this.updateGameState(guild);
-    this.saveState(guild).catch((err) => this.logger.error(err));
+    this.saveState(guild).catch((error) =>
+      this.logger.error(
+        BlobGameService.LOG_LABEL,
+        "Erreur à la sauvegarde de l'état de la partie",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      )
+    );
   }
 
   public pauseTimer(guild: Guild): void {
@@ -366,7 +409,14 @@ export class BlobGameService extends BaseService {
     // Game state messages
     this.gameStateMessagesByGuildId[guild.id] = [];
 
-    this.saveState(guild).catch((err) => this.logger.error(err));
+    this.saveState(guild).catch((error) =>
+      this.logger.error(
+        BlobGameService.LOG_LABEL,
+        "Erreur à la sauvegarde de l'état de la partie",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      )
+    );
 
     // Game
     const repository = this.getBlobGameRepository(guild);
@@ -604,7 +654,14 @@ export class BlobGameService extends BaseService {
     this.gameStatsByGuildId[guild.id][groupId][statName] =
       this.gameStatsByGuildId[guild.id][groupId][statName] + amount;
 
-    this.saveState(guild).catch((err) => this.logger.error(err));
+    this.saveState(guild).catch((error) =>
+      this.logger.error(
+        BlobGameService.LOG_LABEL,
+        "Erreur à la sauvegarde de l'état de la partie",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      )
+    );
   }
 
   private async gameWon(guild: Guild): Promise<void> {
@@ -650,8 +707,13 @@ export class BlobGameService extends BaseService {
           this.gameStatsByGuildId[guild.id] = {};
         }
       }
-    } catch (err) {
-      this.logger.error(err);
+    } catch (error) {
+      this.logger.error(
+        BlobGameService.LOG_LABEL,
+        `Erreur au chargement d'état sur le serveur ${guild.name}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      );
     }
   }
 
@@ -672,8 +734,13 @@ export class BlobGameService extends BaseService {
         BlobGameService.STATE_FILE_NAME,
         JSON.stringify(state, null, "  ")
       );
-    } catch (err) {
-      this.logger.error(err);
+    } catch (error) {
+      this.logger.error(
+        BlobGameService.LOG_LABEL,
+        `Erreur à la sauvegarde d'état sur le serveur ${guild.name}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      );
     }
   }
 }

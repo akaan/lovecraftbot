@@ -8,6 +8,7 @@ import { LoggerService } from "../src/services/LoggerService";
 const main = async () => {
   dotenv.config();
 
+  const LOG_LABEL = "registerApplicationCommands";
   const logger = Container.get(LoggerService);
 
   const client = new Client({
@@ -19,19 +20,27 @@ const main = async () => {
   });
 
   client.on("ready", async () => {
-    logger.log("Connected");
+    logger.info(LOG_LABEL, "Connecté");
 
     const applicationCommandManager = Container.get(ApplicationCommandManager);
     try {
       await applicationCommandManager.init(client);
-      logger.log("Registering application commands...");
+      logger.info(LOG_LABEL, "Enregistrement des commandes d'application...");
       await applicationCommandManager.registerApplicationCommands();
-      logger.log("Application commands registered");
-      logger.log("Setting up guild application commands permissions");
+      logger.info(LOG_LABEL, "Commandes d'application enregistrées");
+      logger.info(
+        LOG_LABEL,
+        "Mise en place des permissions pour les commandes serveur"
+      );
       await applicationCommandManager.setGuildApplicationCommandsPermissions();
-      logger.log("Guild application commands permissions set");
-    } catch (err) {
-      logger.error(err);
+      logger.info(
+        LOG_LABEL,
+        "Permissions pour les commandes serveur mises en place"
+      );
+    } catch (error) {
+      logger.error(LOG_LABEL, "Erreur à l'enregistrement des commandes", {
+        error,
+      });
     }
 
     client.destroy();

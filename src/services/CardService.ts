@@ -103,6 +103,8 @@ function matchCard(card: ArkhamDBCard, searchString: string): boolean {
 @Singleton
 @OnlyInstantiableByContainer
 export class CardService extends BaseService {
+  private static LOG_LABEL = "CardService";
+
   private frenchCards: ArkhamDBCard[] = [];
   private taboos: Taboo[] = [];
   private factions: CodeAndName[] = [];
@@ -286,7 +288,11 @@ export class CardService extends BaseService {
       );
       await this.loadCards();
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error(
+        CardService.LOG_LABEL,
+        "Erreur au téléchargement des dernières cartes",
+        { error }
+      );
     }
   }
 
@@ -302,7 +308,13 @@ export class CardService extends BaseService {
       );
       await this.loadCards();
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error(
+        CardService.LOG_LABEL,
+        "Erreur au téléchargement des derniers taboos",
+        {
+          error,
+        }
+      );
     }
   }
 
@@ -355,8 +367,14 @@ export class CardService extends BaseService {
     if (rawData) {
       try {
         this.factions = JSON.parse(rawData) as CodeAndName[];
-      } catch (err) {
-        this.logger.error(err);
+      } catch (error) {
+        this.logger.error(
+          CardService.LOG_LABEL,
+          "Erreur au chargement des factions",
+          {
+            error,
+          }
+        );
       }
     }
   }
@@ -366,8 +384,14 @@ export class CardService extends BaseService {
     if (rawData) {
       try {
         this.packs = JSON.parse(rawData) as CodeAndName[];
-      } catch (err) {
-        this.logger.error(err);
+      } catch (error) {
+        this.logger.error(
+          CardService.LOG_LABEL,
+          "Erreur au chargement des packs",
+          {
+            error,
+          }
+        );
       }
     }
   }
@@ -377,8 +401,14 @@ export class CardService extends BaseService {
     if (rawData) {
       try {
         this.types = JSON.parse(rawData) as CodeAndName[];
-      } catch (err) {
-        this.logger.error(err);
+      } catch (error) {
+        this.logger.error(
+          CardService.LOG_LABEL,
+          "Erreur au chargement des types",
+          {
+            error,
+          }
+        );
       }
     }
   }
@@ -393,8 +423,14 @@ export class CardService extends BaseService {
     if (rawData) {
       try {
         this.frenchCards = JSON.parse(rawData) as ArkhamDBCard[];
-      } catch (err) {
-        this.logger.error(err);
+      } catch (error) {
+        this.logger.error(
+          CardService.LOG_LABEL,
+          "Erreur au chargement des cartes",
+          {
+            error,
+          }
+        );
       }
     }
   }
@@ -413,8 +449,14 @@ export class CardService extends BaseService {
           const latestTaboo = allTaboos[0];
           this.taboos = JSON.parse(latestTaboo.cards) as Taboo[];
         }
-      } catch (err) {
-        this.logger.error(err);
+      } catch (error) {
+        this.logger.error(
+          CardService.LOG_LABEL,
+          "Erreur au chargement des taboos",
+          {
+            error,
+          }
+        );
       }
     }
   }

@@ -12,6 +12,8 @@ import { ResourcesService } from "./ResourcesService";
 @Singleton
 @OnlyInstantiableByContainer
 export class CardOfTheDayService extends BaseService {
+  private static LOG_LABEL = "CardOfTheDayService";
+
   private cardCodesSent: string[] = [];
 
   @Inject private cardService!: CardService;
@@ -24,11 +26,10 @@ export class CardOfTheDayService extends BaseService {
     await super.init(client);
 
     if (!this.envService.cardOfTheDayChannelId) {
-      if (this.logger) {
-        this.logger.log(
-          `[CardOfTheDayService] Pas d'ID de channel pour la carte du jour.`
-        );
-      }
+      this.logger.info(
+        CardOfTheDayService.LOG_LABEL,
+        `Pas d'ID de channel pour la carte du jour.`
+      );
       return;
     }
 
@@ -45,12 +46,20 @@ export class CardOfTheDayService extends BaseService {
     setInterval(() => {
       const now = new Date();
       if (now.getHours() == cardOfTheDayHour && now.getMinutes() == 0) {
-        this.sendCardOfTheDay().catch((err) => this.logger.error(err));
+        this.sendCardOfTheDay().catch((error) =>
+          this.logger.error(
+            CardOfTheDayService.LOG_LABEL,
+            "Erreur à l'envoi de la carte du jour",
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            { error }
+          )
+        );
       }
     }, 1000 * 60);
 
-    this.logger.log(
-      `[CardOfTheDayService] La carte du jour sera envoyée chaque jour à ${cardOfTheDayHour}H.`
+    this.logger.info(
+      CardOfTheDayService.LOG_LABEL,
+      `La carte du jour sera envoyée chaque jour à ${cardOfTheDayHour}H.`
     );
   }
 
@@ -99,15 +108,20 @@ export class CardOfTheDayService extends BaseService {
           this.cardCodesSent.push(randomCode);
           await this.saveCardCodesSent();
 
-          this.logger.log(`[CardOfTheDayService] Carte du jour envoyée.`);
+          this.logger.info(
+            CardOfTheDayService.LOG_LABEL,
+            `Carte du jour envoyée.`
+          );
         } else {
-          this.logger.log(
-            `[CardOfTheDayService] Problème lors de la récupération de la carte du jour (code: ${randomCode}).`
+          this.logger.error(
+            CardOfTheDayService.LOG_LABEL,
+            `Problème lors de la récupération de la carte du jour (code: ${randomCode}).`
           );
         }
       } else {
-        this.logger.log(
-          `[CardOfTheDayService] Le channel d'ID ${this.envService.cardOfTheDayChannelId} n'a pas été trouvé.`
+        this.logger.error(
+          CardOfTheDayService.LOG_LABEL,
+          `Le channel d'ID ${this.envService.cardOfTheDayChannelId} n'a pas été trouvé.`
         );
       }
     }
@@ -124,8 +138,12 @@ export class CardOfTheDayService extends BaseService {
       if (rawData) {
         try {
           this.cardCodesSent = JSON.parse(rawData) as string[];
-        } catch (err) {
-          if (this.logger) this.logger.error(err);
+        } catch (error) {
+          this.logger.error(
+            CardOfTheDayService.LOG_LABEL,
+            "Erreur au chargement des codes de cartes déjà tirés",
+            { error }
+          );
         }
       }
     }

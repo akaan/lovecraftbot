@@ -115,6 +115,8 @@ const byCardName = (c1: CardInDeck, c2: CardInDeck): number => {
 @Singleton
 @OnlyInstantiableByContainer
 export class DeckService extends BaseService {
+  private static LOG_LABEL = "DeckService";
+
   @Inject private cardService!: CardService;
   @Inject private emojiService!: EmojiService;
   @Inject private logger!: LoggerService;
@@ -134,7 +136,11 @@ export class DeckService extends BaseService {
       }
     } catch (error) {
       if (axios.isAxiosError(error) && !error.response && error.request) {
-        this.logger.error(error);
+        this.logger.error(
+          DeckService.LOG_LABEL,
+          "Erreur à la récupération du deck",
+          { error }
+        );
       }
     }
   }

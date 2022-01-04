@@ -19,6 +19,8 @@ interface BlobGameSaved {
 }
 
 export class BlobGameFileRepository implements IBlobGameRepository {
+  private static LOG_LABEL = "BlobGameFileRepository";
+
   @Inject private logger!: LoggerService;
   @Inject private resourcesService!: ResourcesService;
 
@@ -80,8 +82,12 @@ export class BlobGameFileRepository implements IBlobGameRepository {
           "  "
         )
       );
-    } catch (err) {
-      this.logger.error(err);
+    } catch (error) {
+      this.logger.error(
+        BlobGameFileRepository.LOG_LABEL,
+        "Erreur à la sauvegarde de la partie",
+        { error }
+      );
     }
   }
 
@@ -103,7 +109,10 @@ export class BlobGameFileRepository implements IBlobGameRepository {
       if (raw) {
         const parsed = JSON.parse(raw) as BlobGameSaved[];
         if (!BlobGameFileRepository.isValid(parsed)) {
-          this.logger.error("Unable to parse blobGames.json");
+          this.logger.error(
+            BlobGameFileRepository.LOG_LABEL,
+            "Impossible de parser blobGames.json"
+          );
           return [];
         }
         return parsed.map((blobGameSaved) => {
@@ -122,8 +131,12 @@ export class BlobGameFileRepository implements IBlobGameRepository {
           return blobGame;
         });
       }
-    } catch (err) {
-      this.logger.error(err);
+    } catch (error) {
+      this.logger.error(
+        BlobGameFileRepository.LOG_LABEL,
+        "Erreur au chargement des parties",
+        { error }
+      );
     }
 
     return [];

@@ -6,6 +6,8 @@ import { BlobGameService } from "../services/BlobGameService";
 import { LoggerService } from "../services/LoggerService";
 
 export class BlobCommand implements ICommand {
+  static LOG_LABEL = "BlobCommand";
+
   admin = true;
   aliases = ["blob"];
   help = `Commandes pour gérer une partie massivement multijoueurs du **Dévoreur de Toute Chose**.
@@ -58,11 +60,15 @@ Les sous-commandes sont décrites ci-dessous.
           params
         );
       }
-    } catch (err) {
-      this.logger.error(err);
-      await message.reply(`ouch, impossible : ${(err as Error).message}`);
+    } catch (error) {
+      this.logger.error(
+        BlobCommand.LOG_LABEL,
+        "Erreur à l'exécution de la commande",
+        { error }
+      );
+      await message.reply(`ouch, impossible : ${(error as Error).message}`);
       return {
-        resultString: `[BlobCommand] Erreur: ${(err as Error).message}`,
+        resultString: `[BlobCommand] Erreur: ${(error as Error).message}`,
       };
     }
   }

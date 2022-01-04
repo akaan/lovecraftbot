@@ -77,6 +77,8 @@ async function allowCommandsForRoleName(
 @Singleton
 @OnlyInstantiableByContainer
 export class ApplicationCommandManager extends BaseService {
+  private static LOG_LABEL = "ApplicationCommandManager";
+
   @Inject private envService!: EnvService;
   @Inject logger!: LoggerService;
 
@@ -132,19 +134,22 @@ export class ApplicationCommandManager extends BaseService {
   private async registerGlobalApplicationCommands(): Promise<void> {
     if (this.client && this.client.application) {
       try {
-        this.logger.log(
-          `[ApplicationCommandManager] Registering global application commands...`
+        this.logger.info(
+          ApplicationCommandManager.LOG_LABEL,
+          `Enregistrement des commandes d'application globales...`
         );
         await this.client.application.commands.set(
           this.getGlobalApplicationCommands()
         );
-        this.logger.log(
-          `[ApplicationCommandManager] Registered global application commands`
+        this.logger.info(
+          ApplicationCommandManager.LOG_LABEL,
+          `Commandes d'application globales enregistrées`
         );
       } catch (err) {
         this.logger.error(
-          `[ApplicationCommandManager] Error while registering global application commands`,
-          err
+          ApplicationCommandManager.LOG_LABEL,
+          `Erreur à l'enregistrement des commandes d'application globales`,
+          { error: err }
         );
       }
     }
@@ -156,12 +161,14 @@ export class ApplicationCommandManager extends BaseService {
         filterGuilds(this.envService.testServerId)
       );
       const registers = guilds.map(async (guild) => {
-        this.logger.log(
-          `[ApplicationCommandManager] Registering guild application commands for guild ${guild.name}...`
+        this.logger.info(
+          ApplicationCommandManager.LOG_LABEL,
+          `Enregistrement des commandes d'application niveau serveur pour ${guild.name}...`
         );
         await guild.commands.set(this.getGuildApplicationCommands());
-        this.logger.log(
-          `[ApplicationCommandManager] Registered guild application commands for guild ${guild.name}`
+        this.logger.info(
+          ApplicationCommandManager.LOG_LABEL,
+          `Commandes d'application niveau serveur enregistrées pour ${guild.name}`
         );
       });
       await Promise.all(registers);
@@ -182,24 +189,27 @@ export class ApplicationCommandManager extends BaseService {
         const setPermissions = this.client.guilds.cache
           .filter(filterGuilds(this.envService.testServerId))
           .map(async (guild) => {
-            this.logger.log(
-              `[ApplicationCommandManager] Setting permissions for guild application commands in guild ${guild.name}`
+            this.logger.info(
+              ApplicationCommandManager.LOG_LABEL,
+              `Mise en place des permissions pour les commandes d'application niveau serveur de ${guild.name}`
             );
             const result = await allowCommandsForRoleName(
               guild,
               guildApplicationCommandNames,
               botAdminRoleName
             );
-            this.logger.log(
-              `[ApplicationCommandManager] Permissions set for guild application commands in guild ${guild.name}`
+            this.logger.info(
+              ApplicationCommandManager.LOG_LABEL,
+              `Permissions mises en place pour les commandes d'application niveau serveur de ${guild.name}`
             );
             return result;
           });
         await Promise.all(setPermissions);
       } catch (err) {
         this.logger.error(
-          "[ApplicationCommandManager] Error while setting permissions on admin commands",
-          err
+          ApplicationCommandManager.LOG_LABEL,
+          `Erreur à la mise en place des permissions pour les commandes d'application niveau serveur`,
+          { error: err }
         );
       }
     }
@@ -219,8 +229,9 @@ export class ApplicationCommandManager extends BaseService {
       await Promise.all(unregisters);
     } catch (err) {
       this.logger.error(
-        "[ApplicationCommandManager] Error while cleaning up before registering slash commands",
-        err
+        ApplicationCommandManager.LOG_LABEL,
+        "Erreur au désenregistrement des commandes d'application",
+        { error: err }
       );
     }
   }

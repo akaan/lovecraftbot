@@ -8,6 +8,7 @@ import { LoggerService } from "../src/services/LoggerService";
 const main = async () => {
   dotenv.config();
 
+  const LOG_LABEL = "unregisterApplicationCommands";
   const logger = Container.get(LoggerService);
 
   const client = new Client({
@@ -19,16 +20,21 @@ const main = async () => {
   });
 
   client.on("ready", async () => {
-    console.log("Connected");
+    logger.info(LOG_LABEL, "Connecté");
 
     const applicationCommandManager = Container.get(ApplicationCommandManager);
     try {
       await applicationCommandManager.init(client);
-      logger.log("Unregistering application commands...");
+      logger.info(
+        LOG_LABEL,
+        "Désenregistrement des commandes d'application..."
+      );
       await applicationCommandManager.unregisterApplicationCommands();
-      logger.log("Application commands unregistered");
-    } catch (err) {
-      logger.error(err);
+      logger.info(LOG_LABEL, "Commandes d'application désenregistrées");
+    } catch (error) {
+      logger.error(LOG_LABEL, "Erreur au désenregistrement des commandes", {
+        error,
+      });
     }
 
     client.destroy();

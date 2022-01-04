@@ -31,6 +31,8 @@ export class MassMultiplayerEventServiceError extends Error {
 @Singleton
 @OnlyInstantiableByContainer
 export class MassMultiplayerEventService extends BaseService {
+  private static LOG_LABEL = "MassMultiplayerEventService";
+
   private static STATE_FILE_NAME = "massMultiplayerEventsGroups.json";
   @Inject envService!: EnvService;
   @Inject logger!: LoggerService;
@@ -219,8 +221,12 @@ export class MassMultiplayerEventService extends BaseService {
         MassMultiplayerEventService.STATE_FILE_NAME,
         JSON.stringify(this.groupChannelsIdByGuildId[guild.id])
       );
-    } catch (err) {
-      this.logger.error(err);
+    } catch (error) {
+      this.logger.error(
+        MassMultiplayerEventService.LOG_LABEL,
+        "Erreur à la sauvegare de l'état",
+        { error }
+      );
     }
   }
 
@@ -241,8 +247,12 @@ export class MassMultiplayerEventService extends BaseService {
           this.groupChannelsIdByGuildId[guild.id] = groupsId;
         }
       }
-    } catch (err) {
-      this.logger.error(err);
+    } catch (error) {
+      this.logger.error(
+        MassMultiplayerEventService.LOG_LABEL,
+        "Erreur au chargement de l'état",
+        { error }
+      );
     }
   }
 }

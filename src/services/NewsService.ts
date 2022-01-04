@@ -13,6 +13,8 @@ const LATEST_NEWS_FILE = `latestNews.txt`;
 @Singleton
 @OnlyInstantiableByContainer
 export class NewsService extends BaseService {
+  private static LOG_LABEL = "NewsService";
+
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
 
@@ -25,7 +27,7 @@ export class NewsService extends BaseService {
   }
 
   public async checkForLatestNews(): Promise<void> {
-    this.logger.log(`[NewsService] Vérification des dernières news`);
+    this.logger.info(NewsService.LOG_LABEL, `Vérification des dernières news`);
     const latestLink = await this.getLatestNewLink();
     if (latestLink) {
       if (this.client) {
@@ -35,7 +37,10 @@ export class NewsService extends BaseService {
         await Promise.all(sendings);
       }
     } else {
-      this.logger.log(`[NewsService] Impossible de récupérer la dernière news`);
+      this.logger.info(
+        NewsService.LOG_LABEL,
+        `Impossible de récupérer la dernière news`
+      );
     }
   }
 
@@ -45,8 +50,9 @@ export class NewsService extends BaseService {
   ): Promise<void> {
     const lastLinkSent = await this.getLastLinkSent(guild);
     if (lastLinkSent === undefined || latestLink !== lastLinkSent) {
-      this.logger.log(
-        `[NewsService] Nouvelle news à envoyer sur le serveur ${guild.name}`
+      this.logger.info(
+        NewsService.LOG_LABEL,
+        `Nouvelle news à envoyer sur le serveur ${guild.name}`
       );
       const globalChannel = guild.channels.cache.find(
         (channel) =>
@@ -56,8 +62,9 @@ export class NewsService extends BaseService {
         await globalChannel.send({ content: latestLink });
         await this.saveLastLinkSent(guild, latestLink);
       } else {
-        this.logger.log(
-          `[NewsService] Le serveur ${guild.name} n'a pas de canal "général" pour l'envoi de la news`
+        this.logger.info(
+          NewsService.LOG_LABEL,
+          `Le serveur ${guild.name} n'a pas de canal "général" pour l'envoi de la news`
         );
       }
     }

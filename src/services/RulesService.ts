@@ -39,6 +39,8 @@ function matchRule(rule: Rule, searchString: string): boolean {
 @Singleton
 @OnlyInstantiableByContainer
 export class RulesService extends BaseService {
+  private static LOG_LABEL = "RulesService";
+
   private rules: Rule[] = [];
 
   @Inject private formatService!: FormatService;
@@ -121,8 +123,12 @@ export class RulesService extends BaseService {
     if (rawData) {
       try {
         this.rules = flattenRules(JSON.parse(rawData) as Rule[]);
-      } catch (err) {
-        this.logger.error(err);
+      } catch (error) {
+        this.logger.error(
+          RulesService.LOG_LABEL,
+          `Erreur au chargement des règles`,
+          { error }
+        );
       }
     }
   }

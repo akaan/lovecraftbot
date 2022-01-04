@@ -15,6 +15,8 @@ import { NewsService } from "./services/NewsService";
 import { PresenceService } from "./services/PresenceService";
 import { RulesService } from "./services/RulesService";
 
+const LOG_LABEL = "BOT";
+
 export class Bot {
   private client?: Discord.Client;
 
@@ -49,10 +51,10 @@ export class Bot {
       ],
     });
     const client = this.client;
-    this.logger.log("Connecting to Discord ...");
+    this.logger.info(LOG_LABEL, "Connexion à Discord ...");
 
     this.client.on("ready", () => {
-      this.logger.log("Connected.");
+      this.logger.info(LOG_LABEL, "Connecté.");
 
       [
         this.presenceService,
@@ -69,12 +71,17 @@ export class Bot {
         service
           .init(client)
           .then(() => {
-            this.logger.log("Initialized service", nameOfConstructor(service));
+            this.logger.info(
+              LOG_LABEL,
+              `Service ${nameOfConstructor(service)} initialisé`
+            );
           })
-          .catch(() => {
-            this.logger.log(
-              "Problem initializing service",
-              nameOfConstructor(service)
+          .catch((err) => {
+            this.logger.error(
+              LOG_LABEL,
+              `Problème à l'initialisation du service
+              ${nameOfConstructor(service)}`,
+              { error: err }
             );
           });
       });
@@ -85,13 +92,18 @@ export class Bot {
         this.applicationCommandManager
           .handleCommandInteraction(interaction)
           .then((applicationCommandResult) => {
-            this.logger.log(
-              `Application command handled:`,
+            this.logger.info(
+              LOG_LABEL,
+              `Commande d'application traitée`,
               applicationCommandResult
             );
           })
           .catch((err) =>
-            this.logger.error(`Error while handling application command`, err)
+            this.logger.error(
+              LOG_LABEL,
+              `Erreur au traitement d'une commande d'application`,
+              { error: err }
+            )
           );
       }
     });
@@ -119,8 +131,20 @@ export class Bot {
       if (content.startsWith(COMMAND_PREFIX)) {
         this.commandParser
           .handleCommand(msg)
-          .then((result) => this.logger.logCommandResult(result))
-          .catch((err) => this.logger.log("Error handling command", err));
+          .then((result) =>
+            this.logger.info(LOG_LABEL, "Commande classique traitée", {
+              result,
+            })
+          )
+          .catch((err) =>
+            this.logger.error(
+              LOG_LABEL,
+              "Erreur au traitement d'une commande classique",
+              {
+                error: err,
+              }
+            )
+          );
       } else {
         this.commandParser.handleMessage(msg);
       }
@@ -156,9 +180,9 @@ export class Bot {
     if (!this.client) {
       return Promise.resolve();
     }
-    this.logger.log("Disconnecting...");
+    this.logger.info(LOG_LABEL, "Déconnexion...");
     this.client.destroy();
-    this.logger.log("Disconnected.");
+    this.logger.info(LOG_LABEL, "Déconnecté.");
     return Promise.resolve();
   }
 }

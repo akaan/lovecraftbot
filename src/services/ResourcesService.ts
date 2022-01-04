@@ -16,6 +16,8 @@ const mkdir = util.promisify(fs.mkdir);
 @Singleton
 @OnlyInstantiableByContainer
 export class ResourcesService extends BaseService {
+  private static LOG_LABEL = "ResourcesService";
+
   @Inject private logger!: LoggerService;
 
   public resourceExists(filename: string): Promise<boolean> {
@@ -23,15 +25,25 @@ export class ResourcesService extends BaseService {
   }
 
   public readResource(filename: string): Promise<string | undefined> {
-    return readFile(`./data/${filename}`, "utf-8").catch((err) => {
-      this.logger.error(err);
+    return readFile(`./data/${filename}`, "utf-8").catch((error) => {
+      this.logger.error(
+        ResourcesService.LOG_LABEL,
+        `Erreur à la lecture du fichier ${filename}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      );
       return undefined as string | undefined;
     });
   }
 
   public saveResource(filename: string, content: string): Promise<void> {
-    return writeFile(`./data/${filename}`, content).catch((err) => {
-      this.logger.error(err);
+    return writeFile(`./data/${filename}`, content).catch((error) => {
+      this.logger.error(
+        ResourcesService.LOG_LABEL,
+        `Erreur à l'écriture du fichier ${filename}`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        { error }
+      );
     });
   }
 
@@ -47,8 +59,13 @@ export class ResourcesService extends BaseService {
   ): Promise<string | undefined> {
     return ResourcesService.createGuildFolder(guild).then(() => {
       return readFile(`./data/guild-${guild.id}/${filename}`, "utf-8").catch(
-        (err) => {
-          this.logger.error(err);
+        (error) => {
+          this.logger.error(
+            ResourcesService.LOG_LABEL,
+            `Erreur à la lecture du fichier ${filename} pour le serveur ${guild.name}`,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            { error }
+          );
           return undefined as string | undefined;
         }
       );
@@ -62,8 +79,13 @@ export class ResourcesService extends BaseService {
   ): Promise<void> {
     return ResourcesService.createGuildFolder(guild).then(() => {
       return writeFile(`./data/guild-${guild.id}/${filename}`, content).catch(
-        (err) => {
-          this.logger.error(err);
+        (error) => {
+          this.logger.error(
+            ResourcesService.LOG_LABEL,
+            `Erreur à l'écriture du fichier ${filename} pour le serveur ${guild.name}`,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            { error }
+          );
         }
       );
     });
