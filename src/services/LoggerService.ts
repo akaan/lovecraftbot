@@ -1,4 +1,4 @@
-import * as Discord from "discord.js";
+import { Client } from "discord.js";
 import { OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 import winston from "winston";
 
@@ -50,7 +50,7 @@ export class LoggerService extends BaseService {
     ],
   });
 
-  public async init(client: Discord.Client): Promise<void> {
+  public async init(client: Client): Promise<void> {
     await super.init(client);
     this.watchGlobalUncaughtExceptions();
   }
