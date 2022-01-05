@@ -8,30 +8,67 @@ import { ArkhamDBCard, CardService, SearchType } from "./CardService";
 import { EmojiService } from "./EmojiService";
 import { LoggerService } from "./LoggerService";
 
+/**
+ * Type représentant un emplacement dans un deck.
+ * La clé est le code de la carte tandis que la valeur est le nombre de
+ * copies de cette carte dans le deck.
+ */
 type Slots = { [cardCode: string]: number };
 
+/**
+ * Type représentant un deck sur ArkhamDB
+ */
 interface ArkhamDBDeck {
+  /** Identifiant unique du deck */
   id: number;
+
+  /** Nom du deck */
   name: string;
+
+  /** Code de l'investigateur */
   investigator_code: string;
+
+  /** Nom de l'investigateur */
   investigator_name: string;
+
+  /** Contenu du deck */
   slots: Slots;
+
+  /** Cartes mises de côtés */
   sideSlots: Slots | []; // https://github.com/Kamalisk/arkhamdb/issues/434
+
+  /** Cartes non comptées dans la taille limite du deck */
   ignoreDeckLimitSlots: Slots;
 }
 
+/** Type générique pour ce qui contient une quantité */
 interface WithQuantity {
   quantity: number;
 }
 
+/**
+ * Type pour une carte dans un deck : c'est une carte avec un attribut
+ * de quantité en plus
+ */
 type CardInDeck = ArkhamDBCard & WithQuantity;
 
+/**
+ * Représente une catégorie de carte dans la description d'un deck.
+ */
 interface DeckCategory {
+  /** Titre de la catégorie */
   title: string;
+
+  /** Filtre permettant de sélectionner les cartes appartenant à cette catégorie */
   filter: (card: CardInDeck) => boolean;
+
+  /** Sous-catégories éventuelles de cette catégorie */
   subcategories?: DeckCategory[];
 }
 
+/**
+ * Ensemble des catégories de cartes dans un deck pour gérer son affichage.
+ */
 const DECK_CATEGORIES: DeckCategory[] = [
   {
     title: "Soutiens",
@@ -94,6 +131,7 @@ const DECK_CATEGORIES: DeckCategory[] = [
   },
 ];
 
+/** Dictionnaire des icônes de classe */
 const CLASS_ICONS: { [faction: string]: string } = {
   guardian: "ClassGuardian",
   seeker: "ClassSeeker",
@@ -102,6 +140,13 @@ const CLASS_ICONS: { [faction: string]: string } = {
   survivor: "ClassSurvivor",
 };
 
+/**
+ * Fonction permettant le tri des cartes par ordre alphabétique de titre.
+ *
+ * @param c1 Première carte
+ * @param c2 Seconde carte
+ * @returns -1, 0 ou 1 selon résultat de la comparaison
+ */
 const byCardName = (c1: CardInDeck, c2: CardInDeck): number => {
   if (c1.name === c2.name) {
     return 0;
@@ -114,7 +159,12 @@ const byCardName = (c1: CardInDeck, c2: CardInDeck): number => {
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service permettant de rechercher des decks (non publiés) sur ArkhamDB
+ * et de générer un affichage sous forme d'encart Discord de ces decks.
+ */
 export class DeckService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "DeckService";
 
   @Inject private cardService!: CardService;
@@ -125,6 +175,12 @@ export class DeckService extends BaseService {
     await super.init(client);
   }
 
+  /**
+   * Récupére sur ArkhamDB un deck à partir de son identifiant.
+   *
+   * @param deckId L'identifiant du deck
+   * @returns Le deck s'il a été trouvé
+   */
   public async getDeck(deckId: string): Promise<ArkhamDBDeck | undefined> {
     try {
       const response = await axios.get<ArkhamDBDeck>(
@@ -145,6 +201,12 @@ export class DeckService extends BaseService {
     }
   }
 
+  /**
+   * Créé un encart Discord d'affichage du deck fourni.
+   *
+   * @param deck Le deck à afficher
+   * @returns Un encaert Discord affichant le deck
+   */
   public createEmbed(deck: ArkhamDBDeck): Discord.MessageEmbed {
     const embed = new Discord.MessageEmbed();
     embed.setTitle(deck.name);
@@ -195,6 +257,15 @@ export class DeckService extends BaseService {
     return embed;
   }
 
+  /**
+   * Transforme une description d'emplacements dans un deck (i.e. code et
+   * quantité) par une liste de cartes (description complète) et les
+   * quantités associées. Cette méthode fait appelle au service
+   * {@link CardService} qui gère la base de données des cartes.
+   *
+   * @param slots Les emplacements de deck
+   * @returns Une liste de cartes avec les quantités associées
+   */
   private addCardData(slots: Slots): CardInDeck[] {
     const cardsInDeck: CardInDeck[] = [];
 
@@ -211,6 +282,12 @@ export class DeckService extends BaseService {
     return cardsInDeck;
   }
 
+  /**
+   * Formate l'affiche d'une ligne dans un deck, c'est-à-dire une carte.
+   *
+   * @param cardInDeck Une carte et sa quantité dans le deck
+   * @returns Une ligne de deck : icône, titre de carte et quantité
+   */
   private formatCard(cardInDeck: CardInDeck): string {
     const level = cardInDeck.xp || 0;
     const signature = typeof cardInDeck.xp === "undefined";
