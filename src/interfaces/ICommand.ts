@@ -2,8 +2,7 @@ import * as Discord from "discord.js";
 
 export interface ICommandResult {
   resultString?: string;
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  result?: any;
+  result?: unknown;
 }
 
 export interface ICommandArgs {
