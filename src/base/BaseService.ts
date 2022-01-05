@@ -9,22 +9,11 @@ export class BaseService implements IService {
   /** Le client Discord */
   protected client?: Client;
 
-  /**
-   * Initialise le service en lui fournissant le client Discord.
-   *
-   * @param client Le client Discord
-   * @returns Une promesse résolue une fois l'initialisation terminée
-   */
   public init(client: Client): Promise<void> {
     this.client = client;
     return Promise.resolve();
   }
 
-  /**
-   * Méthode appelée pour permettre au service de s'arrêter proprement.
-   *
-   * @returns Une promesse résolue une fois l'arrêt terminée
-   */
   public shutdown(): Promise<void> {
     return Promise.resolve();
   }
