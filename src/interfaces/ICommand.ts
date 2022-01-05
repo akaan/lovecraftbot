@@ -12,10 +12,19 @@ export interface ICommandResult {
  * Arguments (paramètres) d'une commande classique.
  */
 export interface ICommandArgs {
+  /** Oui si la commande doit être exécutée en mode debug */
   debug?: boolean;
+
+  /** Le nom de la commande déclenchée */
   cmd: string;
+
+  /** Les arguments (paramètres) fournis à la commande */
   args: string;
+
+  /** Le message ayant déclenché la commande */
   message: Discord.Message;
+
+  /** L'utilisateur ayant déclenché la commande */
   user: Discord.User;
 }
 
