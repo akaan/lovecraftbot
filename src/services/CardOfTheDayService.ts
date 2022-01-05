@@ -11,9 +11,15 @@ import { ResourcesService } from "./ResourcesService";
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service permettant d'envoyer chaque jour une carte aléatoire dans un canal
+ * prévu à cette effet.
+ */
 export class CardOfTheDayService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "CardOfTheDayService";
 
+  /** Liste des codes des cartes déjà envoyée */
   private cardCodesSent: string[] = [];
 
   @Inject private cardService!: CardService;
@@ -37,6 +43,10 @@ export class CardOfTheDayService extends BaseService {
     this.start();
   }
 
+  /**
+   * Démarre la routine qui vérifie l'heure courante et envoie la carte à
+   * l'heure indiquée.
+   */
   public start(): void {
     if (!this.client) {
       return;
@@ -63,10 +73,20 @@ export class CardOfTheDayService extends BaseService {
     );
   }
 
+  /**
+   * Renvoie la liste des codes des cartes déjà tirées.
+   *
+   * @returns La liste des codes des cartes déjà tirées
+   */
   public getCardCodesSent(): string[] {
     return this.cardCodesSent;
   }
 
+  /**
+   * Ajoute les codes spécifiés à la liste des codes des cartes déjà tirées
+   *
+   * @param codes Des codes de cartes à ajouter à la liste
+   */
   public async addCardSent(codes: string[]): Promise<void> {
     for (const code of codes) {
       this.cardCodesSent.push(code);
@@ -74,6 +94,12 @@ export class CardOfTheDayService extends BaseService {
     await this.saveCardCodesSent();
   }
 
+  /**
+   * Envoie une carte aléatoire dans le canal précisé dans la configuration
+   * du bot.
+   *
+   * @returns Une promesse résolue une fois la carte envoyée
+   */
   public async sendCardOfTheDay(): Promise<void> {
     if (!this.client) {
       return;
@@ -127,7 +153,12 @@ export class CardOfTheDayService extends BaseService {
     }
   }
 
-  private async loadCardCodesSent() {
+  /**
+   * Charge les codes des cartes déjà tirées depuis le fichier.
+   *
+   * @returns Une promesse résolue une fois les codes chargées
+   */
+  private async loadCardCodesSent(): Promise<void> {
     const dataAvailable = await this.resourcesService.resourceExists(
       "cardOfTheDay.json"
     );
@@ -149,7 +180,12 @@ export class CardOfTheDayService extends BaseService {
     }
   }
 
-  private async saveCardCodesSent() {
+  /**
+   * Sauvegarde sur fichier les codes des cartes déjà tirées.
+   *
+   * @returns Une promesse résolue une fois les codes sauvegardés
+   */
+  private async saveCardCodesSent(): Promise<void> {
     await this.resourcesService.saveResource(
       "cardOfTheDay.json",
       JSON.stringify(this.cardCodesSent)
