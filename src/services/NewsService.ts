@@ -8,11 +8,17 @@ import { BaseService } from "../base/BaseService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
+/** Nom du fichier dans lequel est stocké le dernier lien envoyé */
 const LATEST_NEWS_FILE = `latestNews.txt`;
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service scrutant la page de news du jeu de cartes Horreur à Arkham et qui
+ * envoie le lien vers la dernière news dès qu'elle est publiée.
+ */
 export class NewsService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "NewsService";
 
   @Inject logger!: LoggerService;
@@ -21,11 +27,18 @@ export class NewsService extends BaseService {
   public async init(client: Client) {
     await super.init(client);
 
+    // Toutes les minutes
     setInterval(() => {
       this.checkForLatestNews().catch((err) => console.error(err));
     }, 1000 * 60);
   }
 
+  /**
+   * Récupère le lien de la dernière news puis publie ce lien sur chaque serveur
+   * si cela est nécessaire.
+   *
+   * @returns Une promesse résolue une fois le traitement terminé
+   */
   public async checkForLatestNews(): Promise<void> {
     this.logger.info(NewsService.LOG_LABEL, `Vérification des dernières news`);
     const latestLink = await this.getLatestNewLink();
@@ -44,6 +57,15 @@ export class NewsService extends BaseService {
     }
   }
 
+  /**
+   * Envoie sur le serveur précisé le lien vers la dernière news mais seulement
+   * si celui-ci est différent du dernier lien sauvegardé pour ce serveur.
+   * S'il y a en effet une différence, le lien sera publié puis sauvegardé.
+   *
+   * @param guild Le serveur concerné
+   * @param latestLink Le lien de la news la plus récente
+   * @returns Une promesse résolue une fois le traitement terminé
+   */
   private async sendLatestLinkIfNecessary(
     guild: Guild,
     latestLink: string
@@ -70,6 +92,12 @@ export class NewsService extends BaseService {
     }
   }
 
+  /**
+   * Charge la page des news du jeu de cartes Horreur à Arkham et récupère le
+   * premier lien de la liste (et donc le lien de la dernière news publiée).
+   *
+   * @returns Une promesse résolu avec le dernier lien de news
+   */
   private async getLatestNewLink(): Promise<string | undefined> {
     try {
       const baseUrl = `https://www.fantasyflightgames.com`;
@@ -87,6 +115,13 @@ export class NewsService extends BaseService {
     }
   }
 
+  /**
+   * Récupérer dans le fichier et pour un serveur donné le dernier lien
+   * envoyé.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le dernier lien envoyé s'il existe
+   */
   private async getLastLinkSent(guild: Guild): Promise<string | undefined> {
     const dataAvailable = await this.resourcesService.guildResourceExists(
       guild,
@@ -100,6 +135,14 @@ export class NewsService extends BaseService {
     }
   }
 
+  /**
+   * Sauvegarde dans le fichier et pour un serveur donné le dernier lien ayant
+   * été envoyé.
+   *
+   * @param guild Le serveur concerné
+   * @param lastLinkSent Le lien à sauvegarder
+   * @returns Une promesse résolue une fois la sauvegarde effectuée
+   */
   private async saveLastLinkSent(
     guild: Guild,
     lastLinkSent: string
