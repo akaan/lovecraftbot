@@ -1,6 +1,7 @@
 import * as Discord from "discord.js";
 import { Inject } from "typescript-ioc";
 
+import { BaseService } from "./base/BaseService";
 import { nameOfConstructor } from "./ClassUtils";
 import { ApplicationCommandManager } from "./services/ApplicationCommandManager";
 import { BlobGameService } from "./services/BlobGameService";
@@ -34,10 +35,14 @@ export class Bot {
   @Inject private presenceService!: PresenceService;
   @Inject private rulesService!: RulesService;
   @Inject private massMultiplayerEventService!: MassMultiplayerEventService;
-
-  // Ces deux là doivent arriver en dernier
   @Inject private commandParser!: CommandParser;
   @Inject private applicationCommandManager!: ApplicationCommandManager;
+
+  /** Les services qui ont besoin d'être initialisés, dans l'ordre. */
+  private needInitServices: BaseService[] = [];
+
+  /** Les services qui ont besoin d'être arrêtés, dans l'ordre. */
+  private needShutdownServices: BaseService[] = [];
 
   /**
    * Démarre le bot en initialisant la connexion à Discord, en initialisant
@@ -52,6 +57,20 @@ export class Bot {
     }
 
     this.commandPrefix = this.envService.commandPrefix;
+
+    this.needInitServices = [
+      this.logger,
+      this.presenceService,
+      this.emojiService,
+      this.cardService,
+      this.cardOfTheDayService,
+      this.newsService,
+      this.rulesService,
+      this.blobGameService,
+      this.massMultiplayerEventService,
+      this.commandParser,
+      this.applicationCommandManager,
+    ];
 
     this.client = new Discord.Client({
       intents: [
@@ -83,35 +102,21 @@ export class Bot {
   private handleReady(): void {
     this.logger.info(Bot.LOG_LABEL, "Connecté.");
 
-    [
-      this.logger,
-      this.presenceService,
-      this.emojiService,
-      this.cardService,
-      this.cardOfTheDayService,
-      this.newsService,
-      this.rulesService,
-      this.blobGameService,
-      this.massMultiplayerEventService,
-      this.commandParser,
-      this.applicationCommandManager,
-    ].map((service) => {
-      service
-        .init(this.client)
-        .then(() => {
-          this.logger.info(
-            Bot.LOG_LABEL,
-            `Service ${nameOfConstructor(service)} initialisé`
-          );
-        })
-        .catch((err) => {
-          this.logger.error(
-            Bot.LOG_LABEL,
-            `Problème à l'initialisation du service
-            ${nameOfConstructor(service)}`,
-            { error: err }
-          );
-        });
+    this.needInitServices.map(async (service) => {
+      try {
+        await service.init(this.client);
+        this.logger.info(
+          Bot.LOG_LABEL,
+          `Service ${nameOfConstructor(service)} initialisé`
+        );
+      } catch (error) {
+        this.logger.error(
+          Bot.LOG_LABEL,
+          `Problème à l'initialisation du service
+          ${nameOfConstructor(service)}`,
+          { error }
+        );
+      }
     });
   }
 
@@ -232,13 +237,30 @@ export class Bot {
    *
    * @returns Une promesse résolue une fois le bot arrêté
    */
-  public shutdown(): Promise<void> {
+  public async shutdown(): Promise<void> {
     if (!this.client) {
       return Promise.resolve();
     }
     this.logger.info(Bot.LOG_LABEL, "Déconnexion...");
+    const serviceShutdowns = this.needShutdownServices.map(async (service) => {
+      try {
+        await service.shutdown();
+        this.logger.info(
+          Bot.LOG_LABEL,
+          `Service ${nameOfConstructor(service)} arrêté`
+        );
+      } catch (error) {
+        this.logger.error(
+          Bot.LOG_LABEL,
+          `Erreur à l'arrêt du service ${nameOfConstructor(service)}`,
+          {
+            error,
+          }
+        );
+      }
+    });
+    await Promise.all(serviceShutdowns);
     this.client.destroy();
     this.logger.info(Bot.LOG_LABEL, "Déconnecté.");
-    return Promise.resolve();
   }
 }
