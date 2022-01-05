@@ -9,40 +9,62 @@ import { EnvService } from "./EnvService";
 import { HelpService } from "./HelpService";
 import { RoleService } from "./RoleService";
 
+/** Type représentant un dictionnaire de commandes */
 type CommandsDictionary = { [key: string]: CommandConstructor };
+
+/** Dictionnaire de l'ensemble des commandes importées */
 const AvailableCommands = Commands as unknown as CommandsDictionary;
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service gérant et exécutant les commandes classiques, c'est-à-dire
+ * déclenchées via des messages.
+ */
 export class CommandParser extends BaseService {
   @Inject private envService!: EnvService;
   @Inject private roleService!: RoleService;
   @Inject private helpService!: HelpService;
 
+  /** Dictionnaire des commandes exécutables via préfixe et alias */
   private executableCommands: { [key: string]: ICommand } = {};
 
+  /** Liste des commandes se déclenchant sur simple message (sans prefixe ni alias) */
   private messageCommands: ICommand[] = [];
+
+  /** Liste des commandes se déclenchant sur l'ajout d'une réaction à un message */
   private emojiAddCommands: ICommand[] = [];
+
+  /** Liste des commandes se déclenchant sur le retrait d'une réaction d'un message */
   private emojiRemoveCommands: ICommand[] = [];
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
-
     this.loadCommands(AvailableCommands);
   }
 
-  // used to parse strings. any command registering this will be listening to all incoming messages.
-  // this function returns nothing because it can operate on multiple values
-  handleMessage(message: Discord.Message): void {
+  /**
+   * Exécuté pour chaque message envoyé. Toutes les commandes classiques
+   * implémentant {@link ICommand#onMessage} seront appelées.
+   *
+   * @param message Le message envoyé
+   */
+  public handleMessage(message: Discord.Message): void {
     this.messageCommands.forEach((cmd) => {
       if (cmd.onMessage) cmd.onMessage(message);
       return;
     });
   }
 
-  // any command registering this will fire their callback when a reaction is added to a message
-  // this function returns nothing because it can operate on multiple values
-  handleEmojiAdd(
+  /**
+   * Exécuté chaque fois qu'une réaction est ajoutée à un message. Toutes
+   * les commandes classiques implémentant {@link ICommand#onEmojiAdd}
+   * seront appelées.
+   *
+   * @param reaction La réaction ajoutée
+   * @param user L'utilisateur ayant ajouté la réaction
+   */
+  public handleEmojiAdd(
     reaction: Discord.MessageReaction,
     user: Discord.User | Discord.PartialUser
   ): void {
@@ -52,9 +74,15 @@ export class CommandParser extends BaseService {
     });
   }
 
-  // any command registering this will fire their callback when a reaction is removed from a message
-  // this function returns nothing because it can operate on multiple values
-  handleEmojiRemove(
+  /**
+   * Exécuté chaque fois qu'une réaction est retirée d'un message. Toutes
+   * les commandes classiques implémentant {@link ICommand#onEmojiRemove}
+   * seront appelées.
+   *
+   * @param reaction La réaction retirée
+   * @param user L'utilisateur ayant retiré la réaction
+   */
+  public handleEmojiRemove(
     reaction: Discord.MessageReaction,
     user: Discord.User | Discord.PartialUser
   ): void {
@@ -64,8 +92,13 @@ export class CommandParser extends BaseService {
     });
   }
 
-  // used to handle commands. each command can register a set of aliases that fire off a callback.
-  // no alias overlapping is allowed
+  /**
+   * Exécuté chaque fois qu'une commande est déclenchée via préfixe et alias :
+   * détermine la commande consernée et l'exécute si elle a été trouvée.
+   *
+   * @param message Le message ayant déclenché la commande
+   * @returns Le résultat de l'exécution de la commande
+   */
   async handleCommand(message: Discord.Message): Promise<ICommandResult> {
     const cmd = message.content.split(" ")[0].substring(1);
     const args = message.content.substring(
@@ -103,6 +136,12 @@ export class CommandParser extends BaseService {
     });
   }
 
+  /**
+   * Instancie l'ensemble des commandes importées à partir de leurs
+   * définitions puis les enregistre.
+   *
+   * @param commands Le dictionnaire des définitions de commandes importées
+   */
   private loadCommands(commands: CommandsDictionary): void {
     Object.values(commands).forEach((cmdCtor) => {
       const cmdInst: ICommand = new cmdCtor();
@@ -110,6 +149,13 @@ export class CommandParser extends BaseService {
     });
   }
 
+  /**
+   * Enregistre une commande instanciée en la référençant dans les listes
+   * selon ses modes de déclenchement (exécution sur préfixe et alias,
+   * sur message, sur ajout ou retrait de réaction).
+   *
+   * @param cmdInst La commande instanciée
+   */
   private registerCommand(cmdInst: ICommand) {
     if (cmdInst.help && cmdInst.aliases) {
       this.helpService.addHelp({
