@@ -21,7 +21,7 @@ export class BaseService implements IService {
   }
 
   /**
-   * Méthode appelée pour opermettre au service de s'arrêter proprement.
+   * Méthode appelée pour permettre au service de s'arrêter proprement.
    *
    * @returns Une promesse résolue une fois l'arrêt terminée
    */
