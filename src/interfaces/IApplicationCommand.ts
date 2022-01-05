@@ -20,7 +20,7 @@ export interface IApplicationCommandResult {
 /** Représente une commande d'application reconnue par le bot. */
 export interface IApplicationCommand extends ChatInputApplicationCommandData {
   /**
-   * Indique sur la commande est une commande de serveur.
+   * Indique si la commande est une commande de serveur.
    * Si ce n'est pas le cas, c'est une commande globale.
    * */
   isGuildCommand: boolean;
