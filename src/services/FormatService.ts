@@ -5,6 +5,10 @@ import { BaseService } from "../base/BaseService";
 
 import { EmojiService } from "./EmojiService";
 
+/**
+ * Ensemble des icônes pouvant apparaître dans un message. Ce sont les codes
+ * qu'on retrouve dans le texte des cartes notamment.
+ */
 const ICONS: { [key: string]: string } = {
   guardian: "ClassGuardian",
   seeker: "ClassSeeker",
@@ -32,11 +36,23 @@ const ICONS: { [key: string]: string } = {
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service permettant le formatage des descriptions issues d'ArkhamDB. En
+ * effet celles-ci contiennent différents codes ou balises de formatage
+ * qu'il faut retravailler pour un affichage correct dans un message Discord.
+ */
 export class FormatService extends BaseService {
+  /** Service permettant de transcrire du HTML en Markdown */
   private turndownService = new TurndownService();
 
   @Inject private emojiService!: EmojiService;
 
+  /**
+   * Formate la description pour un affichage dans un message Discord.
+   *
+   * @param text Description contenant icônes et balises
+   * @returns Texte prêt à l'affichage dans un message Discord
+   */
   public format(text: string): string {
     const withLineBreaks = this.formatTextForLineBreaks(text);
     const withTraits = this.formatTextForTraits(withLineBreaks);
@@ -44,10 +60,23 @@ export class FormatService extends BaseService {
     return this.turndownService.turndown(withEmoji);
   }
 
+  /**
+   * Remplace les sauts de lignes classique par des sauts de lignes HTML.
+   *
+   * @param text Texte avec sauts de lignes
+   * @returns Texte avec saut de ligne HTML
+   */
   private formatTextForLineBreaks(text: string): string {
     return text.replace(/\n/g, "<br/>");
   }
 
+  /**
+   * Repère dans le texte fourni les traits de cartes entourés de doubles
+   * crochets et les remplace par des balises HTML.
+   *
+   * @param text Texte contenant des traits de cartes
+   * @returns Texte avec traits entourées de balises HTML
+   */
   private formatTextForTraits(text: string): string {
     const matches = text.match(/\[\[[^\]]+\]\]/g);
 
@@ -63,6 +92,13 @@ export class FormatService extends BaseService {
     return text;
   }
 
+  /**
+   * Repère les codes d'icônes (entre crochets) dans le texte fourni
+   * et les remplace par les Emojis correspondant.
+   *
+   * @param text Texte contenant des codes d'icônes
+   * @returns Texte avec un affichage des icônes sous forme d'Emojis
+   */
   private formatTextForEmojis(text: string): string {
     const matches = text.match(/\[[^\]]+\]/g);
     if (!matches || !matches[0]) {
