@@ -15,9 +15,9 @@ import { NewsService } from "./services/NewsService";
 import { PresenceService } from "./services/PresenceService";
 import { RulesService } from "./services/RulesService";
 
-const LOG_LABEL = "BOT";
-
 export class Bot {
+  private static LOG_LABEL = "Bot";
+
   private client?: Discord.Client;
 
   @Inject private blobGameService!: BlobGameService;
@@ -51,10 +51,10 @@ export class Bot {
       ],
     });
     const client = this.client;
-    this.logger.info(LOG_LABEL, "Connexion à Discord ...");
+    this.logger.info(Bot.LOG_LABEL, "Connexion à Discord ...");
 
     this.client.on("ready", () => {
-      this.logger.info(LOG_LABEL, "Connecté.");
+      this.logger.info(Bot.LOG_LABEL, "Connecté.");
 
       [
         this.logger,
@@ -73,13 +73,13 @@ export class Bot {
           .init(client)
           .then(() => {
             this.logger.info(
-              LOG_LABEL,
+              Bot.LOG_LABEL,
               `Service ${nameOfConstructor(service)} initialisé`
             );
           })
           .catch((err) => {
             this.logger.error(
-              LOG_LABEL,
+              Bot.LOG_LABEL,
               `Problème à l'initialisation du service
               ${nameOfConstructor(service)}`,
               { error: err }
@@ -94,14 +94,14 @@ export class Bot {
           .handleCommandInteraction(interaction)
           .then((applicationCommandResult) => {
             this.logger.info(
-              LOG_LABEL,
+              Bot.LOG_LABEL,
               `Commande d'application traitée`,
               applicationCommandResult
             );
           })
           .catch((err) =>
             this.logger.error(
-              LOG_LABEL,
+              Bot.LOG_LABEL,
               `Erreur au traitement d'une commande d'application`,
               { error: err }
             )
@@ -133,13 +133,13 @@ export class Bot {
         this.commandParser
           .handleCommand(msg)
           .then((result) =>
-            this.logger.info(LOG_LABEL, "Commande classique traitée", {
+            this.logger.info(Bot.LOG_LABEL, "Commande classique traitée", {
               result,
             })
           )
           .catch((err) =>
             this.logger.error(
-              LOG_LABEL,
+              Bot.LOG_LABEL,
               "Erreur au traitement d'une commande classique",
               {
                 error: err,
@@ -181,9 +181,9 @@ export class Bot {
     if (!this.client) {
       return Promise.resolve();
     }
-    this.logger.info(LOG_LABEL, "Déconnexion...");
+    this.logger.info(Bot.LOG_LABEL, "Déconnexion...");
     this.client.destroy();
-    this.logger.info(LOG_LABEL, "Déconnecté.");
+    this.logger.info(Bot.LOG_LABEL, "Déconnecté.");
     return Promise.resolve();
   }
 }
