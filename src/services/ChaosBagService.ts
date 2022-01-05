@@ -7,10 +7,17 @@ import { RandomService } from "./RandomService";
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service permettant de tirer un jeton au hasard dans la réserve du chaos.
+ */
 export class ChaosBagService extends BaseService {
   @Inject private randomService!: RandomService;
   @Inject private emojiService!: EmojiService;
 
+  /**
+   * Le contenu de la réserve du chaos pour La Nuit de la Zélatrice
+   * en Standard
+   */
   NIGHT_OF_THE_ZEALOT_STANDARD_BAG = [
     "p1",
     "p0",
@@ -30,6 +37,10 @@ export class ChaosBagService extends BaseService {
     "ChaosElderSign",
   ];
 
+  /**
+   * Dictionnaire avec l'affichage texte des jetons dans le cas où les
+   * Emoji des jetons ne sont pas disponibles sur le serveur.
+   */
   TOKENS: { [key: string]: string } = {
     p1: "+1",
     p0: "0",
@@ -44,6 +55,13 @@ export class ChaosBagService extends BaseService {
     ChaosElderSign: "Elder Sign",
   };
 
+  /**
+   * Titre un jeton au hasard et le renvoie sous la forme d'une chaîne de
+   * caractères qui sera soit un code d'Emoji (si disponible) soit du texte
+   * simple.
+   *
+   * @returns Un jeton au hasard sous la forme d'une chaîne de caractères
+   */
   public pullToken(): string | undefined {
     const tokenString =
       this.NIGHT_OF_THE_ZEALOT_STANDARD_BAG[
