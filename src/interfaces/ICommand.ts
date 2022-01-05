@@ -1,10 +1,16 @@
 import * as Discord from "discord.js";
 
+/**
+ * Résultat d'une commande classique.
+ */
 export interface ICommandResult {
   resultString?: string;
   result?: unknown;
 }
 
+/**
+ * Arguments (paramètres) d'une commande classique.
+ */
 export interface ICommandArgs {
   debug?: boolean;
   cmd: string;
@@ -13,29 +19,62 @@ export interface ICommandArgs {
   user: Discord.User;
 }
 
-// commands are created once, and then run multiple times as needed.
+/**
+ * Une commande classique (i.e. déclenchée par un message utilisateur
+ * commençant par le préfixe de commande). Chaque commande ne sera
+ * instanciée qu'une seule fois par le {@link CommandParser} qui se
+ * chargera ensuite de les exécuter.
+ */
 export interface ICommand {
+  /** Le texte d'aide associé à la commande */
   help: string;
+
+  /** Les différents mots permettant de déclencher la commande */
   aliases?: string[];
+
+  /** Vrai si la commande ne devrait être réservée qu'au administrateurs */
   admin?: boolean;
 
-  // run when the aliases are matched, and if the function is added to the command
+  /**
+   * Méthode appelée lorsque l'un des alias a été détecté et si cette méthode
+   * est implémentée par la commande.
+   *
+   * @param args Les arguments passés à la commande
+   */
   execute?(args: ICommandArgs): Promise<ICommandResult>;
 
-  // run when a message happens, if the function is added to the command
+  /**
+   * Méthode appelée chaque fois qu'un message est envoyé sur le serveur et
+   * si cette méthode est implémentée par la commande.
+   *
+   * @param message Le message envoyé
+   */
   onMessage?(message: Discord.Message): void;
 
-  // run when an emoji is added to a message, if the function is added to the command
+  /**
+   * Méthode appelée chaque fois qu'une réaction est ajoutée à un message et
+   * si cette méthode est implémentée par la commande.
+   *
+   * @param reaction La réaction ajoutée
+   * @param user L'utilisateur ayant ajoutée la réaction
+   */
   onEmojiAdd?(
     reaction: Discord.MessageReaction,
     user: Discord.User | Discord.PartialUser
   ): void;
 
-  // run when an emoji is removed from a message, if the function is added to the command
+  /**
+   * Méthode appelée chaque fois qu'une réaction est retirée d'un message et
+   * si cette méthode est implémentée par la commande.
+   *
+   * @param reaction La réaction retirée
+   * @param user L'utilisateur ayant ajoutée la réaction
+   */
   onEmojiRemove?(
     reaction: Discord.MessageReaction,
     user: Discord.User | Discord.PartialUser
   ): void;
 }
 
+/** Constructeur d'une commande classique */
 export type CommandConstructor<T = ICommand> = new () => T;
