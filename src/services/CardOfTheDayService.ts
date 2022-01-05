@@ -22,6 +22,9 @@ export class CardOfTheDayService extends BaseService {
   /** Liste des codes des cartes déjà envoyée */
   private cardCodesSent: string[] = [];
 
+  /** Timer permettant de gérer la routine d'envoi de carte */
+  private timer: NodeJS.Timer | undefined = undefined;
+
   @Inject private cardService!: CardService;
   @Inject private envService!: EnvService;
   @Inject private logger!: LoggerService;
@@ -43,6 +46,14 @@ export class CardOfTheDayService extends BaseService {
     this.start();
   }
 
+  public shutdown(): Promise<void> {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
+    return Promise.resolve();
+  }
+
   /**
    * Démarre la routine qui vérifie l'heure courante et envoie la carte à
    * l'heure indiquée.
@@ -53,7 +64,7 @@ export class CardOfTheDayService extends BaseService {
     }
     const cardOfTheDayHour = this.envService.cardOfTheDayHour;
 
-    setInterval(() => {
+    this.timer = setInterval(() => {
       const now = new Date();
       if (now.getHours() == cardOfTheDayHour && now.getMinutes() == 0) {
         this.sendCardOfTheDay().catch((error) =>

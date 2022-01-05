@@ -21,6 +21,9 @@ export class NewsService extends BaseService {
   /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "NewsService";
 
+  /** Timer permettant de gérant la routine de vérification des news */
+  private timer: NodeJS.Timer | undefined = undefined;
+
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
 
@@ -28,9 +31,17 @@ export class NewsService extends BaseService {
     await super.init(client);
 
     // Toutes les minutes
-    setInterval(() => {
+    this.timer = setInterval(() => {
       this.checkForLatestNews().catch((err) => console.error(err));
     }, 1000 * 60);
+  }
+
+  public shutdown(): Promise<void> {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
+    return Promise.resolve();
   }
 
   /**

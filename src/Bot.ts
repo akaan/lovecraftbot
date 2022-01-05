@@ -72,6 +72,8 @@ export class Bot {
       this.applicationCommandManager,
     ];
 
+    this.needShutdownServices = [this.cardOfTheDayService, this.newsService];
+
     this.client = new Discord.Client({
       intents: [
         Discord.Intents.FLAGS.GUILDS,
