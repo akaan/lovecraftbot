@@ -20,59 +20,11 @@ import {
 import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 
-function filterGuilds(
-  maybeGuildId: string | undefined
-): (guild: Guild) => boolean {
-  if (maybeGuildId) {
-    return (guild: Guild) => guild.id === maybeGuildId;
-  }
-  return (_guild: Guild) => true;
-}
-
 type ApplicationCommandsDictionary = {
   [key: string]: ApplicationCommandConstructor;
 };
 const AvailableApplicationCommands =
   ApplicationCommands as unknown as ApplicationCommandsDictionary;
-
-function createRolePermission(role: Role): ApplicationCommandPermissionData {
-  return {
-    id: role.id,
-    type: "ROLE",
-    permission: true,
-  };
-}
-
-function createCommandPermission(
-  command: ApplicationCommand,
-  permissions: ApplicationCommandPermissionData[]
-): GuildApplicationCommandPermissionData {
-  return {
-    id: command.id,
-    permissions,
-  };
-}
-
-async function allowCommandsForRoleName(
-  guild: Guild,
-  commandNames: string[],
-  roleName: string
-): Promise<void> {
-  const role = guild.roles.cache.find((r) => r.name === roleName);
-  if (role) {
-    // We need fetch because we just created them
-    const commands = (await guild.commands.fetch())
-      .filter((c) => commandNames.includes(c.name))
-      .map((c) => c);
-
-    if (commands.length > 0) {
-      const fullPermissions = commands.map((c) =>
-        createCommandPermission(c, [createRolePermission(role)])
-      );
-      await guild.commands.permissions.set({ fullPermissions });
-    }
-  }
-}
 
 @Singleton
 @OnlyInstantiableByContainer
@@ -234,6 +186,54 @@ export class ApplicationCommandManager extends BaseService {
         "Erreur au désenregistrement des commandes d'application",
         { error: err }
       );
+    }
+  }
+}
+
+function filterGuilds(
+  maybeGuildId: string | undefined
+): (guild: Guild) => boolean {
+  if (maybeGuildId) {
+    return (guild: Guild) => guild.id === maybeGuildId;
+  }
+  return (_guild: Guild) => true;
+}
+
+function createRolePermission(role: Role): ApplicationCommandPermissionData {
+  return {
+    id: role.id,
+    type: "ROLE",
+    permission: true,
+  };
+}
+
+function createCommandPermission(
+  command: ApplicationCommand,
+  permissions: ApplicationCommandPermissionData[]
+): GuildApplicationCommandPermissionData {
+  return {
+    id: command.id,
+    permissions,
+  };
+}
+
+async function allowCommandsForRoleName(
+  guild: Guild,
+  commandNames: string[],
+  roleName: string
+): Promise<void> {
+  const role = guild.roles.cache.find((r) => r.name === roleName);
+  if (role) {
+    // We need fetch because we just created them
+    const commands = (await guild.commands.fetch())
+      .filter((c) => commandNames.includes(c.name))
+      .map((c) => c);
+
+    if (commands.length > 0) {
+      const fullPermissions = commands.map((c) =>
+        createCommandPermission(c, [createRolePermission(role)])
+      );
+      await guild.commands.permissions.set({ fullPermissions });
     }
   }
 }
