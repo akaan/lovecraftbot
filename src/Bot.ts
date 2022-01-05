@@ -15,6 +15,9 @@ import { NewsService } from "./services/NewsService";
 import { PresenceService } from "./services/PresenceService";
 import { RulesService } from "./services/RulesService";
 
+/**
+ * Le Bot Discord en tant que tel !
+ */
 export class Bot {
   private static LOG_LABEL = "Bot";
 
@@ -36,6 +39,12 @@ export class Bot {
   @Inject private commandParser!: CommandParser;
   @Inject private applicationCommandManager!: ApplicationCommandManager;
 
+  /**
+   * Démarre le bot en initialisant la connexion à Discord, en initialisant
+   * tous les services et en installant les gestionnaires d'evénements.
+   *
+   * @returns Une promesse résolue une fois le bot démarré
+   */
   public async init(): Promise<void> {
     const DISCORD_TOKEN = this.envService.discordToken;
     if (!DISCORD_TOKEN) {
@@ -68,6 +77,9 @@ export class Bot {
     return;
   }
 
+  /**
+   * Exécuté une fois la connexion à Discord établie.
+   */
   private handleReady(): void {
     this.logger.info(Bot.LOG_LABEL, "Connecté.");
 
@@ -103,6 +115,11 @@ export class Bot {
     });
   }
 
+  /**
+   * Executé dès qu'un utilisateur démarre une interaction.
+   *
+   * @param interaction L'interaction amorcée
+   */
   private handleInteraction(interaction: Discord.Interaction): void {
     if (interaction.isCommand()) {
       this.applicationCommandManager
@@ -124,6 +141,11 @@ export class Bot {
     }
   }
 
+  /**
+   * Exécuté dès qu'un message est envoyé.
+   *
+   * @param msg Le message envoyé
+   */
   private handleMessage(msg: Discord.Message): void {
     if (
       msg.author.bot ||
@@ -164,6 +186,12 @@ export class Bot {
     }
   }
 
+  /**
+   * Executé dès qu'un utilisateur réagi à un message.
+   *
+   * @param reaction La réaction ajoutée
+   * @param user L'utilisateur ayant ajouté la réaction
+   */
   private handleAddReaction(
     reaction: Discord.MessageReaction | Discord.PartialMessageReaction,
     user: Discord.User | Discord.PartialUser
@@ -178,6 +206,12 @@ export class Bot {
     );
   }
 
+  /**
+   * Exécuté dès qu'un utilisateur supprimer une réaction d'un message.
+   *
+   * @param reaction La réaction supprimée
+   * @param user L'utilisateur ayant supprimé la réaction
+   */
   private handleRemoveReaction(
     reaction: Discord.MessageReaction | Discord.PartialMessageReaction,
     user: Discord.User | Discord.PartialUser
@@ -192,6 +226,12 @@ export class Bot {
     );
   }
 
+  /**
+   * Arrête proprement le bot en arrrêtant tous les services et en fermant la
+   * connexion à Discord.
+   *
+   * @returns Une promesse résolue une fois le bot arrêté
+   */
   public shutdown(): Promise<void> {
     if (!this.client) {
       return Promise.resolve();
