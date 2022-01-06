@@ -1,6 +1,5 @@
 import {
   CommandInteraction,
-  InteractionCollector,
   Message,
   MessageActionRow,
   MessageSelectMenu,
@@ -10,6 +9,7 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
+import { createSelectMenuCollector } from "../discordHelpers";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 
@@ -158,22 +158,7 @@ export class CardCommand implements IApplicationCommand {
       fetchReply: true,
     })) as Message;
 
-    let menuCollector: InteractionCollector<SelectMenuInteraction> | undefined =
-      undefined;
-    if (menu.createMessageComponentCollector) {
-      menuCollector = menu.createMessageComponentCollector({
-        componentType: "SELECT_MENU",
-      });
-    } else {
-      // Ici on est dans le cas d'un message hors guilde
-      const channelId = interaction.channelId;
-      const channel = await interaction.client.channels.fetch(channelId);
-      if (channel && channel.isText()) {
-        menuCollector = channel.createMessageComponentCollector({
-          componentType: "SELECT_MENU",
-        });
-      }
-    }
+    const menuCollector = await createSelectMenuCollector(menu, interaction);
 
     const onSelect = async (selectMenuInteraction: SelectMenuInteraction) => {
       const cardCodeSelected = selectMenuInteraction.values[0];
