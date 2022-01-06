@@ -420,10 +420,11 @@ export class CardService extends BaseService {
     embed.setAuthor("FAQ");
 
     const fullDescription = faqEntries.map((entry) => entry.text).join("\n\n");
-    if (fullDescription.length <= 4096) {
-      embed.setDescription(fullDescription);
+    const withIcons = this.formatService.replaceIcons(fullDescription);
+    if (withIcons.length <= 4096) {
+      embed.setDescription(withIcons);
     } else {
-      embed.setDescription(fullDescription.slice(0, 4093) + "...");
+      embed.setDescription(withIcons.slice(0, 4093) + "...");
       embed.setFooter(
         "Entrée de FAQ tronquée, suivre le lien pour la FAQ complète."
       );

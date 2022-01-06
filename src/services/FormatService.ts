@@ -61,6 +61,29 @@ export class FormatService extends BaseService {
   }
 
   /**
+   * Remplace les icônes présentes de le texte sous forme de balises HTML
+   * `span` par des Emojis. Utile pour les entrées de FAQ.
+   *
+   * @param text Texte contenant des icônes au format HTML
+   * @returns Texte avec les icônes remplacées par des Emojis
+   */
+  public replaceIcons(text: string): string {
+    return text.replace(
+      /<span class="icon-([^"]+)"><\/span>/g,
+      (_html: string, arkhamdbCode: string) => {
+        const frenchCode = ICONS[arkhamdbCode];
+        if (frenchCode) {
+          const maybeEmoji = this.emojiService.getEmoji(frenchCode);
+          if (maybeEmoji) {
+            return maybeEmoji;
+          }
+        }
+        return `[${arkhamdbCode}]`;
+      }
+    );
+  }
+
+  /**
    * Remplace les sauts de lignes classique par des sauts de lignes HTML.
    *
    * @param text Texte avec sauts de lignes
