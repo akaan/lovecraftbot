@@ -417,6 +417,31 @@ export class CardService extends BaseService {
   }
 
   /**
+   * Télécharge (annule et remplace) les derniers packs de cartes depuis
+   * ArkhamDB.
+   *
+   * @returns Une promesse résolue une fois l'opération terminée
+   */
+  public async downloadLatestPacks(): Promise<void> {
+    try {
+      const response = await axios.get<unknown[]>(
+        "https://fr.arkhamdb.com/api/public/packs/"
+      );
+      await this.resources.saveResource(
+        "packs.json",
+        JSON.stringify(response.data)
+      );
+      await this.loadPacks();
+    } catch (error) {
+      this.logger.error(
+        CardService.LOG_LABEL,
+        "Erreur au téléchargement des derbiers packs",
+        { error }
+      );
+    }
+  }
+
+  /**
    * Télécharge (annule et remplace) la dernière version des listes Taboo
    * depuis ArkahmDB.
    *
@@ -545,6 +570,11 @@ export class CardService extends BaseService {
    * @returns Une promesse résolue une fois le chargement terminé
    */
   private async loadPacks(): Promise<void> {
+    const dataAvailable = await this.resources.resourceExists("packs.json");
+    if (!dataAvailable) {
+      await this.downloadLatestPacks();
+    }
+
     const rawData = await this.resources.readResource("packs.json");
     if (rawData) {
       try {

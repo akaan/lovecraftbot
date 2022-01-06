@@ -14,14 +14,18 @@ export class RefreshCommand implements IApplicationCommand {
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
-    await this.cardService.downloadLatestCardDb();
+    await commandInteraction.deferReply();
 
-    await commandInteraction.reply(
-      "C'est bon, les cartes ont été rechargées !"
+    await this.cardService.downloadLatestCardDb();
+    await this.cardService.downloadLatestPacks();
+    await this.cardService.downloadLatestTaboos();
+
+    await commandInteraction.editReply(
+      "C'est bon, les cartes, packs et taboos ont été rechargés !"
     );
     return {
       cmd: "RefreshCommand",
-      result: "Cartes rechargées depuis ArkhamDB",
+      result: "Cartes, packs et taboo rechargés depuis ArkhamDB",
     };
   }
 }

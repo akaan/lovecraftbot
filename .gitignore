@@ -3,7 +3,6 @@
 node_modules/
 data/
 !data/factions.json
-!data/packs.json
 !data/rules_fr.json
 !data/types.json
 temp/*
