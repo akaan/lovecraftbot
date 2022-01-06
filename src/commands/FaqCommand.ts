@@ -57,16 +57,13 @@ export class FaqCommand implements IApplicationCommand {
               content: faqEntries[0].text,
               ephemeral,
             });
-            return { cmd: "FaqCommand", result: "FAQ envoyée" };
+            return this.commandResult("FAQ envoyée");
           } else {
             await commandInteraction.reply({
               content: `Aucune entrée de FAQ pour la carte ${theCard.name}`,
               ephemeral: true,
             });
-            return {
-              cmd: "FaqCommand",
-              result: "Aucune FAQ pour cette carte",
-            };
+            return this.commandResult("Aucune FAQ pour cette carte");
           }
         },
         ifMany: async (_allCards) => {
@@ -74,17 +71,16 @@ export class FaqCommand implements IApplicationCommand {
             content: "Je ne sais pas encore faire cela",
             ephemeral: true,
           });
-          return { cmd: "FaqCommand", result: "Non supporté" };
+          return this.commandResult("Non supporté");
         },
         ifEmpty: async () => {
           await commandInteraction.reply({
             content: "Aucune carte ne correspond à cette recherche",
             ephemeral: true,
           });
-          return {
-            cmd: "FaqCommand",
-            result: `Aucune carte ne correspond à la recherche ${search}`,
-          };
+          return this.commandResult(
+            `Aucune carte ne correspond à la recherche ${search}`
+          );
         },
       });
     } else {
@@ -92,7 +88,14 @@ export class FaqCommand implements IApplicationCommand {
         content: "Désolé, je n'ai pas compris la demande",
         ephemeral: true,
       });
-      return { cmd: "FaqCommand", result: "Texte recherché non fourni" };
+      return this.commandResult("Texte recherché non fourni");
     }
+  }
+
+  private commandResult(
+    result: string,
+    meta?: Omit<IApplicationCommandResult, "cmd" | "result">
+  ) {
+    return { cmd: "FaqCommand", result, ...meta };
   }
 }
