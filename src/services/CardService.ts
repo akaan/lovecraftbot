@@ -86,6 +86,14 @@ interface Taboo {
 }
 
 /**
+ * Type représentant une entrée de FAQ pour une carte.
+ */
+interface CardFAQEntry {
+  /** Le texte de la FAQ */
+  text: string;
+}
+
+/**
  * Type générique pour tout ce qui a un code et un nom
  */
 interface CodeAndName {
@@ -383,8 +391,18 @@ export class CardService extends BaseService {
       embed.addField("Taboo", tabooText.join("\n"));
     }
 
+    const cardFAQs = await this.getCardFAQ(card);
+
+    const footerParts = [];
     if (!embedOptions.back && this.hasBack(card)) {
-      embed.setFooter("Cette carte a un dos.");
+      footerParts.push("Cette carte a un dos.");
+    }
+    if (cardFAQs.length > 0) {
+      footerParts.push("Cette carte a une entrée dans la FAQ.");
+    }
+
+    if (footerParts.length > 0) {
+      embed.setFooter(footerParts.join(" "));
     }
 
     return embed;
@@ -540,6 +558,26 @@ export class CardService extends BaseService {
       )
       .then((response) => response.config.url)
       .catch(() => undefined as string | undefined);
+  }
+
+  /**
+   * Récupère la liste des entrées de FAQ pour la carte précisée. La liste retournée est
+   * vide s'il n'y a pas d'entrées de FAQ pour cette carte.
+   *
+   * @param card La carte concernée
+   * @returns Une liste d'entrées de FAQ
+   */
+  private async getCardFAQ(card: ArkhamDBCard): Promise<CardFAQEntry[]> {
+    // TODO Mettre la réponse en cache pour limiter les appels à l'API
+    //      et vide le cache à la commande refresh.
+    try {
+      const response = await axios.get<CardFAQEntry[]>(
+        `https://fr.arkhamdb.com/api/public/faq/${card.code}`
+      );
+      return response.data;
+    } catch (_error) {
+      return [];
+    }
   }
 
   /**
