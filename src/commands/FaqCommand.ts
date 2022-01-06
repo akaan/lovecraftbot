@@ -5,6 +5,7 @@ import { Inject } from "typescript-ioc";
 
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardService, SearchType } from "../services/CardService";
+import { caseOfLength } from "../utils";
 
 /**
  * Commande permettant d'afficher les entrées de FAQ correspondant à une carte.
@@ -48,9 +49,8 @@ export class FaqCommand implements IApplicationCommand {
         searchType,
       });
 
-      if (foundCards.length > 0) {
-        if (foundCards.length === 1) {
-          const theCard = foundCards[0];
+      return caseOfLength(foundCards, {
+        ifOne: async (theCard) => {
           const faqEntries = await this.cardService.getCardFAQ(theCard);
           if (faqEntries.length > 0) {
             await commandInteraction.reply({
@@ -63,28 +63,33 @@ export class FaqCommand implements IApplicationCommand {
               content: `Aucune entrée de FAQ pour la carte ${theCard.name}`,
               ephemeral: true,
             });
-            return { cmd: "FaqCommand", result: "Aucune FAQ pour cette carte" };
+            return {
+              cmd: "FaqCommand",
+              result: "Aucune FAQ pour cette carte",
+            };
           }
-        } else {
+        },
+        ifMany: async (_allCards) => {
           await commandInteraction.reply({
             content: "Je ne sais pas encore faire cela",
             ephemeral: true,
           });
           return { cmd: "FaqCommand", result: "Non supporté" };
-        }
-      } else {
-        await commandInteraction.reply({
-          content: "Aucune carte ne correspond à cette recherche",
-          ephemeral: true,
-        });
-        return {
-          cmd: "FaqCommand",
-          result: `Aucune carte ne correspond à la recherche ${search}`,
-        };
-      }
+        },
+        ifEmpty: async () => {
+          await commandInteraction.reply({
+            content: "Aucune carte ne correspond à cette recherche",
+            ephemeral: true,
+          });
+          return {
+            cmd: "FaqCommand",
+            result: `Aucune carte ne correspond à la recherche ${search}`,
+          };
+        },
+      });
     } else {
       await commandInteraction.reply({
-        content: "Désolé, j'ai mal compris la demande",
+        content: "Désolé, je n'ai pas compris la demande",
         ephemeral: true,
       });
       return { cmd: "FaqCommand", result: "Texte recherché non fourni" };
