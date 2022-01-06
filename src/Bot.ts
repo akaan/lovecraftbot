@@ -2,7 +2,6 @@ import * as Discord from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import { BaseService } from "./base/BaseService";
-import { nameOfConstructor } from "./ClassUtils";
 import { ApplicationCommandManager } from "./services/ApplicationCommandManager";
 import { BlobGameService } from "./services/BlobGameService";
 import { CardOfTheDayService } from "./services/CardOfTheDayService";
@@ -15,6 +14,7 @@ import { MassMultiplayerEventService } from "./services/MassMultiplayerEventServ
 import { NewsService } from "./services/NewsService";
 import { PresenceService } from "./services/PresenceService";
 import { RulesService } from "./services/RulesService";
+import { nameOfConstructor } from "./utils";
 
 /**
  * Le Bot Discord en tant que tel !
