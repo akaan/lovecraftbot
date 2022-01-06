@@ -570,7 +570,7 @@ export class CardService extends BaseService {
    * @param card La carte concernée
    * @returns Une liste d'entrées de FAQ
    */
-  private async getCardFAQ(card: ArkhamDBCard): Promise<CardFAQEntry[]> {
+  public async getCardFAQ(card: ArkhamDBCard): Promise<CardFAQEntry[]> {
     // TODO Mettre la réponse en cache pour limiter les appels à l'API
     //      et vide le cache à la commande refresh.
     try {
