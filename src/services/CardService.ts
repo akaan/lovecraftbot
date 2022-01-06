@@ -181,6 +181,9 @@ export class CardService extends BaseService {
   /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "CardService";
 
+  /** Expression régulière permettant de détecter un code de carte */
+  public static CARD_CODE_REGEX = /(\d{5})(b?)$/;
+
   /** Liste des cartes */
   private frenchCards: ArkhamDBCard[] = [];
   /** Liste des Taboos */

@@ -56,8 +56,6 @@ export class CardCommand implements IApplicationCommand {
     },
   ];
 
-  private CARD_CODE_REGEX = /(\d{5})(b?)$/;
-
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
@@ -71,7 +69,7 @@ export class CardCommand implements IApplicationCommand {
       const searchOptions: SearchOptions = {
         extended,
         back,
-        searchType: this.CARD_CODE_REGEX.test(search)
+        searchType: CardService.CARD_CODE_REGEX.test(search)
           ? SearchType.BY_CODE
           : SearchType.BY_TITLE,
         searchString: search,
