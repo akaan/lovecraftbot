@@ -86,7 +86,7 @@ export class FaqCommand implements IApplicationCommand {
     const faqEntries = await this.cardService.getCardFAQ(card);
     if (faqEntries.length > 0) {
       await interaction.reply({
-        content: faqEntries[0].text,
+        embeds: [this.cardService.createFaqEmbed(card, faqEntries)],
         ephemeral,
       });
       return this.commandResult("FAQ envoyée");

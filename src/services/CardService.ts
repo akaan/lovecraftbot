@@ -296,6 +296,7 @@ export class CardService extends BaseService {
     embedOptions: EmbedOptions
   ): Promise<Discord.MessageEmbed> {
     const embed = new Discord.MessageEmbed();
+    this.decorateEmbedForCard(embed, card);
 
     const cardFaction = findOrDefaultToCode(this.factions, card.faction_code);
     const cardFaction2 = card.faction2_code
@@ -312,10 +313,6 @@ export class CardService extends BaseService {
     const cardType = findOrDefaultToCode(this.types, card.type_code);
 
     const isMulticlass = !!card.faction2_code;
-
-    embed.setTitle(card.name);
-    embed.setURL(`https://fr.arkhamdb.com/card/${card.code}`);
-
     if (!["neutral", "mythos"].includes(card.faction_code) && !isMulticlass) {
       embed.setAuthor(
         `${cardType} ${factions}`,
@@ -324,10 +321,6 @@ export class CardService extends BaseService {
     } else {
       embed.setAuthor(`${cardType} ${factions}`);
     }
-
-    embed.setColor(
-      isMulticlass ? CLASS_COLORS.multiclass : CLASS_COLORS[card.faction_code]
-    );
 
     const maybeCardImageLink = await this.getCardImageLink(
       card,
@@ -409,6 +402,54 @@ export class CardService extends BaseService {
     }
 
     return embed;
+  }
+
+  /**
+   * Créé un encart Discord pour l'affiche des entrées de FAQ d'une carte.
+   *
+   * @param card La carte concernée
+   * @param faqEntries Les entrées de FAQ
+   * @returns Un encart présentant les entrées de FAQ pour la carte
+   */
+  public createFaqEmbed(
+    card: ArkhamDBCard,
+    faqEntries: CardFAQEntry[]
+  ): Discord.MessageEmbed {
+    const embed = new Discord.MessageEmbed();
+    this.decorateEmbedForCard(embed, card);
+    embed.setAuthor("FAQ");
+
+    const fullDescription = faqEntries.map((entry) => entry.text).join("\n\n");
+    if (fullDescription.length <= 4096) {
+      embed.setDescription(fullDescription);
+    } else {
+      embed.setDescription(fullDescription.slice(0, 4093) + "...");
+      embed.setFooter(
+        "Entrée de FAQ tronquée, suivre le lien pour la FAQ complète."
+      );
+    }
+
+    return embed;
+  }
+
+  /**
+   * Personnalise un encart concernant une carte en positionnant le titre,
+   * l'URL et la couleur.
+   *
+   * @param embed L'encart à personnaliser
+   * @param card La carte concerné
+   */
+  private decorateEmbedForCard(
+    embed: Discord.MessageEmbed,
+    card: ArkhamDBCard
+  ): void {
+    embed.setTitle(card.name);
+    embed.setURL(`https://fr.arkhamdb.com/card/${card.code}`);
+
+    const isMulticlass = !!card.faction2_code;
+    embed.setColor(
+      isMulticlass ? CLASS_COLORS.multiclass : CLASS_COLORS[card.faction_code]
+    );
   }
 
   /**
