@@ -1,4 +1,4 @@
-import { CommandInteraction } from "discord.js";
+import { CommandInteraction, SelectMenuInteraction } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
@@ -6,6 +6,8 @@ import { Inject } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 import { caseOfLength } from "../utils";
+
+import { selectCard } from "./utils/selectCard";
 
 /**
  * Commande permettant d'afficher les entrées de FAQ correspondant à une carte.
@@ -36,6 +38,8 @@ export class FaqCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
     const search = commandInteraction.options.getString("recherche");
+    const ephemeral =
+      commandInteraction.options.getBoolean("ephemere") || false;
 
     if (search) {
       const searchType = CardService.CARD_CODE_REGEX.test(search)
@@ -48,9 +52,14 @@ export class FaqCommand implements IApplicationCommand {
       });
 
       return caseOfLength(foundCards, {
-        ifOne: (theCard) => this.sendFaqEntries(commandInteraction, theCard),
+        ifOne: (theCard) =>
+          this.sendFaqEntries(commandInteraction, theCard, ephemeral),
         ifMany: (allCards) =>
-          this.sendCardChoicesThenFaqEntries(commandInteraction, allCards),
+          this.sendCardChoicesThenFaqEntries(
+            commandInteraction,
+            allCards,
+            ephemeral
+          ),
         ifEmpty: () => this.noCardMatched(commandInteraction),
       });
     } else {
@@ -70,12 +79,12 @@ export class FaqCommand implements IApplicationCommand {
    * @returns Le résultat de l'exécution de la commande
    */
   private async sendFaqEntries(
-    interaction: CommandInteraction,
-    card: ArkhamDBCard
+    interaction: CommandInteraction | SelectMenuInteraction,
+    card: ArkhamDBCard,
+    ephemeral: boolean
   ): Promise<IApplicationCommandResult> {
     const faqEntries = await this.cardService.getCardFAQ(card);
     if (faqEntries.length > 0) {
-      const ephemeral = interaction.options.getBoolean("ephemere") || false;
       await interaction.reply({
         content: faqEntries[0].text,
         ephemeral,
@@ -99,13 +108,21 @@ export class FaqCommand implements IApplicationCommand {
    */
   private async sendCardChoicesThenFaqEntries(
     interaction: CommandInteraction,
-    _cards: ArkhamDBCard[]
+    cards: ArkhamDBCard[],
+    ephemeral: boolean
   ): Promise<IApplicationCommandResult> {
-    await interaction.reply({
-      content: "Je ne sais pas encore faire cela",
-      ephemeral: true,
-    });
-    return this.commandResult("Non supporté");
+    return selectCard(
+      "FaqCommand",
+      interaction,
+      cards,
+      async (selectMenuInteraction, selectedCard) => {
+        await this.sendFaqEntries(
+          selectMenuInteraction,
+          selectedCard,
+          ephemeral
+        );
+      }
+    );
   }
 
   /**
