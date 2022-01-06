@@ -1,17 +1,12 @@
-import {
-  CommandInteraction,
-  Message,
-  MessageActionRow,
-  MessageSelectMenu,
-  SelectMenuInteraction,
-} from "discord.js";
+import { CommandInteraction, SelectMenuInteraction } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { createSelectMenuCollector } from "../discordHelpers";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
+
+import { selectCard } from "./utils/selectCard";
 
 interface SearchOptions {
   extended: boolean;
@@ -131,62 +126,13 @@ export class CardCommand implements IApplicationCommand {
     cards: ArkhamDBCard[],
     options: SearchOptions
   ): Promise<IApplicationCommandResult> {
-    const cardChoices = cards
-      .map((card) => ({
-        label: `${card.name}${card.xp ? ` (${card.xp})` : ""}${
-          card.faction_code === "mythos" ? " (Mythe)" : ""
-        }`,
-        value: card.code,
-      }))
-      .slice(0, 25);
-
-    const menuComponent = new MessageActionRow().addComponents([
-      new MessageSelectMenu()
-        .setCustomId("cardCode")
-        .setPlaceholder("Choisissez une carte à afficher")
-        .addOptions(cardChoices),
-    ]);
-
-    const menu = (await interaction.reply({
-      content: `${cards.length} cartes correspondent à la recherche.${
-        cards.length > 25
-          ? " Je vous proposent seulement les 25 premières, essayez d'affiner votre recherche."
-          : ""
-      }`,
-      components: [menuComponent],
-      ephemeral: true,
-      fetchReply: true,
-    })) as Message;
-
-    const menuCollector = await createSelectMenuCollector(menu, interaction);
-
-    const onSelect = async (selectMenuInteraction: SelectMenuInteraction) => {
-      const cardCodeSelected = selectMenuInteraction.values[0];
-      const cardToSend = cards.find((c) => c.code === cardCodeSelected);
-      if (cardToSend) {
-        await this.sendCard(selectMenuInteraction, cardToSend, options);
-      } else {
-        await selectMenuInteraction.reply(`Oups, il y a eu un problème`);
+    return selectCard(
+      "CardCommand",
+      interaction,
+      cards,
+      async (selectMenuInteraction, selectedCard) => {
+        await this.sendCard(selectMenuInteraction, selectedCard, options);
       }
-      if (menuCollector) menuCollector.stop();
-    };
-
-    if (menuCollector) {
-      menuCollector.on("collect", onSelect);
-      return {
-        cmd: "CardCommand",
-        result: `Menu de sélection de carte envoyé`,
-      };
-    } else {
-      await interaction.editReply({
-        content:
-          "Oups, je ne sais pas te proposer un choix de carte dans ce canal.",
-        components: [],
-      });
-      return {
-        cmd: "CardCommand",
-        result: `Impossible d'envoyer un menu de sélection de carte`,
-      };
-    }
+    );
   }
 }
