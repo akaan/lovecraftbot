@@ -29,6 +29,7 @@ export interface IApplicationCommand extends ChatInputApplicationCommandData {
    * Exécute la commande d'application.
    *
    * @param interaction L'interaction à l'origine de l'exécution de cette commande
+   * @returns Le résultat de l'exécution de la commande
    */
   execute(interaction: CommandInteraction): Promise<IApplicationCommandResult>;
 }
