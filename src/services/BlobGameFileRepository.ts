@@ -7,23 +7,53 @@ import { IBlobGameRepository } from "../domain/IBlobGameRepository";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
+/**
+ * Représentation d'une partie du Dévoreur sauvegardée sur fichier. Cette
+ * structure ne contient que des types primitifs afin de pouvoir être
+ * sauvegardée et chargée en JSON.
+ */
 interface BlobGameSaved {
+  /** Identifiant de la partie */
   id: number;
+
+  /** Date de création de la partie */
   dateCreated: string;
+
+  /** Daye de fin de la partie */
   dateEnded?: string;
+
+  /** Nombre de joueurs */
   numberOfPlayers: number;
+
+  /** Nombre de dégâts infligés au Dévoreur */
   numberOfDamageDealtToBlob: number;
+
+  /** Nombre d'indices placés sur l'acte 1 */
   numberOfCluesOnAct1: number;
+
+  /** Nombre de contre-mesures */
   numberOfCounterMeasures: number;
+
+  /** Histoire sélectionnée */
   story?: string;
 }
 
+/**
+ * Implémentation avec sauvegarde sur fichier de l'entrepôt des parties du
+ * Dévoreur
+ */
 export class BlobGameFileRepository implements IBlobGameRepository {
+  /** Etiquette utilisée pour les logs de cet entrepôt */
   private static LOG_LABEL = "BlobGameFileRepository";
 
   @Inject private logger!: LoggerService;
   @Inject private resourcesService!: ResourcesService;
 
+  /**
+   * Un entrepôt de parties du Dévoreur est propre à un serveur.
+   *
+   * @param guild Le serveur sur lequel est instancié cet entrepôt.
+   */
   constructor(private guild: Guild) {}
 
   public async get(id: number): Promise<BlobGame | undefined> {
@@ -142,6 +172,13 @@ export class BlobGameFileRepository implements IBlobGameRepository {
     return [];
   }
 
+  /**
+   * Vérifie que l'ensemble de parties sauvegardées est valide en contrôlant
+   * le type de chacun de ses attributs par rapport à l'attendu.
+   *
+   * @param parsed Un ensemble de parties sauvegardées à vérifier
+   * @returns Vrai si l'ensemble est valide
+   */
   private static isValid(parsed: BlobGameSaved[]): boolean {
     if (!Array.isArray(parsed)) {
       return false;
