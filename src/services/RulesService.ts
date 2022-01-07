@@ -7,18 +7,40 @@ import { FormatService } from "./FormatService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
+/**
+ * Type représentant une ligne dans les règles.
+ */
 interface TableRow {
   row: Array<{ color?: string; text?: string }>;
 }
 
+/**
+ * Type représentant un point de règle.
+ */
 export interface Rule {
+  /** Identifiant du point de règle */
   id: string;
+
+  /** Titre du point de règle */
   title: string;
+
+  /** Texte du point de règle */
   text?: string;
+
+  /** Tableau de présentation de ce poitn de règle */
   table: TableRow[];
+
+  /** Sous-règles associées à ce point de règle */
   rules?: Rule[];
 }
 
+/**
+ * Met à plat un ensemble de règles en remontant au premier niveau de hiérarchie
+ * les sous-règles.
+ *
+ * @param rules L'ensemble des points de règles
+ * @returns Ensemble de règles mis à plat
+ */
 function flattenRules(rules: Rule[]): Rule[] {
   return rules.reduce((flat, rule) => {
     if (rule.rules) {
@@ -28,6 +50,14 @@ function flattenRules(rules: Rule[]): Rule[] {
   }, [] as Rule[]);
 }
 
+/**
+ * Vérifie si la règle indiqué correspond à la recherche fourni sur la base de
+ * son titre et de son texte.
+ *
+ * @param rule Le point de règle
+ * @param searchString La recherche effectuée
+ * @returns Vrai si le point de règles correspond à la recherche
+ */
 function matchRule(rule: Rule, searchString: string): boolean {
   return (
     rule.title.toLowerCase().includes(searchString.toLowerCase()) ||
@@ -38,9 +68,16 @@ function matchRule(rule: Rule, searchString: string): boolean {
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service permettant la recherche et l'affichage de points de règles du jeu.
+ * Les données proviennent du dépôt de code d'ArkhamCards.
+ * @see https://github.com/zzorba/ArkhamCards/blob/master/assets/generated/rules_fr.json
+ */
 export class RulesService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "RulesService";
 
+  /** L'ensemble des points de règle */
   private rules: Rule[] = [];
 
   @Inject private formatService!: FormatService;
@@ -52,6 +89,14 @@ export class RulesService extends BaseService {
     await this.loadRules();
   }
 
+  /**
+   * Recherche un point de règle dont le titre correspond au texte fourni s'il
+   * n'y a bien qu'une seule règle avec ce titre.
+   *
+   * @param search Le texte recherché dans le titre
+   * @returns Le point de règle correspondant au texte fourni s'il n'y en a bien
+   *          qu'une seule
+   */
   public getRule(search: string): Rule | undefined {
     const foundRules = this.rules.filter((rule) =>
       rule.title.toLowerCase().includes(search.toLowerCase())
@@ -61,10 +106,25 @@ export class RulesService extends BaseService {
     }
   }
 
+  /**
+   * Récupère l'ensemble des points de règles comprenant le texte recherché
+   * dans leur titre ou leur corps.
+   *
+   * @param search Le texte recherché dans le titre ou les corps des règles
+   * @returns L'ensemble des règles correspondant à la recherche
+   */
   public getRules(search: string): Rule[] {
     return this.rules.filter((rule) => matchRule(rule, search));
   }
 
+  /**
+   * Créé les encarts Discord permettant d'afficher un point de règle et les
+   * sous-règles associées.
+   *
+   * @param rule La règle à afficher
+   * @returns Un ensemble d'encart Discord pour l'affichage de la règle et des
+   *          sous-règles
+   */
   public createEmbeds(rule: Rule): Discord.MessageEmbed[] {
     const mainEmbed = new Discord.MessageEmbed();
     const subEmbeds: Discord.MessageEmbed[] = [];
@@ -104,6 +164,13 @@ export class RulesService extends BaseService {
     return [mainEmbed, ...subEmbeds];
   }
 
+  /**
+   * Supprime les liens au format markdown dans le texte fourni et les remplace
+   * par leur titre uniquement.
+   *
+   * @param text Le texte duquel supprimer les liens
+   * @returns Un texte sans lien
+   */
   private deleteLinks(text: string): string {
     const matches = text.match(/\[([^[]*)]\([^)]*\)/g);
 
@@ -118,6 +185,11 @@ export class RulesService extends BaseService {
     return text;
   }
 
+  /**
+   * Charge les points de règle stocké sur fichier.
+   *
+   * @returns Une promesse résolue une fois le chargement terminé
+   */
   private async loadRules() {
     const rawData = await this.resources.readResource("rules_fr.json");
     if (rawData) {
