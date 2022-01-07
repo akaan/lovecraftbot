@@ -6,6 +6,9 @@ import { BaseService } from "../base/BaseService";
 import { EnvService } from "./EnvService";
 import { RandomService } from "./RandomService";
 
+/**
+ * La liste des jeux de la gamme Horreur à Arkham
+ */
 const GAMES = [
   "Horreur à Arkham JCE",
   "Les Demeures de l'Épouvante",
@@ -18,6 +21,9 @@ const GAMES = [
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service gérant le message de présence du bot.
+ */
 export class PresenceService extends BaseService {
   @Inject private envService!: EnvService;
   @Inject private randomService!: RandomService;
@@ -34,12 +40,20 @@ export class PresenceService extends BaseService {
     }, 1000 * 60 * 60);
   }
 
+  /**
+   * Positionne un message de présence aléatoire.
+   */
   public setRandomPresence(): void {
     const activity =
       GAMES[this.randomService.getRandomInt(0, GAMES.length - 1)];
     this.setPresence(activity);
   }
 
+  /**
+   * Position le message de présence indiqué.
+   *
+   * @param presence Le message de présence
+   */
   public setPresence(presence: string): void {
     if (!this.client || !this.client.user) {
       return;
