@@ -15,15 +15,31 @@ const mkdir = util.promisify(fs.mkdir);
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service de gestion des ressources sur le système de fichiers.
+ */
 export class ResourcesService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "ResourcesService";
 
   @Inject private logger!: LoggerService;
 
+  /**
+   * Indique si la ressource précisée existe au global.
+   *
+   * @param filename Le nom du fichier
+   * @returns Une promesse résolue avec vrai si la ressource existe
+   */
   public resourceExists(filename: string): Promise<boolean> {
     return exists(`./data/${filename}`);
   }
 
+  /**
+   * Lit un fichier global.
+   *
+   * @param filename Le nom du fichier
+   * @returns Une promesse résolue avec le contenu du fichier si disponible
+   */
   public readResource(filename: string): Promise<string | undefined> {
     return readFile(`./data/${filename}`, "utf-8").catch((error) => {
       this.logger.error(
@@ -36,6 +52,14 @@ export class ResourcesService extends BaseService {
     });
   }
 
+  /**
+   * Ecrit le contenu fourni (annule et remplace) dans le fichier global
+   * précisé.
+   *
+   * @param filename Le nom du fichier
+   * @param content Le contenu à inscrire dans le fichier
+   * @returns Une promesse résolue une fois l'écriture terminée
+   */
   public saveResource(filename: string, content: string): Promise<void> {
     return writeFile(`./data/${filename}`, content).catch((error) => {
       this.logger.error(
@@ -47,12 +71,26 @@ export class ResourcesService extends BaseService {
     });
   }
 
+  /**
+   * Indique si le fichier indiqué existe pour le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param filename Le nom du fichier
+   * @returns Une promesse résolue avec vai si le fichier existe
+   */
   public guildResourceExists(guild: Guild, filename: string): Promise<boolean> {
     return ResourcesService.createGuildFolder(guild).then(() => {
       return exists(`./data/guild-${guild.id}/${filename}`);
     });
   }
 
+  /**
+   * Lit le fichier indiqué pour le serveur indique.
+   *
+   * @param guild Le serveur concerné
+   * @param filename Le nom du fichier
+   * @returns Une promesse résolue avec le contenu du fichier si disponible
+   */
   public readGuildResource(
     guild: Guild,
     filename: string
@@ -72,6 +110,15 @@ export class ResourcesService extends BaseService {
     });
   }
 
+  /**
+   * Ecrit le contenu fourni (annule et remplace) dans le fichier précisé et
+   * pour le serveur précisé.
+   *
+   * @param guild Le serveur concerné
+   * @param filename Le nom du fichier
+   * @param content Le contenu à écrire dans le fichier
+   * @returns Une promesse résolue une fois l'écriture terminée
+   */
   public saveGuildResource(
     guild: Guild,
     filename: string,
@@ -91,6 +138,13 @@ export class ResourcesService extends BaseService {
     });
   }
 
+  /**
+   * Créé, si nécessaire, le dossier qui contiendra les fichiers d'un serveur
+   * donné.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois le dossier créé
+   */
   private static async createGuildFolder(guild: Guild): Promise<void> {
     try {
       return await mkdir(`./data/guild-${guild.id}`);
