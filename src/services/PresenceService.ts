@@ -28,6 +28,9 @@ export class PresenceService extends BaseService {
   @Inject private envService!: EnvService;
   @Inject private randomService!: RandomService;
 
+  /** Timer permettant de gérer la routine d'envoi de carte */
+  private timer: NodeJS.Timer | undefined = undefined;
+
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
 
@@ -35,9 +38,14 @@ export class PresenceService extends BaseService {
       return;
     }
     this.setRandomPresence();
-    setInterval(() => {
+    this.timer = setInterval(() => {
       this.setRandomPresence();
     }, 1000 * 60 * 60);
+  }
+
+  public shutdown(): Promise<void> {
+    if (this.timer) clearInterval(this.timer);
+    return Promise.resolve();
   }
 
   /**

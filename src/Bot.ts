@@ -72,7 +72,11 @@ export class Bot {
       this.applicationCommandManager,
     ];
 
-    this.needShutdownServices = [this.cardOfTheDayService, this.newsService];
+    this.needShutdownServices = [
+      this.cardOfTheDayService,
+      this.newsService,
+      this.presenceService,
+    ];
 
     this.client = new Discord.Client({
       intents: [
