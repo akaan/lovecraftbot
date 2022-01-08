@@ -8,14 +8,27 @@ import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 
 import { selectCard } from "./utils/selectCard";
 
+/** Options de recherche et d'affichage des cartes */
 interface SearchOptions {
+  /** Pour un affichage complet */
   extended: boolean;
+
+  /** Pour affichage du dos de la carte */
   back: boolean;
+
+  /** Type de recherche */
   searchType: SearchType;
+
+  /** Recherche */
   searchString: string;
+
+  /** Pour un affichage éphémère */
   ephemeral: boolean;
 }
 
+/**
+ * Commande pour l'affichage des cartes
+ */
 export class CardCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
@@ -105,6 +118,14 @@ export class CardCommand implements IApplicationCommand {
     }
   }
 
+  /**
+   * Envoie la carte trouvée.
+   *
+   * @param interaction L'interaction déclenchée par la commande
+   * @param card La carte à afficher
+   * @param options Les options d'affichage
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
   private async sendCard(
     interaction: CommandInteraction | SelectMenuInteraction,
     card: ArkhamDBCard,
@@ -121,6 +142,15 @@ export class CardCommand implements IApplicationCommand {
     return { cmd: "CardCommand", result: `Carte envoyée` };
   }
 
+  /**
+   * Envoie à l'utilisateur un menu de sélection de carte parmi plusieurs cartes
+   * ramenées par la recherche effectuée.
+   *
+   * @param interaction L'interaction déclenchée par la commande
+   * @param cards Les cartes trouvées parmi lesquelles choisir
+   * @param options Les options d'affichage
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
   private async sendCardChoices(
     interaction: CommandInteraction,
     cards: ArkhamDBCard[],
