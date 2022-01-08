@@ -18,58 +18,134 @@ import { MassMultiplayerEventService } from "./MassMultiplayerEventService";
 import { RandomService } from "./RandomService";
 import { ResourcesService } from "./ResourcesService";
 
+/**
+ * Statistiques d'un groupe de joueurs lors d'une partie du Dévoreur
+ */
 interface BlobGameStats {
+  /** Dégâts infligés */
   damageDealt: number;
+
+  /** Indices ajoutés */
   numberOfCluesAdded: number;
+
+  /** Contre-mesures dépensées */
   numberOfCounterMeasuresSpent: number;
+
+  /** Contre-mesures ajoutées */
   numberOfCounterMeasuresAdded: number;
 }
 
+/** Dictionnaire de statistiques indexées par l'identifiant du groupe */
 type BlobGameStatsByGroup = { [groupId: string]: BlobGameStats };
 
+/**
+ * Structure de sauvegarde de l'état du service BlobGameService pour un
+ * serveur donné
+ */
 interface BlobGameServiceState {
+  /** Statistiques par identifiants de groupe */
   stats?: BlobGameStatsByGroup;
+
+  /** Temps restant en minutes */
   timer?: number;
+
+  /** Identifiants des canaux et messages indiquant l'état de la partie */
   gameStateMessageIds?: { channelId: string; msgId: string }[];
 }
 
+/**
+ * Fonction de comparaison permettant de classer les parties par date de
+ * création descendante.
+ *
+ * @param bg1 Première partie à comparer
+ * @param bg2 Seconde partie à comparer
+ * @returns Le résultat de la comparaison des 2 parties
+ */
 const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
   if (bg1.getDateCreated() < bg2.getDateCreated()) return 1;
   if (bg1.getDateCreated() > bg2.getDateCreated()) return -1;
   return 0;
 };
 
+/**
+ * Sous-classe de `Error` pour les erreurs spécifiques au service
+ * BlobGameService
+ */
 export class BlobGameServiceError extends Error {
+  /**
+   * Instancie une erreur indiquant qu'un événement est déjà en cours.
+   *
+   * @returns Une erreur d'événement en cours
+   */
   public static eventAlreadyRunning(): BlobGameServiceError {
     return new this("il y a déjà un événement en cours");
   }
 
+  /**
+   * Instancie une erreur indiquant qu'il n'y a pas de partie en cours.
+   *
+   * @returns Une erreur de partie non commencée
+   */
   public static noGame(): BlobGameServiceError {
     return new this("pas de partie en cours");
   }
 
+  /**
+   * Instancie une erreur indiquant que la minuterie de la partie n'est pas
+   * démarrée.
+   *
+   * @returns Une erreur de minuterie non démarrée
+   */
   public static noTimer(): BlobGameServiceError {
     return new this("impossible tant que la minuterie n'est pas démarrée");
   }
 
+  /**
+   * Instancie une erreur indiquant qu'il n'y a pas de minuterie à mettre en
+   * pause.
+   *
+   * @returns Erreur de minuterie impossible à mettre en pause
+   */
   public static noTimerToPause(): BlobGameServiceError {
     return new this("pas de minuterie en cours");
   }
 
+  /**
+   * Instancie une erreur indiquant qu'il n'y a actuellement pas de minuterie
+   * en pause.
+   *
+   * @returns Erreur de minuterie non mise en pause
+   */
   public static noTimerToResume(): BlobGameServiceError {
     return new this("pas de minuterie en pause");
   }
 
+  /**
+   * Instancie une erreur indiquant qu'il existe déjà une minuterie en cours.
+   *
+   * @returns Erreur de minuterie en cours
+   */
   public static timerAlreadyRunning(): BlobGameServiceError {
     return new this("il y a déjà une minuterie en cours");
   }
 
+  /**
+   * Instancie une erreur indiquant qu'il n'est pas possible de poser plus de
+   * 3 indices à la fois sur l'acte 1.
+   *
+   * @returns Erreur nombre d'indices trop élevé
+   */
   public static tooMuchCluesAtOnce(): BlobGameServiceError {
     return new this(
       "impossible de placer plus de 3 indices à la fois sur l'Acte 1"
     );
   }
 
+  /**
+   * Instancie une erreur indiquant qu'il n'y a pas de client Discord.
+   *
+   * @returns Erreur de client Discord absent
+   */
   public static noDiscordClient(): BlobGameServiceError {
     return new this("pas de client Discord disponible");
   }
@@ -77,17 +153,35 @@ export class BlobGameServiceError extends Error {
 
 @Singleton
 @OnlyInstantiableByContainer
+/**
+ * Service permettant de gérer une partie multijoueurs du Dévoreur de Toute
+ * Chose
+ */
 export class BlobGameService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
   private static LOG_LABEL = "BlobGameService";
+
+  /** Le fichier de sauvegarde de l'état du service */
   private static STATE_FILE_NAME = "blobGameServiceState.json";
 
+  /** Les entrepôts de sauvegarde des parties, par serveur */
   private blobGameRepositoryByGuildId: {
     [guildId: string]: BlobGameFileRepository;
   } = {};
+
+  /** Les parties en cours, par serveur */
   private currentGameByGuildId: { [guildId: string]: BlobGame } = {};
+
+  /** Les statistiques de jeu, par serveur */
   private gameStatsByGuildId: { [guildId: string]: BlobGameStatsByGroup } = {};
+
+  /** Les minuteries, par serveur */
   private gameTimerByGuildId: { [guildId: string]: number } = {};
+
+  /** Les timers associés aux minuteries, par serveur */
   private gameTimeoutByGuildId: { [guildId: string]: NodeJS.Timeout } = {};
+
+  /** Les messages présentant l'état de la partie, par seveur */
   private gameStateMessagesByGuildId: { [guildId: string]: Message[] } = {};
 
   @Inject private logger!: LoggerService;
@@ -111,14 +205,28 @@ export class BlobGameService extends BaseService {
     );
   }
 
-  public isEventChannel(channel: Channel): boolean {
-    return this.massMultiplayerEventService.isEventChannel(channel);
-  }
-
+  /**
+   * Permet de savoir si le canal indiqué est le canal d'administration des
+   * événements multijoueurs.
+   *
+   * @param channel Le canal à évaluer
+   * @returns Vrai si le canal est le canal d'administration des événements
+   *          multijoueurs
+   */
   public isAdminChannel(channel: Channel): boolean {
     return this.massMultiplayerEventService.isAdminChannel(channel);
   }
 
+  /**
+   * Permet de démarrer une nouvelle partie du Dévoreur de Toute Chose sur un
+   * serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfPlayers Le nombre de joueurs
+   * @param numberOfGroups Le nombre de groupes
+   * @returns Une promesse résolue une fois la partie démarrée
+   * @throws Si un événement multijoueurs est déjà en cours
+   */
   public async startNewGame(
     guild: Guild,
     numberOfPlayers: number,
@@ -160,6 +268,14 @@ export class BlobGameService extends BaseService {
     }
   }
 
+  /**
+   * Permet de publier et d'épingler dans chaque canal de l'événement
+   * multijoueurs un message présentant l'état de la partie. Ces messages
+   * seront mis à jour à chaque changement d'état de la partie.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois les messages publiés
+   */
   private async publishGameState(guild: Guild): Promise<void> {
     if (!(guild.id in this.currentGameByGuildId)) return;
 
@@ -183,6 +299,11 @@ export class BlobGameService extends BaseService {
     this.gameStateMessagesByGuildId[guild.id].forEach((msg) => void msg.pin());
   }
 
+  /**
+   * Met à jour les messages présentant l'état de la partie.
+   *
+   * @param guild Le serveur concerné
+   */
   private updateGameState(guild: Guild): void {
     if (!(guild.id in this.gameStateMessagesByGuildId)) return;
 
@@ -203,9 +324,12 @@ export class BlobGameService extends BaseService {
     }
   }
 
+  /**
+   * Démarre la minuterie pour le serveur concerné.
+   *
+   * @param guild Le serveur concerné
+   */
   private setUpTimerInterval(guild: Guild): void {
-    if (!this.client) throw BlobGameServiceError.noDiscordClient();
-
     this.gameTimeoutByGuildId[guild.id] = setInterval(() => {
       if (guild.id in this.gameTimerByGuildId) {
         this.gameTimerByGuildId[guild.id] -= 1;
@@ -230,15 +354,24 @@ export class BlobGameService extends BaseService {
     }, 1000 * 60);
   }
 
-  private clearTimerInterval(guild: Guild) {
-    if (!this.client) throw BlobGameServiceError.noDiscordClient();
-
+  /**
+   * Arrête la minuterie sur le serveur concerné.
+   *
+   * @param guild Le serveur concerné
+   */
+  private clearTimerInterval(guild: Guild): void {
     if (guild.id in this.gameTimeoutByGuildId) {
       clearInterval(this.gameTimeoutByGuildId[guild.id]);
       delete this.gameTimeoutByGuildId[guild.id];
     }
   }
 
+  /**
+   * Envoie un message sur les canaux des joueurs pour indiquer que le temps est
+   * écoulé.
+   *
+   * @param guild Le serveur concerné
+   */
   private timeIsUp(guild: Guild): void {
     this.massMultiplayerEventService
       .broadcastMessage(guild, "La partie est terminée !")
@@ -252,6 +385,12 @@ export class BlobGameService extends BaseService {
       );
   }
 
+  /**
+   * Envoie un message sur les canaux des joueurs pour indiquer le temps restant
+   * pour la partie.
+   *
+   * @param guild Le serveur concerné
+   */
   private tellTimeRemaining(guild: Guild): void {
     if (guild.id in this.gameTimerByGuildId) {
       this.massMultiplayerEventService
@@ -272,6 +411,13 @@ export class BlobGameService extends BaseService {
     }
   }
 
+  /**
+   * Initialise et démarre la minuterie sur un serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @param minutes Le temps imparti
+   * @throws Si une minuterie est déjà démarrée
+   */
   public startTimer(guild: Guild, minutes: number): void {
     if (this.isTimerRunning(guild))
       throw BlobGameServiceError.timerAlreadyRunning();
@@ -289,6 +435,12 @@ export class BlobGameService extends BaseService {
     );
   }
 
+  /**
+   * Met en pause la minuterie pour un serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @throws S'il n'y a pas de minuterie à mette en pause
+   */
   public pauseTimer(guild: Guild): void {
     if (!this.isTimerRunning(guild))
       throw BlobGameServiceError.noTimerToPause();
@@ -297,6 +449,12 @@ export class BlobGameService extends BaseService {
     this.updateGameState(guild);
   }
 
+  /**
+   * Redémarre la minuterie sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @throws S'il n'y a pas de minuterie à redémarrer
+   */
   public resumeTimer(guild: Guild): void {
     if (this.isTimerRunning(guild) || !(guild.id in this.gameTimerByGuildId))
       throw BlobGameServiceError.noTimerToResume();
@@ -305,16 +463,37 @@ export class BlobGameService extends BaseService {
     this.updateGameState(guild);
   }
 
-  public isTimerRunning(guild: Guild): boolean {
+  /**
+   * Permet de savoir si une minuterie court sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns Vrai si une minuterie est lancée
+   */
+  private isTimerRunning(guild: Guild): boolean {
     return guild.id in this.gameTimeoutByGuildId;
   }
 
-  public isGameRunning(guild: Guild): boolean {
+  /**
+   * Permet de savoir si une partie du Dévoreur de toute chose est en cours sur
+   * le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns Vrai si une partie est en cours
+   */
+  private isGameRunning(guild: Guild): boolean {
     return guild.id in this.currentGameByGuildId;
   }
 
-  public createGameStateEmbed(guild: Guild): MessageEmbed | undefined {
+  /**
+   * Permet de créer un encart Discord d'affichage de l'état de la partie.
+   *
+   * @param guild Le serveur concerné
+   * @returns Un encart d'affichage de l'état de la partie si une partie est en
+   *          cours
+   */
+  private createGameStateEmbed(guild: Guild): MessageEmbed | undefined {
     if (!this.isGameRunning(guild)) return undefined;
+
     const game = this.currentGameByGuildId[guild.id];
     let minuterie = "Minuterie non initialisée";
     if (guild.id in this.gameTimerByGuildId) {
@@ -358,8 +537,17 @@ export class BlobGameService extends BaseService {
     return embed;
   }
 
+  /**
+   * Permet de créer un encart Discord d'affichage des statistiques d'une
+   * partie sur un serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @returns Un encart d'affichage des statistiques de la partie s'il y a bien
+   *          une partie en cours
+   */
   public createGameStatsEmbed(guild: Guild): MessageEmbed | undefined {
     if (!this.isGameRunning(guild)) return undefined;
+
     const game = this.currentGameByGuildId[guild.id];
 
     if (!this.gameStatsByGuildId[guild.id]) return undefined;
@@ -398,15 +586,20 @@ export class BlobGameService extends BaseService {
     return embed;
   }
 
+  /**
+   * Met fin à la partie du Dévoreur de Toute Chose sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   */
   public async endGame(guild: Guild): Promise<void> {
-    // Timer
+    // Minuterie
     if (this.isTimerRunning(guild)) this.pauseTimer(guild);
     delete this.gameTimerByGuildId[guild.id];
 
-    // Stats
+    // Statistiques
     this.gameStatsByGuildId[guild.id] = {};
 
-    // Game state messages
+    // Messages d'état de la partie
     this.gameStateMessagesByGuildId[guild.id] = [];
 
     this.saveState(guild).catch((error) =>
@@ -418,7 +611,7 @@ export class BlobGameService extends BaseService {
       )
     );
 
-    // Game
+    // Partie
     const repository = this.getBlobGameRepository(guild);
     this.currentGameByGuildId[guild.id].endGame(new Date());
     await repository.save(this.currentGameByGuildId[guild.id]);
@@ -427,21 +620,29 @@ export class BlobGameService extends BaseService {
     await this.massMultiplayerEventService.cleanGroupChannels(guild);
   }
 
-  public getBlobTotalHealth(guild: Guild): number | undefined {
-    if (!this.currentGameByGuildId[guild.id]) return;
-    return this.currentGameByGuildId[guild.id].getBlobTotalHealth();
-  }
-
+  /**
+   * Renvoie le nombre de points de vie restants au Dévoreur si une partie est
+   * en cours su le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns Le nombre de points de vie restant (si une patie est en cours)
+   */
   public getBlobRemainingHealth(guild: Guild): number | undefined {
     if (!this.currentGameByGuildId[guild.id]) return;
     return this.currentGameByGuildId[guild.id].getBlobRemainingHealth();
   }
 
-  public getNumberOfDamageDealtToBlob(guild: Guild): number | undefined {
-    if (!this.currentGameByGuildId[guild.id]) return;
-    return this.currentGameByGuildId[guild.id].getNumberOfDamageDealtToBlob();
-  }
-
+  /**
+   * Inflige le nombre de dégâts indiqué au Dévoreur pour une partie en cours
+   * sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfDamageDealt Le nombre de dégâts infligés
+   * @param groupChannel Le canal du groupe de joueurs ayant infligé les dégâts
+   * @returns Une promesse résolue une fois le traitement terminé
+   * @throws Si il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas démarrée
+   */
   public async dealDamageToBlob(
     guild: Guild,
     numberOfDamageDealt: number,
@@ -479,16 +680,18 @@ export class BlobGameService extends BaseService {
     }
   }
 
-  public getAct1ClueThreshold(guild: Guild): number | undefined {
-    if (!this.currentGameByGuildId[guild.id]) return;
-    return this.currentGameByGuildId[guild.id].getAct1ClueThreshold();
-  }
-
-  public getNumberOfCluesOnAct1(guild: Guild): number | undefined {
-    if (!this.currentGameByGuildId[guild.id]) return;
-    return this.currentGameByGuildId[guild.id].getNumberOfCluesOnAct1();
-  }
-
+  /**
+   * Place le nombre d'indices indiqués sur l'Acte 1 sur la partie en cours du
+   * serveur indiqué.
+   *
+   * @param guild Le serveur indiqué
+   * @param numberOfClues Le nombre d'indices placés
+   * @param groupChannel Le canal du groupe de joueurs ayant placé les indices
+   * @returns Une promesse résolue une fois le traitement terminé
+   * @throws Si il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas démarrée
+   * @throws Si trop d'indices sont placés à la fois
+   */
   public async placeCluesOnAct1(
     guild: Guild,
     numberOfClues: number,
@@ -532,11 +735,17 @@ export class BlobGameService extends BaseService {
     }
   }
 
-  public getNumberOfCounterMeasures(guild: Guild): number | undefined {
-    if (!this.currentGameByGuildId[guild.id]) return;
-    return this.currentGameByGuildId[guild.id].getNumberOfCounterMeasures();
-  }
-
+  /**
+   * Permet d'indiquer que des contre-mesures ont été obtenues sur la partie en
+   * cours du serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCounterMeasures Le nombre de contre-mesures obtenues
+   * @param groupChannel Le canal du groupe de joueurs ayant obtenu les contre-mesures
+   * @returns Une promesse résolue une fois le traitement terminé
+   * @throws Si il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas démarrée
+   */
   public async gainCounterMeasures(
     guild: Guild,
     numberOfCounterMeasures: number,
@@ -568,6 +777,17 @@ export class BlobGameService extends BaseService {
     );
   }
 
+  /**
+   * Permet d'indiquer que des contre-mesures ont été dépensées sur la partie en
+   * cours sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCounterMeasures Le nombre de contre-mesures dépensées
+   * @param groupChannel Le canal du groupe de joueurs ayant dépenser les contre-mesures
+   * @returns Une promesse résolue une fois le traitement terminé
+   * @throws Si il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas démarrée
+   */
   public async spendCounterMeasures(
     guild: Guild,
     numberOfCounterMeasures: number,
@@ -599,14 +819,13 @@ export class BlobGameService extends BaseService {
     );
   }
 
-  public getStory(guild: Guild): string | undefined {
-    const game = this.currentGameByGuildId[guild.id];
-    if (!game) return;
-    if (!(game.getNumberOfCluesOnAct1() === game.getAct1ClueThreshold()))
-      return;
-    return game.getStory();
-  }
-
+  /**
+   * Renvoie (instancie si nécessaire) l'entrepôt de sauvegarde des parties pour
+   * le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns L'entrepôt de parties
+   */
   private getBlobGameRepository(guild: Guild): BlobGameFileRepository {
     if (!this.blobGameRepositoryByGuildId[guild.id]) {
       this.blobGameRepositoryByGuildId[guild.id] = new BlobGameFileRepository(
@@ -616,6 +835,14 @@ export class BlobGameService extends BaseService {
     return this.blobGameRepositoryByGuildId[guild.id];
   }
 
+  /**
+   * Permet de reprendre une partie en cours sur le serveur indiqué. Cette
+   * méthode est appelé à l'initialisation du service et permet de reprendre la
+   * partie en cours au cas où le bot aurait été redémarré pendant la partie.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec la date de création de la partie si trouvée
+   */
   private async continueLatestGame(guild: Guild): Promise<Date | undefined> {
     const repository = this.getBlobGameRepository(guild);
 
@@ -633,6 +860,15 @@ export class BlobGameService extends BaseService {
     return this.currentGameByGuildId[guild.id].getDateCreated();
   }
 
+  /**
+   * Permet de mettre à jour les statistiques de la partie sur le serveur
+   * indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param groupId L'identifiant du groupe de joueurs ayant effectué une action
+   * @param statName Le nom de la statistique
+   * @param amount Le montant à ajouter à la statistique
+   */
   private recordStat(
     guild: Guild,
     groupId: string,
@@ -664,6 +900,12 @@ export class BlobGameService extends BaseService {
     );
   }
 
+  /**
+   * Indique aux joueurs que la partie est terminée et publie les statistiques.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois le traitement terminé
+   */
   private async gameWon(guild: Guild): Promise<void> {
     await this.massMultiplayerEventService.broadcastMessage(
       guild,
@@ -678,6 +920,12 @@ export class BlobGameService extends BaseService {
     }
   }
 
+  /**
+   * Charge l'état du service pour un serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois le chargement terminé
+   */
   private async loadState(guild: Guild): Promise<void> {
     try {
       if (
@@ -717,6 +965,12 @@ export class BlobGameService extends BaseService {
     }
   }
 
+  /**
+   * Sauvegarde l'état du service pour un serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois la sauvegarde effectuée
+   */
   private async saveState(guild: Guild): Promise<void> {
     try {
       const state: BlobGameServiceState = {};
@@ -745,6 +999,15 @@ export class BlobGameService extends BaseService {
   }
 }
 
+/**
+ * Permet de récupérer un message (en vue de le mettre à jour) sur un serveur
+ * donné en précisant son canal et son identifiant.
+ *
+ * @param guild Le serveur concerné
+ * @param channelId L'identifiant du canal
+ * @param msgId L'identifiant du message
+ * @returns Une promesse résolue avec le message si trouvé
+ */
 async function getMessage(
   guild: Guild,
   channelId: string,
