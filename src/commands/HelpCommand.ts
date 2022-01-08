@@ -32,7 +32,7 @@ export class HelpCommand implements IApplicationCommand {
       ...commandDescriptions,
       {
         name: "Version",
-        value: "2.3.0",
+        value: "2.3.1",
         inline: true,
       },
       {
