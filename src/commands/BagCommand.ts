@@ -4,6 +4,9 @@ import { Inject } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { ChaosBagService } from "../services/ChaosBagService";
 
+/**
+ * Commande permettant de tirer un jeton au hasard dans la réserve du Chaos.
+ */
 export class BagCommand implements IApplicationCommand {
   @Inject private chaosBagService!: ChaosBagService;
 
