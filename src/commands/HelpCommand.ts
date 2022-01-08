@@ -4,6 +4,7 @@ import { Container } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { ApplicationCommandManager } from "../services/ApplicationCommandManager";
 
+/** Commande d'affichage de l'aide du bot */
 export class HelpCommand implements IApplicationCommand {
   isGuildCommand = false;
   name = "aide";
