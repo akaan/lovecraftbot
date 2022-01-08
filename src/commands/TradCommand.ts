@@ -9,6 +9,7 @@ import { Inject } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardService } from "../services/CardService";
 
+/** Commande de traduction des titres de cartes */
 export class TradCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
