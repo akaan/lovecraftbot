@@ -58,7 +58,7 @@ export class ApplicationCommandManager extends BaseService {
    * @param commandInteraction Interation déclenchée par l'utilisateur
    * @returns Promesse d'un résultat de commande d'application
    */
-  public handleCommandInteraction(
+  public async handleCommandInteraction(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
     const slashCommand = this.applicationCommands.find(
@@ -67,6 +67,10 @@ export class ApplicationCommandManager extends BaseService {
     if (slashCommand) {
       return slashCommand.execute(commandInteraction);
     } else {
+      await commandInteraction.reply({
+        content: "Désolé, je ne sais pas traiter cette commande",
+        ephemeral: true,
+      });
       return Promise.resolve({
         cmd: commandInteraction.commandName,
         result: `Commande "${commandInteraction.commandName}" inconnue`,
