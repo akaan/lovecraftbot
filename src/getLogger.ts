@@ -53,6 +53,12 @@ const blue = colorize(ColorFgBlue);
  */
 const green = colorize(ColorFgGreen);
 
+/**
+ * Fonction de formattage d'un log sous forme de chaîne de caractères.
+ *
+ * @param info Le log à formater
+ * @returns Une chaîne de caractère représentant le log
+ */
 function templateFunction(info: winston.Logform.TransformableInfo): string {
   const parts = [
     yellow(info.timestamp as string),
