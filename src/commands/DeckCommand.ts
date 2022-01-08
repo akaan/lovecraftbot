@@ -6,6 +6,7 @@ import { Inject } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { DeckService } from "../services/DeckService";
 
+/** Commande pour l'affichage d'un deck */
 export class DeckCommand implements IApplicationCommand {
   @Inject private deckService!: DeckService;
 
