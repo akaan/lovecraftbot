@@ -19,6 +19,7 @@ import { Rule, RulesService } from "../services/RulesService";
 */
 const MAX_RULES = 25;
 
+/** Commande d'affichaque de points de règle */
 export class RuleCommand implements IApplicationCommand {
   @Inject private rulesService!: RulesService;
 
@@ -77,6 +78,14 @@ export class RuleCommand implements IApplicationCommand {
     }
   }
 
+  /**
+   * Envoie le point de règle.
+   *
+   * @param interaction L'interaction déclenchée par la commande
+   * @param rule Le point de règle à afficher
+   * @param options Les options d'affichage
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
   private async sendRule(
     interaction: CommandInteraction | SelectMenuInteraction,
     rule: Rule,
@@ -90,6 +99,15 @@ export class RuleCommand implements IApplicationCommand {
     return { cmd: "RuleCommand", result: `Règle(s) envoyée(s)` };
   }
 
+  /**
+   * Envoie à l'utilisateur un menu de sélection parmi plusieurs point de règle
+   * remontés par la recherche.
+   *
+   * @param interaction L'interaction déclenchée par la commande
+   * @param rules Les règles trouvées parmi lesquelles choisir
+   * @param options Les options d'affichage
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
   private async sendRuleChoices(
     interaction: CommandInteraction,
     rules: Rule[],
