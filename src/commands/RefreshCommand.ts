@@ -4,6 +4,10 @@ import { Inject } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardService } from "../services/CardService";
 
+/**
+ * Commande de raffraîchissement de la base de données locale du bot concernant
+ * les cartes
+ */
 export class RefreshCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
