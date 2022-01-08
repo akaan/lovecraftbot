@@ -4,6 +4,7 @@ import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 
+/** Commande d'affichage des diagrammes de timing du jeu */
 export class TimingCommand implements IApplicationCommand {
   isGuildCommand = false;
   name = "t";
