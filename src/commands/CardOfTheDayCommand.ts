@@ -9,6 +9,9 @@ import { Inject } from "typescript-ioc";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardOfTheDayService } from "../services/CardOfTheDayService";
 
+/**
+ * Commande d'administration de la carte du jour
+ */
 export class CardOfTheDayCommand implements IApplicationCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;
 
