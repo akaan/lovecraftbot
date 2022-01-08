@@ -145,6 +145,13 @@ export class FaqCommand implements IApplicationCommand {
     );
   }
 
+  /**
+   * Permet de construire le résultat de la commande.
+   *
+   * @param result Le résultat de la commande
+   * @param meta Les données supplémentaires à adjoindre
+   * @returns Un résultat de commande complet
+   */
   private commandResult(
     result: string,
     meta?: Omit<IApplicationCommandResult, "cmd" | "result">
