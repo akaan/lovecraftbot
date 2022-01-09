@@ -353,7 +353,7 @@ export class ApplicationCommandManager extends BaseService {
         await guild.commands.permissions.set({ fullPermissions });
         this.logger.warn(
           ApplicationCommandManager.LOG_LABEL,
-          `Permssions de commandes d'application niveau serveur mise en place sur le serveur ${guild.name}`
+          `Permissions de commandes d'application niveau serveur mises en place sur le serveur ${guild.name}`
         );
       }
     } catch (err) {
