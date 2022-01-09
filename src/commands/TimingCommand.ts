@@ -7,20 +7,23 @@ import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 /** Commande d'affichage des diagrammes de timing du jeu */
 export class TimingCommand implements IApplicationCommand {
   isGuildCommand = false;
-  name = "t";
-  description = "Affiche un timing";
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "phases",
-      description: "Affiche le timing des phases du jeu",
-    },
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "test",
-      description: "Affiche le timing d'un test",
-    },
-  ];
+
+  commandData = {
+    name: "t",
+    description: "Affiche un timing",
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "phases",
+        description: "Affiche le timing des phases du jeu",
+      },
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "test",
+        description: "Affiche le timing d'un test",
+      },
+    ],
+  };
 
   async execute(
     commandInteraction: CommandInteraction

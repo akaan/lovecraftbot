@@ -24,22 +24,25 @@ export class RuleCommand implements IApplicationCommand {
   @Inject private rulesService!: RulesService;
 
   isGuildCommand = false;
-  name = "regle";
-  description = "Afficher un point de règle";
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.STRING,
-      name: "recherche",
-      description: "Texte à chercher dans les titres de règles",
-      required: true,
-    },
-    {
-      type: ApplicationCommandOptionTypes.BOOLEAN,
-      name: "ephemere",
-      description: "Si vrai, seul toi pourra voir la réponse",
-      required: false,
-    },
-  ];
+
+  commandData = {
+    name: "regle",
+    description: "Afficher un point de règle",
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.STRING,
+        name: "recherche",
+        description: "Texte à chercher dans les titres de règles",
+        required: true,
+      },
+      {
+        type: ApplicationCommandOptionTypes.BOOLEAN,
+        name: "ephemere",
+        description: "Si vrai, seul toi pourra voir la réponse",
+        required: false,
+      },
+    ],
+  };
 
   async execute(
     commandInteraction: CommandInteraction

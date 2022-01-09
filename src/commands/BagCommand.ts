@@ -11,8 +11,11 @@ export class BagCommand implements IApplicationCommand {
   @Inject private chaosBagService!: ChaosBagService;
 
   isGuildCommand = false;
-  name = "bag";
-  description = "Tire un jeton chaos (Nuit de la Zélatrice Standard)";
+
+  commandData = {
+    name: "bag",
+    description: "Tire un jeton chaos (Nuit de la Zélatrice Standard)",
+  };
 
   async execute(
     commandInteraction: CommandInteraction

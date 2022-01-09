@@ -7,16 +7,19 @@ import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 /** Commande permettant de répéter à l'utilisateur son propre message */
 export class EchoCommand implements IApplicationCommand {
   isGuildCommand = false;
-  name = "echo";
-  description = "Retourne ton propre message";
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.STRING,
-      name: "message",
-      description: "Le message à renvoyer",
-      required: true,
-    },
-  ];
+
+  commandData = {
+    name: "echo",
+    description: "Retourne ton propre message",
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.STRING,
+        name: "message",
+        description: "Le message à renvoyer",
+        required: true,
+      },
+    ],
+  };
 
   async execute(
     interaction: CommandInteraction

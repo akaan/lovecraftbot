@@ -16,34 +16,37 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;
 
   isGuildCommand = true;
-  name = "cotd";
-  description = "Commandes de gestion de la carte du jour";
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "encore",
-      description: "Retire une nouvelle carte du jour",
-    } as ApplicationCommandSubCommandData,
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "liste",
-      description: "Liste des cartes déjà tirées",
-    } as ApplicationCommandSubCommandData,
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "ajouter",
-      description: "Ajoute des cartes à la liste des cartes déjà tirées",
-      options: [
-        {
-          type: ApplicationCommandOptionTypes.STRING,
-          name: "codes",
-          description:
-            "Codes des cartes (séparés par des virgules) à ajouter à la liste des cartes déjà tirées",
-          required: true,
-        },
-      ],
-    } as ApplicationCommandSubCommandData,
-  ];
+
+  commandData = {
+    name: "cotd",
+    description: "Commandes de gestion de la carte du jour",
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "encore",
+        description: "Retire une nouvelle carte du jour",
+      } as ApplicationCommandSubCommandData,
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "liste",
+        description: "Liste des cartes déjà tirées",
+      } as ApplicationCommandSubCommandData,
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "ajouter",
+        description: "Ajoute des cartes à la liste des cartes déjà tirées",
+        options: [
+          {
+            type: ApplicationCommandOptionTypes.STRING,
+            name: "codes",
+            description:
+              "Codes des cartes (séparés par des virgules) à ajouter à la liste des cartes déjà tirées",
+            required: true,
+          },
+        ],
+      } as ApplicationCommandSubCommandData,
+    ],
+  };
 
   async execute(
     commandInteraction: CommandInteraction

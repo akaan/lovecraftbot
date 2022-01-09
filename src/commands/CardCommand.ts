@@ -33,36 +33,39 @@ export class CardCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
   isGuildCommand = false;
-  name = "c";
-  description = `Pour l'affichage de carte(s)`;
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.STRING,
-      name: "recherche",
-      description:
-        "Code de la carte ou texte à chercher dans le titre de la carte",
-      required: true,
-    },
-    {
-      type: ApplicationCommandOptionTypes.BOOLEAN,
-      name: "complet",
-      description:
-        "Pour envoyer une description complète de la carte (et non seulement l'image)",
-      required: false,
-    },
-    {
-      type: ApplicationCommandOptionTypes.BOOLEAN,
-      name: "dos",
-      description: "Pour envoyer le dos de la carte",
-      required: false,
-    },
-    {
-      type: ApplicationCommandOptionTypes.BOOLEAN,
-      name: "ephemere",
-      description: "Si vrai, seul toi pourra voir la réponse",
-      required: false,
-    },
-  ];
+
+  commandData = {
+    name: "c",
+    description: `Pour l'affichage de carte(s)`,
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.STRING,
+        name: "recherche",
+        description:
+          "Code de la carte ou texte à chercher dans le titre de la carte",
+        required: true,
+      },
+      {
+        type: ApplicationCommandOptionTypes.BOOLEAN,
+        name: "complet",
+        description:
+          "Pour envoyer une description complète de la carte (et non seulement l'image)",
+        required: false,
+      },
+      {
+        type: ApplicationCommandOptionTypes.BOOLEAN,
+        name: "dos",
+        description: "Pour envoyer le dos de la carte",
+        required: false,
+      },
+      {
+        type: ApplicationCommandOptionTypes.BOOLEAN,
+        name: "ephemere",
+        description: "Si vrai, seul toi pourra voir la réponse",
+        required: false,
+      },
+    ],
+  };
 
   async execute(
     commandInteraction: CommandInteraction

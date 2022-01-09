@@ -7,9 +7,12 @@ import { ApplicationCommandManager } from "../services/ApplicationCommandManager
 /** Commande d'affichage de l'aide du bot */
 export class HelpCommand implements IApplicationCommand {
   isGuildCommand = false;
-  name = "aide";
-  description =
-    "Affiche quelques informations sur ce bot et comment l'utiliser";
+
+  commandData = {
+    name: "aide",
+    description:
+      "Affiche quelques informations sur ce bot et comment l'utiliser",
+  };
 
   async execute(
     interaction: CommandInteraction
@@ -18,8 +21,8 @@ export class HelpCommand implements IApplicationCommand {
     const commandDescriptions: EmbedFieldData[] = applicationCommandManager
       .getGlobalApplicationCommands()
       .map((command) => ({
-        name: "/" + command.name,
-        value: command.description,
+        name: "/" + command.commandData.name,
+        value: command.commandData.description,
       }));
 
     const embed = new MessageEmbed();

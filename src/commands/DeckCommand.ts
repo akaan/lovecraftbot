@@ -11,16 +11,19 @@ export class DeckCommand implements IApplicationCommand {
   @Inject private deckService!: DeckService;
 
   isGuildCommand = false;
-  name = "deck";
-  description = "Affiche le deck correspondant à l'ID fourni";
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.STRING,
-      name: "deckid",
-      description: "L'identifiant du deck sur ArkhamDB",
-      required: true,
-    },
-  ];
+
+  commandData = {
+    name: "deck",
+    description: "Affiche le deck correspondant à l'ID fourni",
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.STRING,
+        name: "deckid",
+        description: "L'identifiant du deck sur ArkhamDB",
+        required: true,
+      },
+    ],
+  };
 
   async execute(
     commandInteraction: CommandInteraction

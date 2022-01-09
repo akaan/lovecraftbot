@@ -12,8 +12,11 @@ export class RefreshCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
   isGuildCommand = true;
-  name = "refresh";
-  description = "Recharge les toutes dernières cartes depuis ArkhamDB";
+
+  commandData = {
+    name: "refresh",
+    description: "Recharge les toutes dernières cartes depuis ArkhamDB",
+  };
 
   async execute(
     commandInteraction: CommandInteraction

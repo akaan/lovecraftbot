@@ -14,48 +14,51 @@ export class TradCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
   isGuildCommand = false;
-  name = "trad";
-  description = `Traduit un nom de carte`;
-  options = [
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "f",
-      description: "Anglais > Français",
-      options: [
-        {
-          type: ApplicationCommandOptionTypes.STRING,
-          name: "nom",
-          description: "Nom anglais de la carte",
-          required: true,
-        },
-        {
-          type: ApplicationCommandOptionTypes.BOOLEAN,
-          name: "ephemere",
-          description: "Si vrai, seul toi pourra voir la réponse",
-          required: false,
-        },
-      ],
-    } as ApplicationCommandSubCommandData,
-    {
-      type: ApplicationCommandOptionTypes.SUB_COMMAND,
-      name: "e",
-      description: "Français > Anglais",
-      options: [
-        {
-          type: ApplicationCommandOptionTypes.STRING,
-          name: "nom",
-          description: "Nom français de la carte",
-          required: true,
-        },
-        {
-          type: ApplicationCommandOptionTypes.BOOLEAN,
-          name: "ephemere",
-          description: "Si vrai, seul toi pourra voir la réponse",
-          required: false,
-        },
-      ],
-    } as ApplicationCommandSubCommandData,
-  ];
+
+  commandData = {
+    name: "trad",
+    description: `Traduit un nom de carte`,
+    options: [
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "f",
+        description: "Anglais > Français",
+        options: [
+          {
+            type: ApplicationCommandOptionTypes.STRING,
+            name: "nom",
+            description: "Nom anglais de la carte",
+            required: true,
+          },
+          {
+            type: ApplicationCommandOptionTypes.BOOLEAN,
+            name: "ephemere",
+            description: "Si vrai, seul toi pourra voir la réponse",
+            required: false,
+          },
+        ],
+      } as ApplicationCommandSubCommandData,
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "e",
+        description: "Français > Anglais",
+        options: [
+          {
+            type: ApplicationCommandOptionTypes.STRING,
+            name: "nom",
+            description: "Nom français de la carte",
+            required: true,
+          },
+          {
+            type: ApplicationCommandOptionTypes.BOOLEAN,
+            name: "ephemere",
+            description: "Si vrai, seul toi pourra voir la réponse",
+            required: false,
+          },
+        ],
+      } as ApplicationCommandSubCommandData,
+    ],
+  };
 
   async execute(
     commandInteraction: CommandInteraction

@@ -61,11 +61,11 @@ export class ApplicationCommandManager extends BaseService {
   public async handleCommandInteraction(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
-    const slashCommand = this.applicationCommands.find(
-      (sc) => sc.name === commandInteraction.commandName
+    const command = this.applicationCommands.find(
+      (sc) => sc.commandData.name === commandInteraction.commandName
     );
-    if (slashCommand) {
-      return slashCommand.execute(commandInteraction);
+    if (command) {
+      return command.execute(commandInteraction);
     } else {
       await commandInteraction.reply({
         content: "Désolé, je ne sais pas traiter cette commande",
@@ -93,7 +93,7 @@ export class ApplicationCommandManager extends BaseService {
         const applicationCommandInstance: IApplicationCommand =
           new applicationCommandConstructor();
         if (applicationCommandInstance.isGuildCommand)
-          applicationCommandInstance.defaultPermission = false;
+          applicationCommandInstance.commandData.defaultPermission = false;
         this.applicationCommands.push(applicationCommandInstance);
       }
     );
@@ -140,7 +140,7 @@ export class ApplicationCommandManager extends BaseService {
           `Enregistrement des commandes d'application globales...`
         );
         await this.client.application.commands.set(
-          this.getGlobalApplicationCommands()
+          this.getGlobalApplicationCommands().map((c) => c.commandData)
         );
         this.logger.info(
           ApplicationCommandManager.LOG_LABEL,
@@ -171,7 +171,9 @@ export class ApplicationCommandManager extends BaseService {
           ApplicationCommandManager.LOG_LABEL,
           `Enregistrement des commandes d'application niveau serveur pour ${guild.name}...`
         );
-        await guild.commands.set(this.getGuildApplicationCommands());
+        await guild.commands.set(
+          this.getGuildApplicationCommands().map((c) => c.commandData)
+        );
         this.logger.info(
           ApplicationCommandManager.LOG_LABEL,
           `Commandes d'application niveau serveur enregistrées pour ${guild.name}`
@@ -195,7 +197,7 @@ export class ApplicationCommandManager extends BaseService {
     const botAdminRoleName = this.envService.botAdminRoleName;
     if (botAdminRoleName) {
       const guildApplicationCommandNames =
-        this.getGuildApplicationCommands().map((c) => c.name);
+        this.getGuildApplicationCommands().map((c) => c.commandData.name);
 
       try {
         const setPermissions = this.client.guilds.cache
