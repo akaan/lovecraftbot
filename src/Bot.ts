@@ -165,14 +165,6 @@ export class Bot {
       return;
     }
 
-    if (
-      this.envService.testServerId &&
-      msg.guild &&
-      this.envService.testServerId !== msg.guild.id
-    ) {
-      return;
-    }
-
     const content = msg.content;
 
     if (content.startsWith(this.commandPrefix)) {

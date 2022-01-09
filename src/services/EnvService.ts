@@ -31,14 +31,6 @@ export class EnvService extends BaseService {
   }
 
   /**
-   * Un éventuel identifiant de serveur de test pour limiter l'activité du
-   * bot à ce serveur en particulier.
-   */
-  public get testServerId(): string | undefined {
-    return process.env.TEST_SERVER;
-  }
-
-  /**
    * Identifiant du canal sur lequel envoyer la carte du jour.
    */
   public get cardOfTheDayChannelId(): string | undefined {
