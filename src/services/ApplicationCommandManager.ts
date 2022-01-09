@@ -49,6 +49,8 @@ export class ApplicationCommandManager extends BaseService {
   public async init(client: Client): Promise<void> {
     await super.init(client);
     this.loadApplicationCommands(AvailableApplicationCommands);
+
+    void this.deployGlobalApplicationCommands();
   }
 
   /**
@@ -97,6 +99,84 @@ export class ApplicationCommandManager extends BaseService {
         this.applicationCommands.push(applicationCommandInstance);
       }
     );
+  }
+
+  /**
+   * Déploie les commandes d'application globales en :
+   * - Supprimant les commandes déployées non gérées par le bot
+   * - Déployant les commandes gérées par le bot mais non présentes sur Discord
+   * - Mettant à jour les commandes qui diffèrent
+   */
+  private async deployGlobalApplicationCommands(): Promise<void> {
+    try {
+      if (this.client && this.client.application) {
+        const commandManager = this.client.application.commands;
+
+        const deployedCommands = await this.client.application.commands.fetch();
+        const botCommands = this.getGlobalApplicationCommands().map(
+          (c) => c.commandData
+        );
+
+        // Suppression des commandes déployées mais non gérées par le bot
+        const deployedCommandsToDelete = deployedCommands.filter(
+          (deployedCommand) =>
+            !botCommands.some(
+              (botCommand) => botCommand.name === deployedCommand.name
+            )
+        );
+        const deletions = deployedCommandsToDelete.map(
+          async (deployedCommandToDelete) => {
+            const deletion = await deployedCommandToDelete.delete();
+            this.logger.warn(
+              ApplicationCommandManager.LOG_LABEL,
+              `Commande "${deployedCommandToDelete.name}" supprimée de Discord`
+            );
+            return deletion;
+          }
+        );
+        await Promise.all(deletions);
+
+        // Déploiement des commandes gérées par le bot mais non déployéee sur
+        // Discord
+        const newCommands = botCommands.filter(
+          (botCommand) =>
+            !deployedCommands.some(
+              (deployedCommand) => deployedCommand.name === botCommand.name
+            )
+        );
+        const deploys = newCommands.map(async (newCommand) => {
+          const deploy = await commandManager.create(newCommand);
+          this.logger.warn(
+            ApplicationCommandManager.LOG_LABEL,
+            `Commande "${newCommand.name}" déployée sur Discord`
+          );
+          return deploy;
+        });
+        await Promise.all(deploys);
+
+        // Mise à jour des commandes modifiées
+        const edits = botCommands.map(async (botCommand) => {
+          const deployedCommand = deployedCommands.find(
+            (c) => c.name === botCommand.name
+          );
+          if (deployedCommand && !deployedCommand.equals(botCommand)) {
+            const edit = deployedCommand.edit(botCommand);
+            this.logger.warn(
+              ApplicationCommandManager.LOG_LABEL,
+              `Mise à jour de la commande "${botCommand.name}" sur Discord`
+            );
+            return edit;
+          }
+        });
+        await Promise.all(edits);
+      }
+    } catch (error) {
+      this.logger.error(
+        ApplicationCommandManager.LOG_LABEL,
+        `Erreur au déploiement des commandes d'application globales`,
+        { error }
+      );
+    }
   }
 
   /**
