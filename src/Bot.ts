@@ -58,6 +58,11 @@ export class Bot {
 
     this.commandPrefix = this.envService.commandPrefix;
 
+    this.logger.info(
+      Bot.LOG_LABEL,
+      `Démarrage en mode ${this.envService.mode}`
+    );
+
     this.needInitServices = [
       this.logger,
       this.presenceService,

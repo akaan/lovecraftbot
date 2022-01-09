@@ -123,6 +123,11 @@ export class ApplicationCommandManager extends BaseService {
       (applicationCommandConstructor) => {
         const applicationCommandInstance: IApplicationCommand =
           new applicationCommandConstructor();
+
+        if (this.envService.mode === "development") {
+          applicationCommandInstance.isGuildCommand = true;
+        }
+
         if (applicationCommandInstance.isGuildCommand)
           applicationCommandInstance.commandData.defaultPermission = false;
         this.applicationCommands.push(applicationCommandInstance);
@@ -271,7 +276,7 @@ export class ApplicationCommandManager extends BaseService {
       this.logger.warn(
         ApplicationCommandManager.LOG_LABEL,
         `Commande "${newCommand.name}" déployée sur Discord${
-          guildName ? `pour le serveur ${guildName}` : ""
+          guildName ? ` pour le serveur ${guildName}` : ""
         }`
       );
       return deploy;

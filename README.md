@@ -12,6 +12,12 @@ Un bot Discord pour Horreur à Arkham : le Jeu de Cartes.
 - `npm run start:dev` pour démarrer en mode développement
 - `npm run start` pour démarrer en mode production
 
+En mode développement, les commandes d'application sont déployées au niveau du
+serveur (car le déploiement en plus rapide).
+En mode production, seules certaines commandes sont déployées au niveau des
+seveurs, le reste des commandes étant déployées globalement (avec un temps de
+propagation côté Discord pouvant allez jusqu'à 1H).
+
 ## Variables d'environnement
 
 Mettez les variables suivantes dans un fichier [`.env`](https://www.npmjs.com/package/dotenv).

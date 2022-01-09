@@ -16,6 +16,16 @@ export class EnvService extends BaseService {
   }
 
   /**
+   * Mode d'exécution du bot : développement ou production
+   */
+  public get mode(): "development" | "production" {
+    if (process.env.MODE == "development") {
+      return "development";
+    }
+    return "production";
+  }
+
+  /**
    * Le préfixe pour le lancement des commandes classiques.
    */
   public get commandPrefix(): string {

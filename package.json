@@ -6,6 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index",
+    "start:dev": "MODE=development ts-node src/index",
     "lint": "eslint -c .eslintrc.json --ext .ts src"
   },
   "repository": {
