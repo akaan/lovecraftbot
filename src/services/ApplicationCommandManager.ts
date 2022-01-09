@@ -1,10 +1,15 @@
 import {
   ApplicationCommand,
+  ApplicationCommandManager as GlobalApplicationCommandManager,
   ApplicationCommandPermissionData,
+  ChatInputApplicationCommandData,
   Client,
+  Collection,
   CommandInteraction,
   Guild,
+  GuildApplicationCommandManager,
   GuildApplicationCommandPermissionData,
+  GuildResolvable,
   Role,
 } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
@@ -51,6 +56,12 @@ export class ApplicationCommandManager extends BaseService {
     this.loadApplicationCommands(AvailableApplicationCommands);
 
     void this.deployGlobalApplicationCommands();
+    client.guilds.cache.forEach(
+      (guild) => void this.deployGuildApplicationCommands(guild)
+    );
+    client.on("guildCreate", (guild) => {
+      void this.deployGuildApplicationCommands(guild);
+    });
   }
 
   /**
@@ -81,6 +92,24 @@ export class ApplicationCommandManager extends BaseService {
   }
 
   /**
+   * Renvoie les commandes d'application référencées au niveau serveur
+   *
+   * @returns Les commandes d'application de niveau serveur
+   */
+  private getGuildApplicationCommands(): IApplicationCommand[] {
+    return this.applicationCommands.filter((sc) => sc.isGuildCommand);
+  }
+
+  /**
+   * Renvoie les commandes d'applications référencées au niveau global
+   *
+   * @returns Les commandes d'application globales
+   */
+  public getGlobalApplicationCommands(): IApplicationCommand[] {
+    return this.applicationCommands.filter((sc) => !sc.isGuildCommand);
+  }
+
+  /**
    * Instancie et référence les commandes d'application depuis leurs
    * définitions.
    *
@@ -106,6 +135,8 @@ export class ApplicationCommandManager extends BaseService {
    * - Supprimant les commandes déployées non gérées par le bot
    * - Déployant les commandes gérées par le bot mais non présentes sur Discord
    * - Mettant à jour les commandes qui diffèrent
+   *
+   * @returns Une promesse résolue une fois le traitement terminé
    */
   private async deployGlobalApplicationCommands(): Promise<void> {
     try {
@@ -117,58 +148,13 @@ export class ApplicationCommandManager extends BaseService {
           (c) => c.commandData
         );
 
-        // Suppression des commandes déployées mais non gérées par le bot
-        const deployedCommandsToDelete = deployedCommands.filter(
-          (deployedCommand) =>
-            !botCommands.some(
-              (botCommand) => botCommand.name === deployedCommand.name
-            )
+        await this.deleteObsoleteCommands(deployedCommands, botCommands);
+        await this.createNewCommands(
+          deployedCommands,
+          botCommands,
+          commandManager
         );
-        const deletions = deployedCommandsToDelete.map(
-          async (deployedCommandToDelete) => {
-            const deletion = await deployedCommandToDelete.delete();
-            this.logger.warn(
-              ApplicationCommandManager.LOG_LABEL,
-              `Commande "${deployedCommandToDelete.name}" supprimée de Discord`
-            );
-            return deletion;
-          }
-        );
-        await Promise.all(deletions);
-
-        // Déploiement des commandes gérées par le bot mais non déployéee sur
-        // Discord
-        const newCommands = botCommands.filter(
-          (botCommand) =>
-            !deployedCommands.some(
-              (deployedCommand) => deployedCommand.name === botCommand.name
-            )
-        );
-        const deploys = newCommands.map(async (newCommand) => {
-          const deploy = await commandManager.create(newCommand);
-          this.logger.warn(
-            ApplicationCommandManager.LOG_LABEL,
-            `Commande "${newCommand.name}" déployée sur Discord`
-          );
-          return deploy;
-        });
-        await Promise.all(deploys);
-
-        // Mise à jour des commandes modifiées
-        const edits = botCommands.map(async (botCommand) => {
-          const deployedCommand = deployedCommands.find(
-            (c) => c.name === botCommand.name
-          );
-          if (deployedCommand && !deployedCommand.equals(botCommand)) {
-            const edit = deployedCommand.edit(botCommand);
-            this.logger.warn(
-              ApplicationCommandManager.LOG_LABEL,
-              `Mise à jour de la commande "${botCommand.name}" sur Discord`
-            );
-            return edit;
-          }
-        });
-        await Promise.all(edits);
+        await this.updateCommands(deployedCommands, botCommands);
       }
     } catch (error) {
       this.logger.error(
@@ -180,178 +166,204 @@ export class ApplicationCommandManager extends BaseService {
   }
 
   /**
-   * Renvoie les commandes d'application référencées au niveau serveur
+   * Déploie les commandes d'application d'un serveur en :
+   * - Supprimant les commandes déployées non gérées par le bot
+   * - Déployant les commandes gérées par le bot mais non présentes sur Discord
+   * - Mettant à jour les commandes qui diffèrent
    *
-   * @returns Les commandes d'application de niveau serveur
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois le traitement terminé
    */
-  private getGuildApplicationCommands(): IApplicationCommand[] {
-    return this.applicationCommands.filter((sc) => sc.isGuildCommand);
-  }
-
-  /**
-   * Renvoie les commandes d'applications référencées au niveau global
-   *
-   * @returns Les commandes d'application globales
-   */
-  public getGlobalApplicationCommands(): IApplicationCommand[] {
-    return this.applicationCommands.filter((sc) => !sc.isGuildCommand);
-  }
-
-  /**
-   * Référence auprès de Discord l'ensemble des commandes d'application
-   *
-   * @returns Une promesse résolue une fois les commandes référencées
-   */
-  public async registerApplicationCommands(): Promise<void> {
-    await this.registerGlobalApplicationCommands();
-    await this.registerGuildApplicationCommands();
-  }
-
-  /**
-   * Référence auprès de Discord les commandes d'application globales
-   *
-   * @returns Une promesse résolue une fois les commandes référencées
-   */
-  private async registerGlobalApplicationCommands(): Promise<void> {
-    if (this.client && this.client.application) {
-      try {
-        this.logger.info(
-          ApplicationCommandManager.LOG_LABEL,
-          `Enregistrement des commandes d'application globales...`
-        );
-        await this.client.application.commands.set(
-          this.getGlobalApplicationCommands().map((c) => c.commandData)
-        );
-        this.logger.info(
-          ApplicationCommandManager.LOG_LABEL,
-          `Commandes d'application globales enregistrées`
-        );
-      } catch (err) {
-        this.logger.error(
-          ApplicationCommandManager.LOG_LABEL,
-          `Erreur à l'enregistrement des commandes d'application globales`,
-          { error: err }
-        );
-      }
-    }
-  }
-
-  /**
-   * Référence auprès de Discord les commandes d'application de niveau serveur
-   *
-   * @returns Une promesse résolue une fois les commandes référencées
-   */
-  private async registerGuildApplicationCommands(): Promise<void> {
-    if (this.client) {
-      const guilds = this.client.guilds.cache.filter(
-        filterGuilds(this.envService.testServerId)
+  private async deployGuildApplicationCommands(guild: Guild): Promise<void> {
+    try {
+      const commandManager = guild.commands;
+      const deployedCommands = await commandManager.fetch();
+      const botCommands = this.getGuildApplicationCommands().map(
+        (c) => c.commandData
       );
-      const registers = guilds.map(async (guild) => {
-        this.logger.info(
-          ApplicationCommandManager.LOG_LABEL,
-          `Enregistrement des commandes d'application niveau serveur pour ${guild.name}...`
-        );
-        await guild.commands.set(
-          this.getGuildApplicationCommands().map((c) => c.commandData)
-        );
-        this.logger.info(
-          ApplicationCommandManager.LOG_LABEL,
-          `Commandes d'application niveau serveur enregistrées pour ${guild.name}`
-        );
-      });
-      await Promise.all(registers);
+
+      await this.deleteObsoleteCommands(deployedCommands, botCommands);
+      await this.createNewCommands(
+        deployedCommands,
+        botCommands,
+        commandManager
+      );
+      await this.updateCommands(deployedCommands, botCommands);
+      await this.setGuildApplicationCommandsPermissions(guild);
+    } catch (error) {
+      this.logger.error(
+        ApplicationCommandManager.LOG_LABEL,
+        `Erreur au déploiement des commandes d'application niveau serveur`,
+        { error }
+      );
     }
+  }
+
+  /**
+   * Supprime les commandes déployées mais non gérées par le bot.
+   *
+   * @param deployedCommands Les commandes déployées sur Discord
+   * @param botCommands Les commandes gérées par le bot
+   * @returns Une promesse résolue une fois le traitement terminé
+   */
+  private async deleteObsoleteCommands(
+    deployedCommands: Collection<
+      string,
+      ApplicationCommand<{ guild: GuildResolvable }>
+    >,
+    botCommands: ChatInputApplicationCommandData[]
+  ): Promise<void> {
+    const deployedCommandsToDelete = deployedCommands.filter(
+      (deployedCommand) =>
+        !botCommands.some(
+          (botCommand) => botCommand.name === deployedCommand.name
+        )
+    );
+    const deletions = deployedCommandsToDelete.map(
+      async (deployedCommandToDelete) => {
+        const deletion = await deployedCommandToDelete.delete();
+        this.logger.warn(
+          ApplicationCommandManager.LOG_LABEL,
+          `Commande "${deployedCommandToDelete.name}" supprimée de Discord${
+            deployedCommandToDelete.guild
+              ? ` pour le serveur ${deployedCommandToDelete.guild.name}`
+              : ""
+          }`
+        );
+        return deletion;
+      }
+    );
+    await Promise.all(deletions);
+  }
+
+  /**
+   * Déploie sur Discord les commandes gérées par le bot mais non déployées.
+   *
+   * @param deployedCommands Les commandes déployées sur Discord
+   * @param botCommands Les commandes gérées par le bot
+   * @param commandManager Le gestionnaire de commandes (global ou niveau
+   *                       serveur)
+   * @returns Une promesse résolue une fois le traitement terminé
+   */
+  private async createNewCommands(
+    deployedCommands: Collection<
+      string,
+      ApplicationCommand<{ guild: GuildResolvable }>
+    >,
+    botCommands: ChatInputApplicationCommandData[],
+    commandManager:
+      | GlobalApplicationCommandManager
+      | GuildApplicationCommandManager
+  ): Promise<void> {
+    const guildName =
+      commandManager instanceof GuildApplicationCommandManager
+        ? commandManager.guild.name
+        : undefined;
+
+    const newCommands = botCommands.filter(
+      (botCommand) =>
+        !deployedCommands.some(
+          (deployedCommand) => deployedCommand.name === botCommand.name
+        )
+    );
+    const deploys = newCommands.map(async (newCommand) => {
+      const deploy = await commandManager.create(newCommand);
+      this.logger.warn(
+        ApplicationCommandManager.LOG_LABEL,
+        `Commande "${newCommand.name}" déployée sur Discord${
+          guildName ? `pour le serveur ${guildName}` : ""
+        }`
+      );
+      return deploy;
+    });
+    await Promise.all(deploys);
+  }
+
+  /**
+   * Met à jour sur Discord les commandes qui diffèrent entre ce qui est déployé
+   * et les commandes du bot.
+   *
+   * @param deployedCommands Les commandes déployées sur Discord
+   * @param botCommands Les commandes gérées par le bot
+   * @returns Une promesse résolue uen fois le traitement terminé
+   */
+  private async updateCommands(
+    deployedCommands: Collection<
+      string,
+      ApplicationCommand<{ guild: GuildResolvable }>
+    >,
+    botCommands: ChatInputApplicationCommandData[]
+  ): Promise<void> {
+    const edits = botCommands.map(async (botCommand) => {
+      const deployedCommand = deployedCommands.find(
+        (c) => c.name === botCommand.name
+      );
+      if (deployedCommand && !deployedCommand.equals(botCommand)) {
+        const edit = deployedCommand.edit(botCommand);
+        this.logger.warn(
+          ApplicationCommandManager.LOG_LABEL,
+          `Mise à jour de la commande "${botCommand.name}" sur Discord${
+            deployedCommand.guild
+              ? ` pour le serveur ${deployedCommand.guild.name}`
+              : ""
+          }`
+        );
+        return edit;
+      }
+    });
+    await Promise.all(edits);
   }
 
   /**
    * Référence auprès de Discord les permissions associées aux commandes
    * d'application de niveau serveur
    *
-   * @returns Une promesse résolue une fois les commandes référencées
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue une fois les permissions mises en place
    */
-  public async setGuildApplicationCommandsPermissions(): Promise<void> {
-    if (!this.client) {
+  private async setGuildApplicationCommandsPermissions(
+    guild: Guild
+  ): Promise<void> {
+    const botAdminRoleName = this.envService.botAdminRoleName;
+    if (!botAdminRoleName) {
+      this.logger.warn(
+        ApplicationCommandManager.LOG_LABEL,
+        `Pas de rôle d'adminsitration du bot configuré`
+      );
       return;
     }
 
-    const botAdminRoleName = this.envService.botAdminRoleName;
-    if (botAdminRoleName) {
-      const guildApplicationCommandNames =
-        this.getGuildApplicationCommands().map((c) => c.commandData.name);
-
-      try {
-        const setPermissions = this.client.guilds.cache
-          .filter(filterGuilds(this.envService.testServerId))
-          .map(async (guild) => {
-            this.logger.info(
-              ApplicationCommandManager.LOG_LABEL,
-              `Mise en place des permissions pour les commandes d'application niveau serveur de ${guild.name}`
-            );
-            const result = await allowCommandsForRoleName(
-              guild,
-              guildApplicationCommandNames,
-              botAdminRoleName
-            );
-            this.logger.info(
-              ApplicationCommandManager.LOG_LABEL,
-              `Permissions mises en place pour les commandes d'application niveau serveur de ${guild.name}`
-            );
-            return result;
-          });
-        await Promise.all(setPermissions);
-      } catch (err) {
-        this.logger.error(
+    try {
+      const botAdminRole = guild.roles.cache.find(
+        (r) => r.name === botAdminRoleName
+      );
+      if (!botAdminRole) {
+        this.logger.warn(
           ApplicationCommandManager.LOG_LABEL,
-          `Erreur à la mise en place des permissions pour les commandes d'application niveau serveur`,
-          { error: err }
+          `Pas de rôle "${botAdminRoleName}" sur le serveur ${guild.name}`
+        );
+        return;
+      }
+
+      const commands = await guild.commands.fetch();
+      if (commands.size > 0) {
+        const fullPermissions = commands.map((c) =>
+          createCommandPermission(c, [createRolePermission(botAdminRole)])
+        );
+        await guild.commands.permissions.set({ fullPermissions });
+        this.logger.warn(
+          ApplicationCommandManager.LOG_LABEL,
+          `Permssions de commandes d'application niveau serveur mise en place sur le serveur ${guild.name}`
         );
       }
-    }
-  }
-
-  /**
-   * Déréférence les commandes d'application auprès de Discord.
-   *
-   * @returns Une promesse résolue une fois le déférencement effectué
-   */
-  public async unregisterApplicationCommands(): Promise<void> {
-    if (!this.client) return;
-
-    try {
-      if (this.client.application) {
-        await this.client.application.commands.set([]);
-      }
-      const unregisters = this.client.guilds.cache.map(async (guild) => {
-        await guild.commands.set([]);
-        await guild.commands.permissions.set({ fullPermissions: [] });
-      });
-      await Promise.all(unregisters);
     } catch (err) {
       this.logger.error(
         ApplicationCommandManager.LOG_LABEL,
-        "Erreur au désenregistrement des commandes d'application",
+        `Erreur à la mise en place des permissions pour les commandes d'application niveau serveur sur ${guild.name}`,
         { error: err }
       );
     }
   }
-}
-
-/**
- * Construit un filtre qui sera soit un passe-plat soit un filtre qui ne laisse
- * passer que le serveur dont l'identifiant est celui fournit.
- * Utile pour filtrer sur un serveur de test si un identifiant de serveur de
- * test est présent.
- *
- * @param maybeGuildId Un identifiant de serveur ou rien s'il ne faut pas filtrer
- * @returns Un filtre à appliquer sur une collection de serveurs
- */
-function filterGuilds(
-  maybeGuildId: string | undefined
-): (guild: Guild) => boolean {
-  if (maybeGuildId) {
-    return (guild: Guild) => guild.id === maybeGuildId;
-  }
-  return (_guild: Guild) => true;
 }
 
 /**
@@ -383,35 +395,4 @@ function createCommandPermission(
     id: command.id,
     permissions,
   };
-}
-
-/**
- * Référence auprès de Discord (en annule et remplace), pour un serveur donné,
- * des permissions pour une liste de commandes donnée et pour le rôlé donné.
- *
- * @param guild Le serveur sur lequel positionner la permission
- * @param commandNames Les noms des commandes sur lesquelles appliquer la permission
- * @param roleName Le nom du rôle auquel restreindre les commandes
- * @returns Une promesse résolue une fois les permissions référencées
- */
-async function allowCommandsForRoleName(
-  guild: Guild,
-  commandNames: string[],
-  roleName: string
-): Promise<void> {
-  const role = guild.roles.cache.find((r) => r.name === roleName);
-  if (role) {
-    // Il faut utiliser `fetch` car potentiellement les commandes viennent
-    // tout juste d'être créées et ne sont pas dans le cache.
-    const commands = (await guild.commands.fetch())
-      .filter((c) => commandNames.includes(c.name))
-      .map((c) => c);
-
-    if (commands.length > 0) {
-      const fullPermissions = commands.map((c) =>
-        createCommandPermission(c, [createRolePermission(role)])
-      );
-      await guild.commands.permissions.set({ fullPermissions });
-    }
-  }
 }

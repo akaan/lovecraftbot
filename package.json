@@ -6,10 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index",
-    "lint": "eslint -c .eslintrc.json --ext .ts src",
-    "list-application-commands": "ts-node scripts/listApplicationCommands",
-    "register-application-commands": "ts-node scripts/registerApplicationCommands",
-    "unregister-application-commands": "ts-node scripts/unregisterApplicationCommands"
+    "lint": "eslint -c .eslintrc.json --ext .ts src"
   },
   "repository": {
     "type": "git",
