@@ -5,6 +5,7 @@ import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
 
+import { GuildConfigurationService } from "./GuildConfigurationService";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
@@ -24,8 +25,9 @@ export class NewsService extends BaseService {
   /** Timer permettant de gérant la routine de vérification des news */
   private timer: NodeJS.Timer | undefined = undefined;
 
-  @Inject logger!: LoggerService;
-  @Inject resourcesService!: ResourcesService;
+  @Inject private logger!: LoggerService;
+  @Inject private resourcesService!: ResourcesService;
+  @Inject private guildConfigurationService!: GuildConfigurationService;
 
   public async init(client: Client) {
     await super.init(client);
@@ -87,17 +89,29 @@ export class NewsService extends BaseService {
         NewsService.LOG_LABEL,
         `Nouvelle news à envoyer sur le serveur ${guild.name}`
       );
-      const globalChannel = guild.channels.cache.find(
-        (channel) =>
-          channel.isText() && channel.name.toLowerCase().includes("général")
+
+      const newsChannelId = this.guildConfigurationService.getConfig<string>(
+        guild,
+        "newsChannelId"
+      );
+      if (!newsChannelId) {
+        this.logger.warn(
+          NewsService.LOG_LABEL,
+          `Impossible d'envoyer la news en l'absence d'un canal pour l'envoi`
+        );
+        return;
+      }
+
+      const newsChannel = guild.channels.cache.find(
+        (channel) => channel.isText() && channel.id == newsChannelId
       ) as TextChannel | undefined;
-      if (globalChannel) {
-        await globalChannel.send({ content: latestLink });
+      if (newsChannel) {
+        await newsChannel.send({ content: latestLink });
         await this.saveLastLinkSent(guild, latestLink);
       } else {
         this.logger.info(
           NewsService.LOG_LABEL,
-          `Le serveur ${guild.name} n'a pas de canal "général" pour l'envoi de la news`
+          `Le canal d'identifiant "${newsChannelId}" n'a pas été trouvé sur le serveur ${guild.name} pour l'envoi de la news`
         );
       }
     }

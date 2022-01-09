@@ -6,6 +6,7 @@ export * from "./EchoCommand";
 export * from "./FaqCommand";
 export * from "./TradCommand";
 export * from "./HelpCommand";
+export * from "./NewsCommand";
 export * from "./RefreshCommand";
 export * from "./RuleCommand";
 export * from "./TimingCommand";
