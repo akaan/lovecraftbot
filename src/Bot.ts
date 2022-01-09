@@ -9,6 +9,7 @@ import { CardService } from "./services/CardService";
 import { CommandParser } from "./services/CommandParser";
 import { EmojiService } from "./services/EmojiService";
 import { EnvService } from "./services/EnvService";
+import { GuildConfigurationService } from "./services/GuildConfigurationService";
 import { LoggerService } from "./services/LoggerService";
 import { MassMultiplayerEventService } from "./services/MassMultiplayerEventService";
 import { NewsService } from "./services/NewsService";
@@ -30,6 +31,7 @@ export class Bot {
   @Inject private cardService!: CardService;
   @Inject private envService!: EnvService;
   @Inject private emojiService!: EmojiService;
+  @Inject private guildConfigurationService!: GuildConfigurationService;
   @Inject private logger!: LoggerService;
   @Inject private newsService!: NewsService;
   @Inject private presenceService!: PresenceService;
@@ -65,6 +67,7 @@ export class Bot {
 
     this.needInitServices = [
       this.logger,
+      this.guildConfigurationService,
       this.presenceService,
       this.emojiService,
       this.cardService,

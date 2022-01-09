@@ -8,12 +8,14 @@ import { Inject } from "typescript-ioc";
 
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { CardOfTheDayService } from "../services/CardOfTheDayService";
+import { GuildConfigurationService } from "../services/GuildConfigurationService";
 
 /**
  * Commande d'administration de la carte du jour
  */
 export class CardOfTheDayCommand implements IApplicationCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;
+  @Inject private guildConfigurationService!: GuildConfigurationService;
 
   isGuildCommand = true;
 
@@ -21,6 +23,19 @@ export class CardOfTheDayCommand implements IApplicationCommand {
     name: "cotd",
     description: "Commandes de gestion de la carte du jour",
     options: [
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "canal",
+        description: "Définit le canal d'envoi de la carte du jour",
+        options: [
+          {
+            type: ApplicationCommandOptionTypes.CHANNEL,
+            name: "canal",
+            description: "Le canal sur lequel envoyer la carte du jour",
+            required: true,
+          },
+        ],
+      } as ApplicationCommandSubCommandData,
       {
         type: ApplicationCommandOptionTypes.SUB_COMMAND,
         name: "encore",
@@ -51,6 +66,49 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (commandInteraction.options.getSubcommand() === "canal") {
+      if (commandInteraction.guild) {
+        const channel = commandInteraction.options.getChannel("canal");
+        if (channel && channel.type === "GUILD_TEXT") {
+          await this.guildConfigurationService.setConfig(
+            commandInteraction.guild,
+            "cardOfTheDayChannelId",
+            channel.id
+          );
+          await commandInteraction.reply({
+            content: `C'est fait ! La carte du jour sera envoyée sur le canal ${channel.name}`,
+            ephemeral: true,
+          });
+          return {
+            cmd: "CardOdTheDayCommand",
+            result: "Canal d'envoi de la carte du jour positionné",
+            channelName: channel.name,
+          };
+        } else {
+          await commandInteraction.reply({
+            content: `Désolé, mais je n'ai pas trouvé ce canal ou son type ne convient pas`,
+            ephemeral: true,
+          });
+          return {
+            cmd: "CardOdTheDayCommand",
+            result:
+              "Impossible de positionner le canal d'envoi de la carte du jour",
+            channel: channel,
+          };
+        }
+      } else {
+        await commandInteraction.reply({
+          content: `Désolé, cette commande doit être lancée sur un serveur`,
+          ephemeral: true,
+        });
+        return {
+          cmd: "CardOdTheDayCommand",
+          result:
+            "Impossible de positionner le canal de la carte du jour hors serveur",
+        };
+      }
+    }
+
     if (commandInteraction.options.getSubcommand() === "encore") {
       await this.cardOfTheDayService.sendCardOfTheDay();
       await commandInteraction.reply({
