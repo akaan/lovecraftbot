@@ -189,7 +189,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
     if (hour) {
       await this.guildConfigurationService.setConfig(
         guild,
-        "cardOfTheDayChannelHour",
+        "cardOfTheDayHour",
         hour
       );
       await commandInteraction.reply({

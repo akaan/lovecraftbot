@@ -4,7 +4,6 @@ import { OnlyInstantiableByContainer, Singleton, Inject } from "typescript-ioc";
 import { BaseService } from "../base/BaseService";
 
 import { CardService, SearchType } from "./CardService";
-import { EnvService } from "./EnvService";
 import { GuildConfigurationService } from "./GuildConfigurationService";
 import { LoggerService } from "./LoggerService";
 import { RandomService } from "./RandomService";
@@ -30,7 +29,6 @@ export class CardOfTheDayService extends BaseService {
   private timer: NodeJS.Timer | undefined = undefined;
 
   @Inject private cardService!: CardService;
-  @Inject private envService!: EnvService;
   @Inject private logger!: LoggerService;
   @Inject private randomService!: RandomService;
   @Inject private resourcesService!: ResourcesService;
@@ -38,14 +36,6 @@ export class CardOfTheDayService extends BaseService {
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
-
-    if (!this.envService.cardOfTheDayChannelId) {
-      this.logger.info(
-        CardOfTheDayService.LOG_LABEL,
-        `Pas d'ID de channel pour la carte du jour.`
-      );
-      return;
-    }
 
     client.guilds.cache.forEach((guild) => void this.loadCardCodesSent(guild));
     client.on("guildCreate", (guild) => void this.loadCardCodesSent(guild));
@@ -66,23 +56,29 @@ export class CardOfTheDayService extends BaseService {
    * l'heure indiquée.
    */
   public start(): void {
-    const cardOfTheDayHour = this.envService.cardOfTheDayHour;
-
     this.timer = setInterval(() => {
       const now = new Date();
-      if (now.getHours() === cardOfTheDayHour && now.getMinutes() === 0) {
-        if (this.client) {
-          this.client.guilds.cache.forEach(
-            (guild) => void this.sendCardOfTheDay(guild)
-          );
-        }
+      if (this.client) {
+        this.client.guilds.cache.forEach((guild) => {
+          const cardOfTheDayHour =
+            this.guildConfigurationService.getConfig<number>(
+              guild,
+              "cardOfTheDayHour"
+            );
+          if (!cardOfTheDayHour) {
+            this.logger.warn(
+              CardOfTheDayService.LOG_LABEL,
+              `Pas d'heure d'envoi de la carte du jour sur le serveur ${guild.name}`
+            );
+
+            return;
+          }
+          if (now.getHours() === cardOfTheDayHour && now.getMinutes() === 0) {
+            void this.sendCardOfTheDay(guild);
+          }
+        });
       }
     }, 1000 * 60);
-
-    this.logger.info(
-      CardOfTheDayService.LOG_LABEL,
-      `La carte du jour sera envoyée chaque jour à ${cardOfTheDayHour}H.`
-    );
   }
 
   /**

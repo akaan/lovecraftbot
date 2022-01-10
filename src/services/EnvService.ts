@@ -41,25 +41,6 @@ export class EnvService extends BaseService {
   }
 
   /**
-   * Identifiant du canal sur lequel envoyer la carte du jour.
-   */
-  public get cardOfTheDayChannelId(): string | undefined {
-    return process.env.CARD_OF_THE_DAY_CHANNEL;
-  }
-
-  /**
-   * Heure du jour à laquelle envoyer la carte du jour.
-   */
-  public get cardOfTheDayHour(): number {
-    const parsed = parseInt(process.env.CARD_OF_THE_DAY_HOUR || "8", 10);
-    if (isNaN(parsed)) {
-      return 8;
-    } else {
-      return parsed;
-    }
-  }
-
-  /**
    * Nom de la catégorie de canaux où sont gérés les événements multijoueurs
    */
   public get massMultiplayerEventCategoryName(): string | undefined {
