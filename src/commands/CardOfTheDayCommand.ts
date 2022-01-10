@@ -66,6 +66,17 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.guild) {
+      await commandInteraction.reply({
+        content: "Désolé, cette commande doit être exécutée sur un serveur",
+        ephemeral: true,
+      });
+      return {
+        cmd: "CardOdTheDayCommand",
+        result: "Impossible d'exécuter cette commande hors serveur",
+      };
+    }
+
     if (commandInteraction.options.getSubcommand() === "canal") {
       if (commandInteraction.guild) {
         const channel = commandInteraction.options.getChannel("canal");
@@ -110,7 +121,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
     }
 
     if (commandInteraction.options.getSubcommand() === "encore") {
-      await this.cardOfTheDayService.sendCardOfTheDay();
+      await this.cardOfTheDayService.sendCardOfTheDay(commandInteraction.guild);
       await commandInteraction.reply({
         content: "Nouvelle carte tirée !",
         ephemeral: true,
@@ -122,8 +133,14 @@ export class CardOfTheDayCommand implements IApplicationCommand {
     }
 
     if (commandInteraction.options.getSubcommand() === "liste") {
+      const cardCodesSent = this.cardOfTheDayService.getCardCodesSent(
+        commandInteraction.guild
+      );
       await commandInteraction.reply({
-        content: this.cardOfTheDayService.getCardCodesSent().join(", "),
+        content:
+          cardCodesSent.length > 0
+            ? cardCodesSent.join(", ")
+            : "Aucune carte n'a été tirée",
         ephemeral: true,
       });
       return {
@@ -136,7 +153,10 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       const codesText = commandInteraction.options.getString("codes");
       if (codesText) {
         const codes = codesText.split(",").map((s) => s.trim());
-        await this.cardOfTheDayService.addCardSent(codes);
+        await this.cardOfTheDayService.addCardSent(
+          commandInteraction.guild,
+          codes
+        );
         await commandInteraction.reply({
           content: `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`,
           ephemeral: true,
