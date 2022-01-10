@@ -1,6 +1,7 @@
 import {
   ApplicationCommandSubCommandData,
   CommandInteraction,
+  Guild,
 } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
@@ -71,113 +72,169 @@ export class CardOfTheDayCommand implements IApplicationCommand {
         content: "Désolé, cette commande doit être exécutée sur un serveur",
         ephemeral: true,
       });
-      return {
-        cmd: "CardOdTheDayCommand",
-        result: "Impossible d'exécuter cette commande hors serveur",
-      };
+      return this.commandResult(
+        "Impossible d'exécuter cette commande hors serveur"
+      );
     }
 
     if (commandInteraction.options.getSubcommand() === "canal") {
-      if (commandInteraction.guild) {
-        const channel = commandInteraction.options.getChannel("canal");
-        if (channel && channel.type === "GUILD_TEXT") {
-          await this.guildConfigurationService.setConfig(
-            commandInteraction.guild,
-            "cardOfTheDayChannelId",
-            channel.id
-          );
-          await commandInteraction.reply({
-            content: `C'est fait ! La carte du jour sera envoyée sur le canal ${channel.name}`,
-            ephemeral: true,
-          });
-          return {
-            cmd: "CardOdTheDayCommand",
-            result: "Canal d'envoi de la carte du jour positionné",
-            channelName: channel.name,
-          };
-        } else {
-          await commandInteraction.reply({
-            content: `Désolé, mais je n'ai pas trouvé ce canal ou son type ne convient pas`,
-            ephemeral: true,
-          });
-          return {
-            cmd: "CardOdTheDayCommand",
-            result:
-              "Impossible de positionner le canal d'envoi de la carte du jour",
-            channel: channel,
-          };
-        }
-      } else {
-        await commandInteraction.reply({
-          content: `Désolé, cette commande doit être lancée sur un serveur`,
-          ephemeral: true,
-        });
-        return {
-          cmd: "CardOdTheDayCommand",
-          result:
-            "Impossible de positionner le canal de la carte du jour hors serveur",
-        };
-      }
+      return this.defineCardOfTheDayChannel(
+        commandInteraction,
+        commandInteraction.guild
+      );
     }
 
     if (commandInteraction.options.getSubcommand() === "encore") {
-      await this.cardOfTheDayService.sendCardOfTheDay(commandInteraction.guild);
-      await commandInteraction.reply({
-        content: "Nouvelle carte tirée !",
-        ephemeral: true,
-      });
-      return {
-        cmd: "CardOfTheDayCommand",
-        result: `Nouvelle carte du jour envoyée`,
-      };
+      return this.sendCardOfTheDay(
+        commandInteraction,
+        commandInteraction.guild
+      );
     }
 
     if (commandInteraction.options.getSubcommand() === "liste") {
-      const cardCodesSent = this.cardOfTheDayService.getCardCodesSent(
+      return this.sendCardCodesSent(
+        commandInteraction,
         commandInteraction.guild
       );
-      await commandInteraction.reply({
-        content:
-          cardCodesSent.length > 0
-            ? cardCodesSent.join(", ")
-            : "Aucune carte n'a été tirée",
-        ephemeral: true,
-      });
-      return {
-        cmd: "CardOfTheDayCommand",
-        result: `Liste des cartes du jour déjà tirées envoyée`,
-      };
     }
 
     if (commandInteraction.options.getSubcommand() === "ajouter") {
-      const codesText = commandInteraction.options.getString("codes");
-      if (codesText) {
-        const codes = codesText.split(",").map((s) => s.trim());
-        await this.cardOfTheDayService.addCardSent(
-          commandInteraction.guild,
-          codes
-        );
-        await commandInteraction.reply({
-          content: `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`,
-          ephemeral: true,
-        });
-
-        return { cmd: "CardOfTheDayCommand", result: "Codes ajoutés" };
-      } else {
-        return {
-          cmd: "CardOfTheDayCommand",
-          result: `Codes de carte non fournis`,
-        };
-      }
+      return this.addCardCodesSent(
+        commandInteraction,
+        commandInteraction.guild
+      );
     }
 
     await commandInteraction.reply({
       content: `Oops, il y a eu un problème`,
       ephemeral: true,
     });
-    return {
-      cmd: "CardOfTheDayCommand",
-      result: `Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`,
-    };
+    return this.commandResult(
+      `Sous-commande ${commandInteraction.options.getSubcommand()} inconnue`
+    );
+  }
+
+  /**
+   * Traite le cas de la sous-commande définition du canal d'envoi de la carte
+   * du jour.
+   *
+   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async defineCardOfTheDayChannel(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    const channel = commandInteraction.options.getChannel("canal");
+    if (channel && channel.type === "GUILD_TEXT") {
+      await this.guildConfigurationService.setConfig(
+        guild,
+        "cardOfTheDayChannelId",
+        channel.id
+      );
+      await commandInteraction.reply({
+        content: `C'est fait ! La carte du jour sera envoyée sur le canal ${channel.name}`,
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Canal d'envoi de la carte du jour positionné",
+        { channelName: channel.name }
+      );
+    } else {
+      await commandInteraction.reply({
+        content: `Désolé, mais je n'ai pas trouvé ce canal ou son type ne convient pas`,
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de positionner le canal d'envoi de la carte du jour",
+        { channel }
+      );
+    }
+  }
+
+  /**
+   * Traite le cas de la sous-commande de renvoi d'une carte du jour.
+   *
+   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async sendCardOfTheDay(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    await this.cardOfTheDayService.sendCardOfTheDay(guild);
+    await commandInteraction.reply({
+      content: "Nouvelle carte tirée !",
+      ephemeral: true,
+    });
+    return this.commandResult(`Nouvelle carte du jour envoyée`);
+  }
+
+  /**
+   * Traite le cas de la sous-commande d'ajout de codes de carte tirés.
+   *
+   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async addCardCodesSent(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    const codesText = commandInteraction.options.getString("codes");
+    if (codesText) {
+      const codes = codesText.split(",").map((s) => s.trim());
+      await this.cardOfTheDayService.addCardSent(guild, codes);
+      await commandInteraction.reply({
+        content: `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`,
+        ephemeral: true,
+      });
+
+      return this.commandResult("Codes ajoutés", { codes });
+      return { cmd: "CardOfTheDayCommand", result: "Codes ajoutés" };
+    } else {
+      return {
+        cmd: "CardOfTheDayCommand",
+        result: `Codes de carte non fournis`,
+      };
+    }
+  }
+
+  /**
+   * Traite le cas de la sous-commande d'affichage des codes de cartes tirés.
+   *
+   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async sendCardCodesSent(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    const cardCodesSent = this.cardOfTheDayService.getCardCodesSent(guild);
+    await commandInteraction.reply({
+      content:
+        cardCodesSent.length > 0
+          ? cardCodesSent.join(", ")
+          : "Aucune carte n'a été tirée",
+      ephemeral: true,
+    });
+    return this.commandResult(`Liste des cartes du jour déjà tirées envoyée`);
+  }
+
+  /**
+   * Permet de construire le résultat de la commande.
+   *
+   * @param result Le résultat de la commande
+   * @param meta Les données supplémentaires à adjoindre
+   * @returns Un résultat de commande complet
+   */
+  private commandResult(
+    result: string,
+    meta?: Omit<IApplicationCommandResult, "cmd" | "result">
+  ) {
+    return { cmd: "FaqCommand", result, ...meta };
   }
 }
