@@ -39,6 +39,19 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       } as ApplicationCommandSubCommandData,
       {
         type: ApplicationCommandOptionTypes.SUB_COMMAND,
+        name: "heure",
+        description: "Définit le l'heure d'envoi de la carte du jour",
+        options: [
+          {
+            type: ApplicationCommandOptionTypes.INTEGER,
+            name: "heure",
+            description: "L'heure à laquelle envoyer la carte du jour",
+            required: true,
+          },
+        ],
+      } as ApplicationCommandSubCommandData,
+      {
+        type: ApplicationCommandOptionTypes.SUB_COMMAND,
         name: "encore",
         description: "Retire une nouvelle carte du jour",
       } as ApplicationCommandSubCommandData,
@@ -79,6 +92,13 @@ export class CardOfTheDayCommand implements IApplicationCommand {
 
     if (commandInteraction.options.getSubcommand() === "canal") {
       return this.defineCardOfTheDayChannel(
+        commandInteraction,
+        commandInteraction.guild
+      );
+    }
+
+    if (commandInteraction.options.getSubcommand() === "heure") {
+      return this.defineCardOfTheDayHour(
         commandInteraction,
         commandInteraction.guild
       );
@@ -149,6 +169,44 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       return this.commandResult(
         "Impossible de positionner le canal d'envoi de la carte du jour",
         { channel }
+      );
+    }
+  }
+
+  /**
+   * Traite le cas de la sous-commande définition de l'heure d'envoi de la carte
+   * du jour.
+   *
+   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async defineCardOfTheDayHour(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    const hour = commandInteraction.options.getInteger("heure");
+    if (hour) {
+      await this.guildConfigurationService.setConfig(
+        guild,
+        "cardOfTheDayChannelHour",
+        hour
+      );
+      await commandInteraction.reply({
+        content: `C'est fait ! La carte du jour sera envoyée à ${hour}H`,
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Heure d'envoi de la carte du jour positionné",
+        { hour }
+      );
+    } else {
+      await commandInteraction.reply({
+        content: `Désolé, mais il faut préciser l'heure`,
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Heure d'envoi de la carte du jour non fournie"
       );
     }
   }
@@ -235,6 +293,6 @@ export class CardOfTheDayCommand implements IApplicationCommand {
     result: string,
     meta?: Omit<IApplicationCommandResult, "cmd" | "result">
   ) {
-    return { cmd: "FaqCommand", result, ...meta };
+    return { cmd: "CardOfTheDayCommand", result, ...meta };
   }
 }
