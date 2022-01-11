@@ -9,9 +9,10 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { createSelectMenuCollector } from "../discordHelpers";
+import { createSelectMenuCollector, getEmbedSize } from "../discordHelpers";
 import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
 import { Rule, RulesService } from "../services/RulesService";
+import { partition } from "../utils";
 
 /*
  Le nombre maximum de points de règles à afficher pour éviter de dépasser
@@ -95,10 +96,24 @@ export class RuleCommand implements IApplicationCommand {
     options = { ephemeral: true }
   ): Promise<IApplicationCommandResult> {
     const ruleEmbeds = this.rulesService.createEmbeds(rule);
-    await interaction.reply({
-      embeds: ruleEmbeds,
-      ephemeral: options.ephemeral,
-    });
+    const partitionOversized = partition(
+      ruleEmbeds,
+      (embed) => getEmbedSize(embed) < 3000
+    );
+    if (partitionOversized.fail.length > 0) {
+      await interaction.reply({
+        content: `Je ne peux pas afficher les règles suivantes qui sont trop grosses pour Discord: ${partitionOversized.fail
+          .map((e) => e.author?.name)
+          .join(", ")}`,
+        embeds: partitionOversized.pass,
+        ephemeral: options.ephemeral,
+      });
+    } else {
+      await interaction.reply({
+        embeds: partitionOversized.pass,
+        ephemeral: options.ephemeral,
+      });
+    }
     return { cmd: "RuleCommand", result: `Règle(s) envoyée(s)` };
   }
 

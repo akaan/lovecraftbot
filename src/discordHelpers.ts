@@ -2,6 +2,7 @@ import {
   CommandInteraction,
   InteractionCollector,
   Message,
+  MessageEmbed,
   SelectMenuInteraction,
 } from "discord.js";
 
@@ -33,4 +34,31 @@ export async function createSelectMenuCollector(
       });
     }
   }
+}
+
+/**
+ * Afin de s'assurer qu'un encart Discord n'est pas trop gros.
+ * https://discord.com/developers/docs/resources/channel#embed-limits
+ *
+ * @param embed L'encart à mesurer
+ * @returns La taille totale de l'encart
+ */
+export function getEmbedSize(embed: MessageEmbed): number {
+  const titleLength = embed.title ? embed.title.length : 0;
+  const descriptionLength = embed.description ? embed.description.length : 0;
+  const authorNameLength =
+    embed.author && embed.author.name ? embed.author.name.length : 0;
+  const footerLength =
+    embed.footer && embed.footer.text ? embed.footer.text.length : 0;
+  const fieldsLength = embed.fields.reduce((sum, field) => {
+    return sum + field.name.length + field.value.length;
+  }, 0);
+
+  return (
+    titleLength +
+    descriptionLength +
+    authorNameLength +
+    footerLength +
+    fieldsLength
+  );
 }

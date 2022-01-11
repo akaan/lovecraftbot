@@ -67,3 +67,20 @@ export function caseOfLength<E, R>(
     return patterns.ifEmpty();
   }
 }
+
+/**
+ * Partitionne un tableau d'éléments en fonction d'un prédicat.
+ *
+ * @param elems Le tableau à partitionner
+ * @param predicate La fonction de partitionnement
+ * @returns Un objet avec les éléments qui passent et ceux qui ne passent pas
+ */
+export function partition<T>(
+  elems: T[],
+  predicate: (elem: T) => boolean
+): { pass: T[]; fail: T[] } {
+  return {
+    pass: elems.filter(predicate),
+    fail: elems.filter((elem) => !predicate(elem)),
+  };
+}
