@@ -57,12 +57,17 @@ export class GuildConfigurationService extends BaseService {
    * @param guild Le serveur concerné
    * @param key La clé de la donnée de configuration
    * @param value La valeur de la donnée de configuration
+   * @returns Une promesse résolue une fois la configuration positionnée
    */
-  public setConfig(guild: Guild, key: string, value: unknown): void {
+  public async setConfig(
+    guild: Guild,
+    key: string,
+    value: unknown
+  ): Promise<void> {
     let guildConfig = this.config.get(guild);
     if (!guildConfig) {
       guildConfig = {};
     }
-    this.config.set(guild, { ...guildConfig, [key]: value });
+    await this.config.set(guild, { ...guildConfig, [key]: value });
   }
 }

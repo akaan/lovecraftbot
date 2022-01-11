@@ -104,8 +104,8 @@ export class CardOfTheDayService extends BaseService {
    * @param guild Le seveur concerné
    * @param codes Des codes de cartes à ajouter à la liste
    */
-  public addCardSent(guild: Guild, codes: string[]): void {
-    this.cardCodesSent.set(guild, [
+  public addCardSent(guild: Guild, codes: string[]): Promise<void> {
+    return this.cardCodesSent.set(guild, [
       ...(this.cardCodesSent.get(guild) || []),
       ...codes,
     ]);
@@ -171,7 +171,7 @@ export class CardOfTheDayService extends BaseService {
         embeds: [embed],
       });
       await msg.pin();
-      this.addCardSent(guild, [randomCode]);
+      await this.addCardSent(guild, [randomCode]);
 
       this.logger.info(
         CardOfTheDayService.LOG_LABEL,

@@ -240,7 +240,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
     const codesText = commandInteraction.options.getString("codes");
     if (codesText) {
       const codes = codesText.split(",").map((s) => s.trim());
-      this.cardOfTheDayService.addCardSent(guild, codes);
+      await this.cardOfTheDayService.addCardSent(guild, codes);
       await commandInteraction.reply({
         content: `Ces ${codes.length} carte(s) ont été ajoutée(s) à la liste des cartes déjà tirées`,
         ephemeral: true,

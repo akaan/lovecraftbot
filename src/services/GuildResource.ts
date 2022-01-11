@@ -71,14 +71,23 @@ export class GuildResource<T> {
   }
 
   /**
-   * Positionner la valeur gérée par cette ressource pour le serveur indiqué.
+   * Positionne la valeur gérée par cette ressource pour le serveur indiqué.
+   * La sauvegarde est faite dans la foulée et cette méthode échouera si la
+   * sauvegarde a échoué : la valeur gardée en mémoire restera l'ancienne
+   * valeur.
    *
    * @param guild Le serveur concerné
    * @param value La valeur a positionner
+   * @returns Une promesse résolue une fois la valeur positionnée
    */
-  public set(guild: Guild, value: T): void {
-    this.valueByGuidId[guild.id] = value;
-    void this.save(guild);
+  public async set(guild: Guild, value: T): Promise<void> {
+    const oldValue = this.valueByGuidId[guild.id];
+    try {
+      this.valueByGuidId[guild.id] = value;
+      await this.save(guild);
+    } catch (error) {
+      this.valueByGuidId[guild.id] = oldValue;
+    }
   }
 
   /**
