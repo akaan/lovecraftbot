@@ -1,7 +1,7 @@
 import { Client, Guild } from "discord.js";
 
-import { LoggerService } from "./LoggerService";
-import { ResourcesService } from "./ResourcesService";
+import { LoggerService } from "../LoggerService";
+import { ResourcesService } from "../ResourcesService";
 
 /**
  * Les paramètres nécessaires au fonctionnement d'un ressource de serveur.

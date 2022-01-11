@@ -3,8 +3,8 @@ import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
 
-import { GuildResource } from "./GuildResource";
 import { LoggerService } from "./LoggerService";
+import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
 
 @Singleton

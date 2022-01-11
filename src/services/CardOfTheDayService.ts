@@ -5,9 +5,9 @@ import { BaseService } from "../base/BaseService";
 
 import { CardService, SearchType } from "./CardService";
 import { GuildConfigurationService } from "./GuildConfigurationService";
-import { GuildResource } from "./GuildResource";
 import { LoggerService } from "./LoggerService";
 import { RandomService } from "./RandomService";
+import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
 
 @Singleton
