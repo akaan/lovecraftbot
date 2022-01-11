@@ -44,7 +44,7 @@ export class NewsCommand implements IApplicationCommand {
       if (commandInteraction.guild) {
         const channel = commandInteraction.options.getChannel("canal");
         if (channel && channel.type === "GUILD_TEXT") {
-          await this.guildConfigurationService.setConfig(
+          this.guildConfigurationService.setConfig(
             commandInteraction.guild,
             "newsChannelId",
             channel.id

@@ -3,6 +3,7 @@ import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
 
+import { GuildResource } from "./GuildResource";
 import { LoggerService } from "./LoggerService";
 import { ResourcesService } from "./ResourcesService";
 
@@ -20,15 +21,18 @@ export class GuildConfigurationService extends BaseService {
   @Inject resources!: ResourcesService;
   @Inject logger!: LoggerService;
 
-  /** Les données de configuration, par identifiant de serveur */
-  private configByGuildId: { [guildId: string]: { [key: string]: unknown } } =
-    {};
+  /** Les données de configuration */
+  private config!: GuildResource<{ [key: string]: unknown }>;
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
-
-    client.guilds.cache.forEach((guild) => void this.loadConfig(guild));
-    client.on("guildCreate", (guild) => void this.loadConfig(guild));
+    this.config = new GuildResource<{ [key: string]: unknown }>({
+      client,
+      filename: GuildConfigurationService.CONFIGURATION_FILE_NAME,
+      logger: this.logger,
+      logLabel: GuildConfigurationService.LOG_LABEL,
+      resourcesService: this.resources,
+    });
   }
 
   /**
@@ -40,7 +44,7 @@ export class GuildConfigurationService extends BaseService {
    * @returns La valeur de la donnée de configuration
    */
   public getConfig<T>(guild: Guild, key: string): T | undefined {
-    const guildConfig = this.configByGuildId[guild.id];
+    const guildConfig = this.config.get(guild);
     if (guildConfig && guildConfig[key]) {
       return guildConfig[key] as T;
     }
@@ -54,81 +58,11 @@ export class GuildConfigurationService extends BaseService {
    * @param key La clé de la donnée de configuration
    * @param value La valeur de la donnée de configuration
    */
-  public async setConfig(
-    guild: Guild,
-    key: string,
-    value: unknown
-  ): Promise<void> {
-    const guildConfig = this.configByGuildId[guild.id];
+  public setConfig(guild: Guild, key: string, value: unknown): void {
+    let guildConfig = this.config.get(guild);
     if (!guildConfig) {
-      await this.initConfig(guild);
+      guildConfig = {};
     }
-    guildConfig[key] = value;
-    await this.saveConfig(guild);
-  }
-
-  /**
-   * Charge les données de configuration pour le serveur indiqué.
-   *
-   * @param guild Le serveur concerné
-   */
-  private async loadConfig(guild: Guild): Promise<void> {
-    try {
-      const configFileExists = await this.resources.guildResourceExists(
-        guild,
-        GuildConfigurationService.CONFIGURATION_FILE_NAME
-      );
-      if (configFileExists) {
-        const raw = await this.resources.readGuildResource(
-          guild,
-          GuildConfigurationService.CONFIGURATION_FILE_NAME
-        );
-        if (raw) {
-          const parsed = JSON.parse(raw) as { [key: string]: unknown };
-          this.configByGuildId[guild.id] = parsed;
-        }
-      } else {
-        void this.initConfig(guild);
-      }
-    } catch (error) {
-      this.logger.error(
-        GuildConfigurationService.LOG_LABEL,
-        `Erreur au chargement du fichier de configuration pour le serveur ${guild.name}`,
-        { error }
-      );
-      void this.initConfig(guild);
-    }
-  }
-
-  /**
-   * Initie les données de configuration sur le serveur concerné.
-   *
-   * @param guild Le serveur concerné
-   */
-  private async initConfig(guild: Guild): Promise<void> {
-    this.configByGuildId[guild.id] = {};
-    await this.saveConfig(guild);
-  }
-
-  /**
-   * Sauvegarde les données de configuration pour le serveur indiqué.
-   *
-   * @param guild Le serveur concerné
-   * @returns Une promesse résolue une fois l'enregistrement terminé
-   */
-  private async saveConfig(guild: Guild): Promise<void> {
-    try {
-      await this.resources.saveGuildResource(
-        guild,
-        GuildConfigurationService.CONFIGURATION_FILE_NAME,
-        JSON.stringify(this.configByGuildId[guild.id], null, "  ")
-      );
-    } catch (error) {
-      this.logger.error(
-        GuildConfigurationService.LOG_LABEL,
-        `Erreur à la sauvegarde du fichier de configuration pour le serveur ${guild.name}`,
-        { error }
-      );
-    }
+    this.config.set(guild, { ...guildConfig, [key]: value });
   }
 }

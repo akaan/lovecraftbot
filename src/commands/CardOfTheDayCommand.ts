@@ -148,7 +148,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     const channel = commandInteraction.options.getChannel("canal");
     if (channel && channel.type === "GUILD_TEXT") {
-      await this.guildConfigurationService.setConfig(
+      this.guildConfigurationService.setConfig(
         guild,
         "cardOfTheDayChannelId",
         channel.id
@@ -187,11 +187,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     const hour = commandInteraction.options.getInteger("heure");
     if (hour) {
-      await this.guildConfigurationService.setConfig(
-        guild,
-        "cardOfTheDayHour",
-        hour
-      );
+      this.guildConfigurationService.setConfig(guild, "cardOfTheDayHour", hour);
       await commandInteraction.reply({
         content: `C'est fait ! La carte du jour sera envoyée à ${hour}H`,
         ephemeral: true,
@@ -251,7 +247,6 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       });
 
       return this.commandResult("Codes ajoutés", { codes });
-      return { cmd: "CardOfTheDayCommand", result: "Codes ajoutés" };
     } else {
       return {
         cmd: "CardOfTheDayCommand",
