@@ -21,4 +21,7 @@ export interface ResourceParams {
 
   /** Le service de gestion des ressources */
   resourcesService: ResourcesService;
+
+  /** Exécuté après chargement des données */
+  onLoaded?: () => void;
 }

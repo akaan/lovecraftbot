@@ -78,6 +78,7 @@ export class GuildResource<T> {
         );
         if (raw) {
           this.valueByGuidId[guild.id] = JSON.parse(raw) as T;
+          if (this.params.onLoaded) this.params.onLoaded();
         }
       }
     } catch (error) {

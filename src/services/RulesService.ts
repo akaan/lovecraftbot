@@ -5,6 +5,7 @@ import { BaseService } from "../base/BaseService";
 
 import { FormatService } from "./FormatService";
 import { LoggerService } from "./LoggerService";
+import { GlobalResource } from "./resources/GlobalResource";
 import { ResourcesService } from "./ResourcesService";
 
 /**
@@ -78,6 +79,9 @@ export class RulesService extends BaseService {
   private static LOG_LABEL = "RulesService";
 
   /** L'ensemble des points de règle */
+  private rulesResource!: GlobalResource<Rule[]>;
+
+  /** L'ensemble des points de règles, mis à plat */
   private rules: Rule[] = [];
 
   @Inject private formatService!: FormatService;
@@ -86,7 +90,16 @@ export class RulesService extends BaseService {
 
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
-    await this.loadRules();
+    this.rulesResource = new GlobalResource({
+      client,
+      logger: this.logger,
+      logLabel: RulesService.LOG_LABEL,
+      resourcesService: this.resources,
+      filename: "rules_fr.json",
+      onLoaded: () => {
+        this.rules = flattenRules(this.rulesResource.get() || []);
+      },
+    });
   }
 
   /**
@@ -183,25 +196,5 @@ export class RulesService extends BaseService {
     });
 
     return text;
-  }
-
-  /**
-   * Charge les points de règle stocké sur fichier.
-   *
-   * @returns Une promesse résolue une fois le chargement terminé
-   */
-  private async loadRules() {
-    const rawData = await this.resources.readResource("rules_fr.json");
-    if (rawData) {
-      try {
-        this.rules = flattenRules(JSON.parse(rawData) as Rule[]);
-      } catch (error) {
-        this.logger.error(
-          RulesService.LOG_LABEL,
-          `Erreur au chargement des règles`,
-          { error }
-        );
-      }
-    }
   }
 }

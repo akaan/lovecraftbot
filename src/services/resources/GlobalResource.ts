@@ -65,6 +65,7 @@ export class GlobalResource<T> {
         );
         if (raw) {
           this.value = JSON.parse(raw) as T;
+          if (this.params.onLoaded) this.params.onLoaded();
         }
       }
     } catch (error) {
