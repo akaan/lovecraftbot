@@ -6,6 +6,8 @@ import { BaseService } from "../base/BaseService";
 
 import { FormatService } from "./FormatService";
 import { LoggerService } from "./LoggerService";
+import { DownloadableGlobalResource } from "./resources/DownloadableGlobalResource";
+import { GlobalResource } from "./resources/GlobalResource";
 import { ResourcesService } from "./ResourcesService";
 
 /** Couleurs associées au différentes classes */
@@ -185,15 +187,19 @@ export class CardService extends BaseService {
   public static CARD_CODE_REGEX = /(\d{5})(b?)$/;
 
   /** Liste des cartes */
-  private frenchCards: ArkhamDBCard[] = [];
+  private frenchCards!: DownloadableGlobalResource<ArkhamDBCard[]>;
+
   /** Liste des Taboos */
-  private taboos: Taboo[] = [];
-  /** Liste des factions */
-  private factions: CodeAndName[] = [];
+  private taboos!: DownloadableGlobalResource<ArkhamDBTaboo[]>;
+
   /** Liste des packs de cartes */
-  private packs: CodeAndName[] = [];
+  private packs!: DownloadableGlobalResource<CodeAndName[]>;
+
+  /** Liste des factions */
+  private factions!: GlobalResource<CodeAndName[]>;
+
   /** Liste des types de carte */
-  private types: CodeAndName[] = [];
+  private types!: GlobalResource<CodeAndName[]>;
 
   @Inject private formatService!: FormatService;
   @Inject private logger!: LoggerService;
@@ -202,11 +208,100 @@ export class CardService extends BaseService {
   public async init(client: Discord.Client): Promise<void> {
     await super.init(client);
 
-    await this.loadCards();
-    await this.loadTaboos();
-    await this.loadFactions();
-    await this.loadPacks();
-    await this.loadTypes();
+    const resourceParams = {
+      client,
+      logger: this.logger,
+      logLabel: CardService.LOG_LABEL,
+      resourcesService: this.resources,
+    };
+
+    this.frenchCards = new DownloadableGlobalResource({
+      ...resourceParams,
+      filename: "cards.fr.json",
+      url: "https://fr.arkhamdb.com/api/public/cards/?encounter=true",
+    });
+    this.taboos = new DownloadableGlobalResource({
+      ...resourceParams,
+      filename: "taboos.json",
+      url: "https://fr.arkhamdb.com/api/public/taboos",
+    });
+    this.packs = new DownloadableGlobalResource({
+      ...resourceParams,
+      filename: "packs.json",
+      url: "https://fr.arkhamdb.com/api/public/packs/",
+    });
+    this.factions = new GlobalResource({
+      ...resourceParams,
+      filename: "factions.json",
+    });
+    this.types = new GlobalResource({
+      ...resourceParams,
+      filename: "types.json",
+    });
+  }
+
+  /**
+   * Renvoie la liste des cartes.
+   *
+   * @returns La liste des cartes
+   */
+  private getFrenchCards(): ArkhamDBCard[] {
+    return this.frenchCards.get() || [];
+  }
+
+  /**
+   * Renvoie la liste des taboos.
+   *
+   * @returns La liste des taboos
+   */
+  private getTaboos(): Taboo[] {
+    const allTaboos = this.taboos.get() || [];
+    if (allTaboos.length > 0) {
+      const latestTaboo = allTaboos[0];
+      return JSON.parse(latestTaboo.cards) as Taboo[];
+    } else {
+      return [];
+    }
+  }
+
+  /**
+   * Renvoie la liste des packs.
+   *
+   * @returns La liste des packs
+   */
+  private getPacks(): CodeAndName[] {
+    return this.packs.get() || [];
+  }
+
+  /**
+   * Renvoie la liste des factions.
+   *
+   * @returns La liste des factions
+   */
+  private getFactions(): CodeAndName[] {
+    return this.factions.get() || [];
+  }
+
+  /**
+   * Renvoie la liste des types de carte.
+   *
+   * @returns La liste des types de carte
+   */
+  private getTypes(): CodeAndName[] {
+    return this.types.get() || [];
+  }
+
+  /**
+   * Raffraîchit les données en téléchargeant les ressources téléchargeables.
+   *
+   * @returns Une promesse résolue une fois les téléchargements réalisés
+   */
+  public async refreshData(): Promise<void> {
+    await Promise.all([
+      this.frenchCards.download(),
+      this.packs.download(),
+      this.taboos.download(),
+    ]);
   }
 
   /**
@@ -217,7 +312,7 @@ export class CardService extends BaseService {
    * @returns Le nom français de la carte si trouvé
    */
   public getFrenchCardName(englishName: string): string | undefined {
-    const foundCard = this.frenchCards.find(
+    const foundCard = this.getFrenchCards().find(
       (card) =>
         card.real_name.toLocaleLowerCase() === englishName.toLocaleLowerCase()
     );
@@ -234,7 +329,7 @@ export class CardService extends BaseService {
    * @returns Le nom anglais de la carte si trouvé
    */
   public getEnglishCardName(frenchName: string): string | undefined {
-    const foundCard = this.frenchCards.find(
+    const foundCard = this.getFrenchCards().find(
       (card) => card.name.toLocaleLowerCase() === frenchName.toLocaleLowerCase()
     );
     if (foundCard && foundCard.real_name !== foundCard.name)
@@ -254,10 +349,12 @@ export class CardService extends BaseService {
     searchType = SearchType.BY_TITLE,
   }: SearchParams): ArkhamDBCard[] {
     if (searchType === SearchType.BY_CODE) {
-      return this.frenchCards.filter((card) => card.code === searchString);
+      return this.getFrenchCards().filter((card) => card.code === searchString);
     }
 
-    return this.frenchCards.filter((card) => matchCard(card, searchString));
+    return this.getFrenchCards().filter((card) =>
+      matchCard(card, searchString)
+    );
   }
 
   /**
@@ -267,7 +364,7 @@ export class CardService extends BaseService {
    * @returns Tous les codes de cartes joueur
    */
   public getAllPlayerCardCodes(): string[] {
-    return this.frenchCards
+    return this.getFrenchCards()
       .filter((card) => card.faction_code !== "mythos")
       .filter((card) => card.encounter_code === undefined)
       .map((card) => card.code);
@@ -298,19 +395,22 @@ export class CardService extends BaseService {
     const embed = new Discord.MessageEmbed();
     this.decorateEmbedForCard(embed, card);
 
-    const cardFaction = findOrDefaultToCode(this.factions, card.faction_code);
+    const cardFaction = findOrDefaultToCode(
+      this.getFactions(),
+      card.faction_code
+    );
     const cardFaction2 = card.faction2_code
-      ? findOrDefaultToCode(this.factions, card.faction2_code)
+      ? findOrDefaultToCode(this.getFactions(), card.faction2_code)
       : undefined;
     const cardFaction3 = card.faction3_code
-      ? findOrDefaultToCode(this.factions, card.faction3_code)
+      ? findOrDefaultToCode(this.getFactions(), card.faction3_code)
       : undefined;
 
     const factions = [cardFaction, cardFaction2, cardFaction3]
       .filter((faction) => faction !== undefined)
       .join(" / ");
 
-    const cardType = findOrDefaultToCode(this.types, card.type_code);
+    const cardType = findOrDefaultToCode(this.getTypes(), card.type_code);
 
     const isMulticlass = !!card.faction2_code;
     if (!["neutral", "mythos"].includes(card.faction_code) && !isMulticlass) {
@@ -364,7 +464,7 @@ export class CardService extends BaseService {
           embed.addField("Coût", card.cost.toString(), true);
         }
 
-        const maybePack = this.packs.find(
+        const maybePack = this.getPacks().find(
           (pack) => pack.code == card.pack_code
         );
         if (maybePack) {
@@ -375,7 +475,9 @@ export class CardService extends BaseService {
       }
     }
 
-    const maybeTaboo = this.taboos.find((taboo) => taboo.code === card.code);
+    const maybeTaboo = this.getTaboos().find(
+      (taboo) => taboo.code === card.code
+    );
     if (maybeTaboo) {
       const tabooText = [];
       if (maybeTaboo.xp) {
@@ -451,85 +553,6 @@ export class CardService extends BaseService {
     embed.setColor(
       isMulticlass ? CLASS_COLORS.multiclass : CLASS_COLORS[card.faction_code]
     );
-  }
-
-  /**
-   * Télécharge (annule et remplace) la dernière version des données des cartes
-   * depuis ArkahmDB.
-   *
-   * @returns Une promesse résolue une fois l'opération terminée
-   */
-  public async downloadLatestCardDb(): Promise<void> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await axios.get<any[]>(
-        "https://fr.arkhamdb.com/api/public/cards/?encounter=true"
-      );
-      await this.resources.saveResource(
-        "cards.fr.json",
-        JSON.stringify(response.data)
-      );
-      await this.loadCards();
-    } catch (error) {
-      this.logger.error(
-        CardService.LOG_LABEL,
-        "Erreur au téléchargement des dernières cartes",
-        { error }
-      );
-    }
-  }
-
-  /**
-   * Télécharge (annule et remplace) les derniers packs de cartes depuis
-   * ArkhamDB.
-   *
-   * @returns Une promesse résolue une fois l'opération terminée
-   */
-  public async downloadLatestPacks(): Promise<void> {
-    try {
-      const response = await axios.get<unknown[]>(
-        "https://fr.arkhamdb.com/api/public/packs/"
-      );
-      await this.resources.saveResource(
-        "packs.json",
-        JSON.stringify(response.data)
-      );
-      await this.loadPacks();
-    } catch (error) {
-      this.logger.error(
-        CardService.LOG_LABEL,
-        "Erreur au téléchargement des derbiers packs",
-        { error }
-      );
-    }
-  }
-
-  /**
-   * Télécharge (annule et remplace) la dernière version des listes Taboo
-   * depuis ArkahmDB.
-   *
-   * @returns Une promesse résolue une fois l'opération terminée
-   */
-  public async downloadLatestTaboos(): Promise<void> {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await axios.get<any[]>(
-        "https://fr.arkhamdb.com/api/public/taboos"
-      );
-      await this.resources.saveResource(
-        "taboos.json",
-        JSON.stringify(response.data)
-      );
-      await this.loadCards();
-    } catch (error) {
-      this.logger.error(
-        CardService.LOG_LABEL,
-        "Erreur au téléchargement des derniers taboos",
-        {
-          error,
-        }
-      );
-    }
   }
 
   /**
@@ -622,135 +645,6 @@ export class CardService extends BaseService {
       return response.data;
     } catch (_error) {
       return [];
-    }
-  }
-
-  /**
-   * Chargement des factions depuis le fichier qui les stocke.
-   *
-   * @returns Une promesse résolue une fois le chargement terminé
-   */
-  private async loadFactions(): Promise<void> {
-    const rawData = await this.resources.readResource("factions.json");
-    if (rawData) {
-      try {
-        this.factions = JSON.parse(rawData) as CodeAndName[];
-      } catch (error) {
-        this.logger.error(
-          CardService.LOG_LABEL,
-          "Erreur au chargement des factions",
-          {
-            error,
-          }
-        );
-      }
-    }
-  }
-
-  /**
-   * Chargement des packs de cartes depuis le fichier qui les stocke.
-   *
-   * @returns Une promesse résolue une fois le chargement terminé
-   */
-  private async loadPacks(): Promise<void> {
-    const dataAvailable = await this.resources.resourceExists("packs.json");
-    if (!dataAvailable) {
-      await this.downloadLatestPacks();
-    }
-
-    const rawData = await this.resources.readResource("packs.json");
-    if (rawData) {
-      try {
-        this.packs = JSON.parse(rawData) as CodeAndName[];
-      } catch (error) {
-        this.logger.error(
-          CardService.LOG_LABEL,
-          "Erreur au chargement des packs",
-          {
-            error,
-          }
-        );
-      }
-    }
-  }
-
-  /**
-   * Chargement des types de cartes depuis le fichier qui les stocke.
-   *
-   * @returns Une promesse résolue une fois le chargement terminé
-   */
-  private async loadTypes(): Promise<void> {
-    const rawData = await this.resources.readResource("types.json");
-    if (rawData) {
-      try {
-        this.types = JSON.parse(rawData) as CodeAndName[];
-      } catch (error) {
-        this.logger.error(
-          CardService.LOG_LABEL,
-          "Erreur au chargement des types",
-          {
-            error,
-          }
-        );
-      }
-    }
-  }
-
-  /**
-   * Chargement des cartes depuis le fichier qui les stocke.
-   *
-   * @returns Une promesse résolue une fois le chargement terminé
-   */
-  private async loadCards(): Promise<void> {
-    const dataAvailable = await this.resources.resourceExists("cards.fr.json");
-    if (!dataAvailable) {
-      await this.downloadLatestCardDb();
-    }
-
-    const rawData = await this.resources.readResource("cards.fr.json");
-    if (rawData) {
-      try {
-        this.frenchCards = JSON.parse(rawData) as ArkhamDBCard[];
-      } catch (error) {
-        this.logger.error(
-          CardService.LOG_LABEL,
-          "Erreur au chargement des cartes",
-          {
-            error,
-          }
-        );
-      }
-    }
-  }
-
-  /**
-   * Chargement des listes Taboo depuis le fichier qui les stocke.
-   *
-   * @returns Une promesse résolue une fois le chargement terminé
-   */
-  private async loadTaboos(): Promise<void> {
-    const dataAvailable = await this.resources.resourceExists("taboos.json");
-    if (!dataAvailable) {
-      await this.downloadLatestTaboos();
-    }
-
-    const rawData = await this.resources.readResource("taboos.json");
-    if (rawData) {
-      try {
-        const allTaboos = JSON.parse(rawData) as ArkhamDBTaboo[];
-        if (allTaboos.length > 0) {
-          const latestTaboo = allTaboos[0];
-          this.taboos = JSON.parse(latestTaboo.cards) as Taboo[];
-        }
-      } catch (error) {
-        this.logger.error(
-          CardService.LOG_LABEL,
-          "Erreur au chargement des taboos",
-          {
-            error,
-          }
-        );
-      }
     }
   }
 }

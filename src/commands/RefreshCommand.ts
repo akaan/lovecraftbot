@@ -23,9 +23,7 @@ export class RefreshCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     await commandInteraction.deferReply();
 
-    await this.cardService.downloadLatestCardDb();
-    await this.cardService.downloadLatestPacks();
-    await this.cardService.downloadLatestTaboos();
+    await this.cardService.refreshData();
 
     await commandInteraction.editReply(
       "C'est bon, les cartes, packs et taboos ont été rechargés !"
