@@ -1,27 +1,6 @@
-import { Client, Guild } from "discord.js";
+import { Guild } from "discord.js";
 
-import { LoggerService } from "../LoggerService";
-import { ResourcesService } from "../ResourcesService";
-
-/**
- * Les paramètres nécessaires au fonctionnement d'un ressource de serveur.
- */
-interface GuildResourceParams {
-  /** Le nom du fichier pour la sauvegarde */
-  filename: string;
-
-  /** Le client Discord permettant d'accéder aux serveurs */
-  client: Client;
-
-  /** Le logger */
-  logger: LoggerService;
-
-  /** L'étiquette pour les logs */
-  logLabel: string;
-
-  /** Le service de gestion des ressources */
-  resourcesService: ResourcesService;
-}
+import { ResourceParams } from "./ResourceParams";
 
 /**
  * Une resource niveau serveur qui gère le chargement et la sauvegarde.
@@ -29,17 +8,8 @@ interface GuildResourceParams {
  * @template T Le type de la valeur gérée par cette ressource niveau serveur.
  */
 export class GuildResource<T> {
-  /** Le nom du fichier pour la sauvegarde */
-  private filename: string;
-
-  /** Le logger */
-  private logger: LoggerService;
-
-  /** L'étiquette pour les logs */
-  private logLabel: string;
-
-  /** Le service de gestion des ressources */
-  private resourcesService: ResourcesService;
+  /** Les paramètres de cette ressource */
+  private params: ResourceParams;
 
   /** Les valeurs gérées, par identifiant de serveur */
   private valueByGuidId: { [guildId: string]: T };
@@ -47,11 +17,8 @@ export class GuildResource<T> {
   /**
    * @param params Les paramètres pour le fonctionnement de cette ressource
    */
-  constructor(params: GuildResourceParams) {
-    this.filename = params.filename;
-    this.resourcesService = params.resourcesService;
-    this.logger = params.logger;
-    this.logLabel = params.logLabel;
+  constructor(params: ResourceParams) {
+    this.params = params;
     this.valueByGuidId = {};
 
     params.client.guilds.cache.forEach((guild) => void this.load(guild));
@@ -98,24 +65,25 @@ export class GuildResource<T> {
    */
   private async load(guild: Guild): Promise<void> {
     try {
-      const resourceExists = await this.resourcesService.guildResourceExists(
-        guild,
-        this.filename
-      );
+      const resourceExists =
+        await this.params.resourcesService.guildResourceExists(
+          guild,
+          this.params.filename
+        );
 
       if (resourceExists) {
-        const raw = await this.resourcesService.readGuildResource(
+        const raw = await this.params.resourcesService.readGuildResource(
           guild,
-          this.filename
+          this.params.filename
         );
         if (raw) {
           this.valueByGuidId[guild.id] = JSON.parse(raw) as T;
         }
       }
     } catch (error) {
-      this.logger.error(
-        this.logLabel,
-        `Erreur au chargement de la ressource de serveur ${this.filename}`,
+      this.params.logger.error(
+        this.params.logLabel,
+        `Erreur au chargement de la ressource de serveur ${this.params.filename}`,
         { error }
       );
     }
@@ -131,15 +99,15 @@ export class GuildResource<T> {
     if (!this.valueByGuidId[guild.id]) return;
 
     try {
-      await this.resourcesService.saveGuildResource(
+      await this.params.resourcesService.saveGuildResource(
         guild,
-        this.filename,
+        this.params.filename,
         JSON.stringify(this.valueByGuidId[guild.id], null, "  ")
       );
     } catch (error) {
-      this.logger.error(
-        this.logLabel,
-        `Erreur à la sauvegarde de la ressource de serveur ${this.filename}`,
+      this.params.logger.error(
+        this.params.logLabel,
+        `Erreur à la sauvegarde de la ressource de serveur ${this.params.filename}`,
         { error }
       );
     }
