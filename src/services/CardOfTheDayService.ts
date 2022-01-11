@@ -5,6 +5,7 @@ import { BaseService } from "../base/BaseService";
 
 import { CardService, SearchType } from "./CardService";
 import { GuildConfigurationService } from "./GuildConfigurationService";
+import { GuildResource } from "./GuildResource";
 import { LoggerService } from "./LoggerService";
 import { RandomService } from "./RandomService";
 import { ResourcesService } from "./ResourcesService";
@@ -23,7 +24,7 @@ export class CardOfTheDayService extends BaseService {
   private static CARD_CODES_SENT_FILE_NAME = "cardOfTheDay.json";
 
   /** Codes des cartes déjà envoyées par serveur */
-  private cardCodesSentByGuildId: { [guildId: string]: string[] } = {};
+  private cardCodesSent!: GuildResource<string[]>;
 
   /** Timer permettant de gérer la routine d'envoi de carte */
   private timer: NodeJS.Timer | undefined = undefined;
@@ -37,8 +38,13 @@ export class CardOfTheDayService extends BaseService {
   public async init(client: Client): Promise<void> {
     await super.init(client);
 
-    client.guilds.cache.forEach((guild) => void this.loadCardCodesSent(guild));
-    client.on("guildCreate", (guild) => void this.loadCardCodesSent(guild));
+    this.cardCodesSent = new GuildResource<string[]>({
+      client,
+      filename: CardOfTheDayService.CARD_CODES_SENT_FILE_NAME,
+      logLabel: CardOfTheDayService.LOG_LABEL,
+      logger: this.logger,
+      resourcesService: this.resourcesService,
+    });
 
     this.start();
   }
@@ -88,11 +94,7 @@ export class CardOfTheDayService extends BaseService {
    * @returns La liste des codes des cartes déjà tirées
    */
   public getCardCodesSent(guild: Guild): string[] {
-    if (!this.cardCodesSentByGuildId[guild.id]) {
-      this.cardCodesSentByGuildId[guild.id] = [];
-    }
-
-    return this.cardCodesSentByGuildId[guild.id];
+    return this.cardCodesSent.get(guild) || [];
   }
 
   /**
@@ -102,15 +104,11 @@ export class CardOfTheDayService extends BaseService {
    * @param guild Le seveur concerné
    * @param codes Des codes de cartes à ajouter à la liste
    */
-  public async addCardSent(guild: Guild, codes: string[]): Promise<void> {
-    if (!this.cardCodesSentByGuildId[guild.id]) {
-      this.cardCodesSentByGuildId[guild.id] = [];
-    }
-
-    for (const code of codes) {
-      this.cardCodesSentByGuildId[guild.id].push(code);
-    }
-    await this.saveCardCodesSent(guild);
+  public addCardSent(guild: Guild, codes: string[]): void {
+    this.cardCodesSent.set(guild, [
+      ...(this.cardCodesSent.get(guild) || []),
+      ...codes,
+    ]);
   }
 
   /**
@@ -173,7 +171,7 @@ export class CardOfTheDayService extends BaseService {
         embeds: [embed],
       });
       await msg.pin();
-      await this.addCardSent(guild, [randomCode]);
+      this.addCardSent(guild, [randomCode]);
 
       this.logger.info(
         CardOfTheDayService.LOG_LABEL,
@@ -184,68 +182,6 @@ export class CardOfTheDayService extends BaseService {
       this.logger.error(
         CardOfTheDayService.LOG_LABEL,
         `Problème lors de la récupération de la carte du jour (code: ${randomCode}).`
-      );
-    }
-  }
-
-  /**
-   * Charge les codes des cartes déjà tirées depuis le fichier pour le serveur
-   * indiqué.
-   *
-   * @param guild Le serveur concerné
-   * @returns Une promesse résolue une fois les codes chargées
-   */
-  private async loadCardCodesSent(guild: Guild): Promise<void> {
-    try {
-      const dataAvailable = await this.resourcesService.guildResourceExists(
-        guild,
-        CardOfTheDayService.CARD_CODES_SENT_FILE_NAME
-      );
-      if (dataAvailable) {
-        const rawData = await this.resourcesService.readGuildResource(
-          guild,
-          CardOfTheDayService.CARD_CODES_SENT_FILE_NAME
-        );
-        if (rawData) {
-          this.cardCodesSentByGuildId[guild.id] = JSON.parse(
-            rawData
-          ) as string[];
-        }
-      } else {
-        this.cardCodesSentByGuildId[guild.id] = [];
-        void this.saveCardCodesSent(guild);
-      }
-    } catch (error) {
-      this.logger.error(
-        CardOfTheDayService.LOG_LABEL,
-        `Erreur au chargement des codes de cartes déjà tirées pour le serveur ${guild.name}`,
-        { error }
-      );
-    }
-  }
-
-  /**
-   * Sauvegarde sur fichier les codes des cartes déjà tirées pour le serveur
-   * indiqué.
-   *
-   * @param guild Le serveur concerné
-   * @returns Une promesse résolue une fois les codes sauvegardés
-   */
-  private async saveCardCodesSent(guild: Guild): Promise<void> {
-    if (!this.cardCodesSentByGuildId[guild.id]) {
-      this.cardCodesSentByGuildId[guild.id] = [];
-    }
-
-    try {
-      await this.resourcesService.saveGuildResource(
-        guild,
-        "cardOfTheDay.json",
-        JSON.stringify(this.cardCodesSentByGuildId[guild.id])
-      );
-    } catch (error) {
-      this.logger.error(
-        CardOfTheDayService.LOG_LABEL,
-        `Erreur au chargement des codes de carte tirés pour le serveur ${guild.name}`
       );
     }
   }
