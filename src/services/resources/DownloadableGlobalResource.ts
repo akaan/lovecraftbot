@@ -4,15 +4,28 @@ import { GlobalResource } from "./GlobalResource";
 import { ResourceParams } from "./ResourceParams";
 
 /**
+ * Paramètre de fonctionnement d'une ressources téléchargeable.
+ */
+interface DownloadableResourceParams extends ResourceParams {
+  /** L'URL pour la récupération des dernières données */
+  url: string;
+}
+
+/**
  * Une ressource globale qui peut se mettre à jour depuis une URL.
  */
 export class DownloadableGlobalResource<T> extends GlobalResource<T> {
-  /** L'URL pour la récupération des dernières données */
-  private url: string;
-
-  constructor(params: ResourceParams & { url: string }) {
+  constructor(params: DownloadableResourceParams) {
     super(params);
-    this.url = params.url;
+  }
+
+  /**
+   * Récupère les paramètres de cette ressource.
+   *
+   * @returns Les paramètres de cette ressource
+   */
+  private getParams(): DownloadableResourceParams {
+    return this.params as DownloadableResourceParams;
   }
 
   /**
@@ -22,12 +35,12 @@ export class DownloadableGlobalResource<T> extends GlobalResource<T> {
    */
   public async download(): Promise<void> {
     try {
-      const response = await axios.get<unknown>(this.url);
+      const response = await axios.get<unknown>(this.getParams().url);
       await this.set(response.data as T);
     } catch (error) {
       this.params.logger.error(
         this.params.logLabel,
-        `Erreur au téléchargement des données depuis ${this.url}`,
+        `Erreur au téléchargement des données depuis ${this.getParams().url}`,
         { error }
       );
     }
