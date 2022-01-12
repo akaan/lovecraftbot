@@ -9,7 +9,7 @@ import { ResourceParams } from "./ResourceParams";
  */
 export class GuildResource<T> {
   /** Les paramètres de cette ressource */
-  private params: ResourceParams;
+  private params: ResourceParams<T>;
 
   /** Les valeurs gérées, par identifiant de serveur */
   private valueByGuidId: { [guildId: string]: T };
@@ -17,7 +17,7 @@ export class GuildResource<T> {
   /**
    * @param params Les paramètres pour le fonctionnement de cette ressource
    */
-  constructor(params: ResourceParams) {
+  constructor(params: ResourceParams<T>) {
     this.params = params;
     this.valueByGuidId = {};
 
@@ -78,7 +78,8 @@ export class GuildResource<T> {
         );
         if (raw) {
           this.valueByGuidId[guild.id] = JSON.parse(raw) as T;
-          if (this.params.onLoaded) this.params.onLoaded();
+          if (this.params.onLoaded)
+            this.params.onLoaded(this.valueByGuidId[guild.id]);
         }
       }
     } catch (error) {
@@ -87,6 +88,7 @@ export class GuildResource<T> {
         `Erreur au chargement de la ressource de serveur ${this.params.filename}`,
         { error }
       );
+      if (this.params.onLoaded) this.params.onLoaded(undefined);
     }
   }
 

@@ -7,7 +7,7 @@ import { ResourceParams } from "./ResourceParams";
  */
 export class GlobalResource<T> {
   /** Les paramètres de cette ressource */
-  protected params: ResourceParams;
+  protected params: ResourceParams<T>;
 
   /** La valeur gérée */
   private value: T | undefined = undefined;
@@ -15,7 +15,7 @@ export class GlobalResource<T> {
   /**
    * @param params Les paramètres pour le fonctionnement de cette ressource
    */
-  constructor(params: ResourceParams) {
+  constructor(params: ResourceParams<T>) {
     this.params = params;
     void this.load();
   }
@@ -65,7 +65,7 @@ export class GlobalResource<T> {
         );
         if (raw) {
           this.value = JSON.parse(raw) as T;
-          if (this.params.onLoaded) this.params.onLoaded();
+          if (this.params.onLoaded) this.params.onLoaded(this.value);
         }
       }
     } catch (error) {
@@ -74,6 +74,7 @@ export class GlobalResource<T> {
         `Erreur au chargement de la ressource de serveur ${this.params.filename}`,
         { error }
       );
+      if (this.params.onLoaded) this.params.onLoaded(undefined);
     }
   }
 

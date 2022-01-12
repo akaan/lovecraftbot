@@ -5,8 +5,10 @@ import { ResourcesService } from "../ResourcesService";
 
 /**
  * Les paramètres nécessaires au fonctionnement d'un ressource de serveur.
+ *
+ * @template T Le type de la valeur gérée par la ressource
  */
-export interface ResourceParams {
+export interface ResourceParams<T> {
   /** Le nom du fichier pour la sauvegarde */
   filename: string;
 
@@ -23,5 +25,5 @@ export interface ResourceParams {
   resourcesService: ResourcesService;
 
   /** Exécuté après chargement des données */
-  onLoaded?: () => void;
+  onLoaded?: (valueLoaded: T | undefined) => void;
 }

@@ -6,7 +6,7 @@ import { ResourceParams } from "./ResourceParams";
 /**
  * Paramètre de fonctionnement d'une ressources téléchargeable.
  */
-interface DownloadableResourceParams extends ResourceParams {
+interface DownloadableResourceParams<T> extends ResourceParams<T> {
   /** L'URL pour la récupération des dernières données */
   url: string;
 }
@@ -15,7 +15,7 @@ interface DownloadableResourceParams extends ResourceParams {
  * Une ressource globale qui peut se mettre à jour depuis une URL.
  */
 export class DownloadableGlobalResource<T> extends GlobalResource<T> {
-  constructor(params: DownloadableResourceParams) {
+  constructor(params: DownloadableResourceParams<T>) {
     super(params);
   }
 
@@ -24,8 +24,8 @@ export class DownloadableGlobalResource<T> extends GlobalResource<T> {
    *
    * @returns Les paramètres de cette ressource
    */
-  private getParams(): DownloadableResourceParams {
-    return this.params as DownloadableResourceParams;
+  private getParams(): DownloadableResourceParams<T> {
+    return this.params as DownloadableResourceParams<T>;
   }
 
   /**
@@ -38,8 +38,8 @@ export class DownloadableGlobalResource<T> extends GlobalResource<T> {
       const response = await axios.get<unknown>(this.getParams().url);
       await this.set(response.data as T);
     } catch (error) {
-      this.params.logger.error(
-        this.params.logLabel,
+      this.getParams().logger.error(
+        this.getParams().logLabel,
         `Erreur au téléchargement des données depuis ${this.getParams().url}`,
         { error }
       );

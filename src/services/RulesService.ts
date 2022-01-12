@@ -96,8 +96,8 @@ export class RulesService extends BaseService {
       logLabel: RulesService.LOG_LABEL,
       resourcesService: this.resources,
       filename: "rules_fr.json",
-      onLoaded: () => {
-        this.rules = flattenRules(this.rulesResource.get() || []);
+      onLoaded: (loadedRules) => {
+        this.rules = flattenRules(loadedRules || []);
       },
     });
   }
