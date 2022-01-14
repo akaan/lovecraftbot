@@ -93,6 +93,16 @@ export class EventCommand implements IApplicationCommand {
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.guild) {
+      await commandInteraction.reply({
+        content: "Désolé, cette commande doit être exécutée sur un serveur",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible d'exécuter cette commande hors serveur"
+      );
+    }
+
     const subCommandGroup =
       commandInteraction.options.getSubcommandGroup(false);
     const subCommand = commandInteraction.options.getSubcommand();
