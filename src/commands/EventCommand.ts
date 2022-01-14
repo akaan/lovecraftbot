@@ -1,6 +1,7 @@
 import {
   ApplicationCommandSubCommandData,
   ApplicationCommandSubGroupData,
+  CategoryChannel,
   CommandInteraction,
   Guild,
 } from "discord.js";
@@ -30,6 +31,13 @@ export class EventCommand implements IApplicationCommand {
         name: "start",
         description: "Démarre un événement multijoueurs",
         options: [
+          {
+            type: ApplicationCommandOptionTypes.CHANNEL,
+            name: "catégorie",
+            description:
+              "La catégorie de canaux dans laquelle créer les canaux",
+            required: true,
+          },
           {
             type: ApplicationCommandOptionTypes.INTEGER,
             name: "groupes",
@@ -163,7 +171,22 @@ export class EventCommand implements IApplicationCommand {
       );
     }
 
-    await this.massMultiplayerEventService.startEvent(guild, numberOfGroups);
+    const categoryChannel = commandInteraction.options.getChannel("catégorie");
+    if (!categoryChannel || !(categoryChannel.type === "GUILD_CATEGORY")) {
+      await commandInteraction.reply({
+        content: "Impossible sans précisr une catégorie de canaux valide",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer l'événement sans une catégorie de canaux"
+      );
+    }
+
+    await this.massMultiplayerEventService.startEvent(
+      guild,
+      categoryChannel as CategoryChannel,
+      numberOfGroups
+    );
 
     await commandInteraction.reply({
       content: "Evénement démarré !",

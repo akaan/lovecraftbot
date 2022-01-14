@@ -1,4 +1,5 @@
 import {
+  CategoryChannel,
   Channel,
   Client,
   Guild,
@@ -10,39 +11,9 @@ import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
 
-import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
 import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
-
-/**
- * Sous-classe de `Error` pour les erreurs spécifiques au service
- * de gestion des événements multijoueurs.
- */
-export class MassMultiplayerEventServiceError extends Error {
-  /**
-   * Instancie une erreur de type configuration asbente.
-   *
-   * @returns Erreur de configuration absente
-   */
-  public static configurationMissing(): MassMultiplayerEventServiceError {
-    return new this("MassMultiplayerEventService: configuration absente");
-  }
-
-  /**
-   * Instancie une erreur de type catégorie de canaux non trouvée.
-   *
-   * @param categoryName Le nom de la catégorie de canaux attendue
-   * @returns Une erreur de catégorie de canaux non trouvée
-   */
-  public static eventCategoryNotFound(
-    categoryName: string
-  ): MassMultiplayerEventServiceError {
-    return new this(
-      `MassMultiplayerEventService: impossible de trouver la catégorie ${categoryName}`
-    );
-  }
-}
 
 /**
  * Les données sauvegardées, pour un seerveur donné.
@@ -74,7 +45,6 @@ export class MassMultiplayerEventService extends BaseService {
 
   private eventState!: GuildResource<MassMultiplayerEventServiceState>;
 
-  @Inject envService!: EnvService;
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
 
@@ -134,19 +104,11 @@ export class MassMultiplayerEventService extends BaseService {
    * @param numberOfGroups Le nombrre de groupes de joueurs
    * @returns Une promesse résolue quand tous les canaux sont créés.
    */
-  public async startEvent(guild: Guild, numberOfGroups: number): Promise<void> {
-    if (!this.envService.massMultiplayerEventCategoryName)
-      throw MassMultiplayerEventServiceError.configurationMissing();
-
-    const categoryId = this.getCategoryIdByName(
-      guild,
-      this.envService.massMultiplayerEventCategoryName
-    );
-    if (!categoryId)
-      throw MassMultiplayerEventServiceError.eventCategoryNotFound(
-        this.envService.massMultiplayerEventCategoryName
-      );
-
+  public async startEvent(
+    guild: Guild,
+    categoryChannel: CategoryChannel,
+    numberOfGroups: number
+  ): Promise<void> {
     const textChannelIds: string[] = [];
     const voiceChannelIds: string[] = [];
     for (let groupNumber = 1; groupNumber <= numberOfGroups; groupNumber++) {
@@ -156,7 +118,7 @@ export class MassMultiplayerEventService extends BaseService {
           type: "GUILD_TEXT",
         }
       );
-      await groupChannel.setParent(categoryId);
+      await groupChannel.setParent(categoryChannel);
       textChannelIds.push(groupChannel.id);
 
       const groupVoiceChannel = await guild.channels.create(
@@ -165,7 +127,7 @@ export class MassMultiplayerEventService extends BaseService {
           type: "GUILD_VOICE",
         }
       );
-      await groupVoiceChannel.setParent(categoryId);
+      await groupVoiceChannel.setParent(categoryChannel);
       voiceChannelIds.push(groupVoiceChannel.id);
     }
     await this.eventState.set(guild, {

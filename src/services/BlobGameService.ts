@@ -1,4 +1,5 @@
 import {
+  CategoryChannel,
   Channel,
   Client,
   EmbedFieldData,
@@ -236,7 +237,11 @@ export class BlobGameService extends BaseService {
       return Promise.reject(BlobGameServiceError.eventAlreadyRunning());
 
     try {
-      await this.massMultiplayerEventService.startEvent(guild, numberOfGroups);
+      await this.massMultiplayerEventService.startEvent(
+        guild,
+        /** BROKEN: juste le temps du refacto */ new CategoryChannel(guild),
+        numberOfGroups
+      );
 
       const repository = this.getBlobGameRepository(guild);
 
