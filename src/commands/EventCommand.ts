@@ -110,6 +110,10 @@ export class EventCommand implements IApplicationCommand {
       return this.startEvent(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommandGroup === null && subCommand === "end") {
+      return this.endEvent(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -123,7 +127,7 @@ export class EventCommand implements IApplicationCommand {
   /**
    * Traite le cas de la sous-commande de démarrage d'un événement multijoueurs.
    *
-   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param commandInteraction L'interaction déclenchée par la commande
    * @param guild Le serveur concerné
    * @returns Une promesse résolue avec le résultat de la commande
    */
@@ -162,6 +166,36 @@ export class EventCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Evénement démarré");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de fin d'un événement multijoueurs.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async endEvent(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il n'y a pas d'événement en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de mettre fin l'événement : il n'y en a pas en cours"
+      );
+    }
+
+    await this.massMultiplayerEventService.cleanGroupChannels(guild);
+
+    await commandInteraction.reply({
+      content: "Evénement terminé !",
+      ephemeral: true,
+    });
+    return this.commandResult("Evénement terminé");
   }
 
   /**
