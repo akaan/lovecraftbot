@@ -2,18 +2,23 @@ import {
   ApplicationCommandSubCommandData,
   ApplicationCommandSubGroupData,
   CommandInteraction,
+  Guild,
 } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { Inject } from "typescript-ioc";
 
 import {
   ApplicationCommandAccess,
   IApplicationCommand,
   IApplicationCommandResult,
 } from "../interfaces";
+import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
 
 /** Commande de gestion des événements multijoueurs */
 export class EventCommand implements IApplicationCommand {
+  @Inject massMultiplayerEventService!: MassMultiplayerEventService;
+
   commandAccess = ApplicationCommandAccess.ADMIN;
 
   commandData = {
@@ -25,12 +30,6 @@ export class EventCommand implements IApplicationCommand {
         name: "start",
         description: "Démarre un événement multijoueurs",
         options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "joueurs",
-            description: "Nombre de joueurs",
-            required: true,
-          },
           {
             type: ApplicationCommandOptionTypes.INTEGER,
             name: "groupes",
@@ -107,6 +106,10 @@ export class EventCommand implements IApplicationCommand {
       commandInteraction.options.getSubcommandGroup(false);
     const subCommand = commandInteraction.options.getSubcommand();
 
+    if (subCommandGroup === null && subCommand === "start") {
+      return this.startEvent(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -115,6 +118,50 @@ export class EventCommand implements IApplicationCommand {
       subCommandGroup,
       subCommand,
     });
+  }
+
+  /**
+   * Traite le cas de la sous-commande de démarrage d'un événement multijoueurs.
+   *
+   * @param commandInteraction L'intéraction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async startEvent(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (this.massMultiplayerEventService.runningEvent(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il y a déjà un événement en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer l'événement : il y en a déjà un en cours"
+      );
+    }
+
+    const numberOfGroups = commandInteraction.options.getInteger("groupes");
+    if (!numberOfGroups) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de groupes",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer l'événement sans le nombre de groupes"
+      );
+    }
+
+    await this.massMultiplayerEventService.createGroupChannels(
+      guild,
+      numberOfGroups
+    );
+
+    await commandInteraction.reply({
+      content: "Evénement démarré !",
+      ephemeral: true,
+    });
+    return this.commandResult("Evénement démarré");
   }
 
   /**
