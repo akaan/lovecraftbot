@@ -3,7 +3,11 @@ import { CommandInteraction, SelectMenuInteraction } from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 import { caseOfLength } from "../utils";
 
@@ -15,7 +19,7 @@ import { selectCard } from "./utils/selectCard";
 export class FaqCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "faq",

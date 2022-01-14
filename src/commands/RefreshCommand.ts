@@ -1,7 +1,11 @@
 import { CommandInteraction } from "discord.js";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { CardService } from "../services/CardService";
 
 /**
@@ -11,7 +15,7 @@ import { CardService } from "../services/CardService";
 export class RefreshCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isGuildCommand = true;
+  commandAccess = ApplicationCommandAccess.ADMIN;
 
   commandData = {
     name: "refresh",

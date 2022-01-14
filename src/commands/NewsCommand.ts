@@ -6,7 +6,11 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { GuildConfigurationService } from "../services/GuildConfigurationService";
 
 /**
@@ -15,7 +19,7 @@ import { GuildConfigurationService } from "../services/GuildConfigurationService
 export class NewsCommand implements IApplicationCommand {
   @Inject private guildConfigurationService!: GuildConfigurationService;
 
-  isGuildCommand = true;
+  commandAccess = ApplicationCommandAccess.ADMIN;
 
   commandData = {
     name: "news",
@@ -44,7 +48,7 @@ export class NewsCommand implements IApplicationCommand {
       if (commandInteraction.guild) {
         const channel = commandInteraction.options.getChannel("canal");
         if (channel && channel.type === "GUILD_TEXT") {
-          this.guildConfigurationService.setConfig(
+          await this.guildConfigurationService.setConfig(
             commandInteraction.guild,
             "newsChannelId",
             channel.id

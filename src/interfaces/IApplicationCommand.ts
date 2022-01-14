@@ -4,6 +4,22 @@ import {
 } from "discord.js";
 
 /**
+ * Le niveau d'accès de la commande
+ */
+export enum ApplicationCommandAccess {
+  /** Commande globale, accessible hors serveur */
+  GLOBAL,
+
+  /** Commande accessible uniquement sur un serveur */
+  GUILD,
+
+  /**
+   * Commande accessibles uniquement sur un serveur et pour les amdinsitrateurs
+   */
+  ADMIN,
+}
+
+/**
  * Représente le résultat d'une commande d'application.
  */
 export interface IApplicationCommandResult {
@@ -19,11 +35,8 @@ export interface IApplicationCommandResult {
 
 /** Représente une commande d'application reconnue par le bot. */
 export interface IApplicationCommand {
-  /**
-   * Indique si la commande est une commande de serveur.
-   * Si ce n'est pas le cas, c'est une commande globale.
-   * */
-  isGuildCommand: boolean;
+  /** Niveau d'accès de la commande */
+  commandAccess: ApplicationCommandAccess;
 
   /**
    * Les données de configuration de la commande d'application.

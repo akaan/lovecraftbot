@@ -2,11 +2,15 @@ import { CommandInteraction } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 
 /** Commande permettant de répéter à l'utilisateur son propre message */
 export class EchoCommand implements IApplicationCommand {
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "echo",

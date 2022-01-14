@@ -3,7 +3,11 @@ import { CommandInteraction, SelectMenuInteraction } from "discord.js";
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { ArkhamDBCard, CardService, SearchType } from "../services/CardService";
 
 import { selectCard } from "./utils/selectCard";
@@ -32,7 +36,7 @@ interface SearchOptions {
 export class CardCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "c",

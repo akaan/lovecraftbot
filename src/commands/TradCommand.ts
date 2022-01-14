@@ -6,14 +6,18 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { CardService } from "../services/CardService";
 
 /** Commande de traduction des titres de cartes */
 export class TradCommand implements IApplicationCommand {
   @Inject private cardService!: CardService;
 
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "trad",

@@ -20,6 +20,7 @@ import {
   IApplicationCommand,
   IApplicationCommandResult,
   ApplicationCommandConstructor,
+  ApplicationCommandAccess,
 } from "../interfaces";
 
 import { EnvService } from "./EnvService";
@@ -96,8 +97,21 @@ export class ApplicationCommandManager extends BaseService {
    *
    * @returns Les commandes d'application de niveau serveur
    */
-  private getGuildApplicationCommands(): IApplicationCommand[] {
-    return this.applicationCommands.filter((sc) => sc.isGuildCommand);
+  public getGuildApplicationCommands(): IApplicationCommand[] {
+    return this.applicationCommands.filter(
+      (c) => c.commandAccess === ApplicationCommandAccess.GUILD
+    );
+  }
+
+  /**
+   * Renvoie les commandes d'application référencées au niveau serveur
+   *
+   * @returns Les commandes d'application de niveau serveur
+   */
+  private getAdminApplicationCommands(): IApplicationCommand[] {
+    return this.applicationCommands.filter(
+      (c) => c.commandAccess === ApplicationCommandAccess.ADMIN
+    );
   }
 
   /**
@@ -106,7 +120,9 @@ export class ApplicationCommandManager extends BaseService {
    * @returns Les commandes d'application globales
    */
   public getGlobalApplicationCommands(): IApplicationCommand[] {
-    return this.applicationCommands.filter((sc) => !sc.isGuildCommand);
+    return this.applicationCommands.filter(
+      (c) => c.commandAccess === ApplicationCommandAccess.GLOBAL
+    );
   }
 
   /**
@@ -124,12 +140,25 @@ export class ApplicationCommandManager extends BaseService {
         const applicationCommandInstance: IApplicationCommand =
           new applicationCommandConstructor();
 
-        if (this.envService.mode === "development") {
-          applicationCommandInstance.isGuildCommand = true;
+        // En mode développement les commandes globales sont ramenées au niveau
+        // serveur.
+        if (
+          this.envService.mode === "development" &&
+          applicationCommandInstance.commandAccess ===
+            ApplicationCommandAccess.GLOBAL
+        ) {
+          applicationCommandInstance.commandAccess =
+            ApplicationCommandAccess.GUILD;
         }
 
-        if (applicationCommandInstance.isGuildCommand)
+        if (
+          applicationCommandInstance.commandAccess ===
+          ApplicationCommandAccess.ADMIN
+        ) {
           applicationCommandInstance.commandData.defaultPermission = false;
+        } else {
+          applicationCommandInstance.commandData.defaultPermission = true;
+        }
         this.applicationCommands.push(applicationCommandInstance);
       }
     );
@@ -183,9 +212,10 @@ export class ApplicationCommandManager extends BaseService {
     try {
       const commandManager = guild.commands;
       const deployedCommands = await commandManager.fetch();
-      const botCommands = this.getGuildApplicationCommands().map(
-        (c) => c.commandData
-      );
+      const botCommands = [
+        ...this.getGuildApplicationCommands(),
+        ...this.getAdminApplicationCommands(),
+      ].map((c) => c.commandData);
 
       await this.deleteObsoleteCommands(deployedCommands, botCommands);
       await this.createNewCommands(
@@ -194,7 +224,7 @@ export class ApplicationCommandManager extends BaseService {
         commandManager
       );
       await this.updateCommands(deployedCommands, botCommands);
-      await this.setGuildApplicationCommandsPermissions(guild);
+      await this.setAdminApplicationCommandsPermissions(guild);
     } catch (error) {
       this.logger.error(
         ApplicationCommandManager.LOG_LABEL,
@@ -326,7 +356,7 @@ export class ApplicationCommandManager extends BaseService {
    * @param guild Le serveur concerné
    * @returns Une promesse résolue une fois les permissions mises en place
    */
-  private async setGuildApplicationCommandsPermissions(
+  private async setAdminApplicationCommandsPermissions(
     guild: Guild
   ): Promise<void> {
     const botAdminRoleName = this.envService.botAdminRoleName;
@@ -351,8 +381,14 @@ export class ApplicationCommandManager extends BaseService {
       }
 
       const commands = await guild.commands.fetch();
+      const adminCommandNames = this.getAdminApplicationCommands().map(
+        (c) => c.commandData.name
+      );
+      const adminCommands = commands.filter((c) =>
+        adminCommandNames.includes(c.name)
+      );
       if (commands.size > 0) {
-        const fullPermissions = commands.map((c) =>
+        const fullPermissions = adminCommands.map((c) =>
           createCommandPermission(c, [createRolePermission(botAdminRole)])
         );
         await guild.commands.permissions.set({ fullPermissions });

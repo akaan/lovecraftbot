@@ -1,12 +1,16 @@
 import { CommandInteraction, EmbedFieldData, MessageEmbed } from "discord.js";
 import { Container } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { ApplicationCommandManager } from "../services/ApplicationCommandManager";
 
 /** Commande d'affichage de l'aide du bot */
 export class HelpCommand implements IApplicationCommand {
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "aide",
@@ -18,12 +22,17 @@ export class HelpCommand implements IApplicationCommand {
     interaction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
     const applicationCommandManager = Container.get(ApplicationCommandManager);
-    const commandDescriptions: EmbedFieldData[] = applicationCommandManager
-      .getGlobalApplicationCommands()
-      .map((command) => ({
-        name: "/" + command.commandData.name,
-        value: command.commandData.description,
-      }));
+    const commandDescriptions: EmbedFieldData[] = [
+      ...applicationCommandManager.getGlobalApplicationCommands(),
+      ...applicationCommandManager.getGuildApplicationCommands(),
+    ].map((command) => ({
+      name: "/" + command.commandData.name,
+      value:
+        command.commandData.description +
+        (command.commandAccess === ApplicationCommandAccess.GUILD
+          ? " - *serveur uniquement*"
+          : ""),
+    }));
 
     const embed = new MessageEmbed();
     embed.setTitle("Aide");

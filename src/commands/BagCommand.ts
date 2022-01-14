@@ -1,7 +1,11 @@
 import { CommandInteraction } from "discord.js";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { ChaosBagService } from "../services/ChaosBagService";
 
 /**
@@ -10,7 +14,7 @@ import { ChaosBagService } from "../services/ChaosBagService";
 export class BagCommand implements IApplicationCommand {
   @Inject private chaosBagService!: ChaosBagService;
 
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "bag",

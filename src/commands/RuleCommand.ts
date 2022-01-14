@@ -10,7 +10,11 @@ import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import { createSelectMenuCollector, getEmbedSize } from "../discordHelpers";
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { Rule, RulesService } from "../services/RulesService";
 import { partition } from "../utils";
 
@@ -24,7 +28,7 @@ const MAX_RULES = 25;
 export class RuleCommand implements IApplicationCommand {
   @Inject private rulesService!: RulesService;
 
-  isGuildCommand = false;
+  commandAccess = ApplicationCommandAccess.GLOBAL;
 
   commandData = {
     name: "regle",

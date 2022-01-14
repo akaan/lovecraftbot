@@ -7,7 +7,11 @@ import {
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
-import { IApplicationCommand, IApplicationCommandResult } from "../interfaces";
+import {
+  ApplicationCommandAccess,
+  IApplicationCommand,
+  IApplicationCommandResult,
+} from "../interfaces";
 import { CardOfTheDayService } from "../services/CardOfTheDayService";
 import { GuildConfigurationService } from "../services/GuildConfigurationService";
 
@@ -18,7 +22,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   @Inject private cardOfTheDayService!: CardOfTheDayService;
   @Inject private guildConfigurationService!: GuildConfigurationService;
 
-  isGuildCommand = true;
+  commandAccess = ApplicationCommandAccess.ADMIN;
 
   commandData = {
     name: "cotd",
@@ -148,7 +152,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     const channel = commandInteraction.options.getChannel("canal");
     if (channel && channel.type === "GUILD_TEXT") {
-      this.guildConfigurationService.setConfig(
+      await this.guildConfigurationService.setConfig(
         guild,
         "cardOfTheDayChannelId",
         channel.id
@@ -187,7 +191,11 @@ export class CardOfTheDayCommand implements IApplicationCommand {
   ): Promise<IApplicationCommandResult> {
     const hour = commandInteraction.options.getInteger("heure");
     if (hour) {
-      this.guildConfigurationService.setConfig(guild, "cardOfTheDayHour", hour);
+      await this.guildConfigurationService.setConfig(
+        guild,
+        "cardOfTheDayHour",
+        hour
+      );
       await commandInteraction.reply({
         content: `C'est fait ! La carte du jour sera envoyée à ${hour}H`,
         ephemeral: true,
