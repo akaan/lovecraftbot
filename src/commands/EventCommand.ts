@@ -163,10 +163,7 @@ export class EventCommand implements IApplicationCommand {
       );
     }
 
-    await this.massMultiplayerEventService.createGroupChannels(
-      guild,
-      numberOfGroups
-    );
+    await this.massMultiplayerEventService.startEvent(guild, numberOfGroups);
 
     await commandInteraction.reply({
       content: "Evénement démarré !",
@@ -240,7 +237,7 @@ export class EventCommand implements IApplicationCommand {
       );
     }
 
-    await this.massMultiplayerEventService.cleanGroupChannels(guild);
+    await this.massMultiplayerEventService.endEvent(guild);
 
     await commandInteraction.reply({
       content: "Evénement terminé !",

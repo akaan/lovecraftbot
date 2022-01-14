@@ -236,10 +236,7 @@ export class BlobGameService extends BaseService {
       return Promise.reject(BlobGameServiceError.eventAlreadyRunning());
 
     try {
-      await this.massMultiplayerEventService.createGroupChannels(
-        guild,
-        numberOfGroups
-      );
+      await this.massMultiplayerEventService.startEvent(guild, numberOfGroups);
 
       const repository = this.getBlobGameRepository(guild);
 
@@ -615,7 +612,7 @@ export class BlobGameService extends BaseService {
     await repository.save(this.currentGameByGuildId[guild.id]);
     delete this.currentGameByGuildId[guild.id];
 
-    await this.massMultiplayerEventService.cleanGroupChannels(guild);
+    await this.massMultiplayerEventService.endEvent(guild);
   }
 
   /**

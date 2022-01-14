@@ -134,10 +134,7 @@ export class MassMultiplayerEventService extends BaseService {
    * @param numberOfGroups Le nombrre de groupes de joueurs
    * @returns Une promesse résolue quand tous les canaux sont créés.
    */
-  public async createGroupChannels(
-    guild: Guild,
-    numberOfGroups: number
-  ): Promise<void> {
+  public async startEvent(guild: Guild, numberOfGroups: number): Promise<void> {
     if (!this.envService.massMultiplayerEventCategoryName)
       throw MassMultiplayerEventServiceError.configurationMissing();
 
@@ -185,7 +182,7 @@ export class MassMultiplayerEventService extends BaseService {
    * @param guild Le serveur concerné
    * @returns Une promesse résolue une fois les canaux supprimés
    */
-  public async cleanGroupChannels(guild: Guild): Promise<void> {
+  public async endEvent(guild: Guild): Promise<void> {
     const channelsId = [
       ...this.getEventState(guild).textChannelIds,
       ...this.getEventState(guild).voiceChannelIds,
