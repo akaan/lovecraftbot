@@ -93,10 +93,31 @@ export class EventCommand implements IApplicationCommand {
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    const subCommandGroup =
+      commandInteraction.options.getSubcommandGroup(false);
+    const subCommand = commandInteraction.options.getSubcommand();
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
     });
-    return { cmd: "EventCommand", result: "Commande non implémentée" };
+    return this.commandResult("Commande non implémentée", {
+      subCommandGroup,
+      subCommand,
+    });
+  }
+
+  /**
+   * Permet de construire le résultat de la commande.
+   *
+   * @param result Le résultat de la commande
+   * @param meta Les données supplémentaires à adjoindre
+   * @returns Un résultat de commande complet
+   */
+  private commandResult(
+    result: string,
+    meta?: Omit<IApplicationCommandResult, "cmd" | "result">
+  ) {
+    return { cmd: "EventCommand", result, ...meta };
   }
 }
