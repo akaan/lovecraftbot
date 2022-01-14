@@ -2,7 +2,6 @@ import {
   Channel,
   Client,
   Guild,
-  GuildChannel,
   Message,
   MessageOptions,
   TextChannel,
@@ -13,6 +12,7 @@ import { BaseService } from "../base/BaseService";
 
 import { EnvService } from "./EnvService";
 import { LoggerService } from "./LoggerService";
+import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
 
 /**
@@ -44,6 +44,20 @@ export class MassMultiplayerEventServiceError extends Error {
   }
 }
 
+/**
+ * Les données sauvegardées, pour un seerveur donné.
+ */
+interface MassMultiplayerEventServiceState {
+  /** Vrai si un événement est cours */
+  running: boolean;
+
+  /** Les identifiants des canaux texte créés */
+  textChannelIds: string[];
+
+  /** Les identifiants des canaux voix créés */
+  voiceChannelIds: string[];
+}
+
 @Singleton
 @OnlyInstantiableByContainer
 /**
@@ -56,25 +70,45 @@ export class MassMultiplayerEventService extends BaseService {
   private static LOG_LABEL = "MassMultiplayerEventService";
 
   /** Nom du fichier de sauvegarde de l'état d'un événement multijoueurs */
-  private static STATE_FILE_NAME = "massMultiplayerEventsGroups.json";
+  private static STATE_FILE_NAME = "event.json";
+
+  private eventState!: GuildResource<MassMultiplayerEventServiceState>;
 
   @Inject envService!: EnvService;
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
 
-  /**
-   * Pour chaque serveur, les canaux créés par ce service
-   */
-  private groupChannelsIdByGuildId: { [guildId: string]: string[] } = {};
-
   public async init(client: Client): Promise<void> {
     await super.init(client);
 
-    await Promise.all(
-      client.guilds.cache.map((guild) => {
-        return this.loadState(guild);
-      })
-    );
+    this.eventState = new GuildResource({
+      client,
+      filename: MassMultiplayerEventService.STATE_FILE_NAME,
+      logLabel: MassMultiplayerEventService.LOG_LABEL,
+      logger: this.logger,
+      resourcesService: this.resourcesService,
+    });
+  }
+
+  /**
+   * Récupère ou initialise l'état du service de gestion des événements pour le
+   * serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns L'état pour le serveur
+   */
+  private getEventState(guild: Guild): MassMultiplayerEventServiceState {
+    const maybeState = this.eventState.get(guild);
+    if (!maybeState) {
+      const initial = {
+        running: false,
+        textChannelIds: [],
+        voiceChannelIds: [],
+      };
+      void this.eventState.set(guild, initial);
+      return initial;
+    }
+    return maybeState;
   }
 
   /**
@@ -84,75 +118,12 @@ export class MassMultiplayerEventService extends BaseService {
    * @returns Vrai si un événement est en cours
    */
   public runningEvent(guild: Guild): boolean {
-    return (
-      this.groupChannelsIdByGuildId[guild.id] &&
-      this.groupChannelsIdByGuildId[guild.id].length !== 0
-    );
+    return this.getEventState(guild).running;
   }
 
-  /**
-   * Permet de savoir si le canal fourni est un canal texte créé pour les
-   * besoins d'un événement multijoueurs.
-   *
-   * @param channel Le canal concerné
-   * @returns Vrai si le canal est un canal texte créé pour un événement
-   */
-  public isEventChannel(channel: Channel): boolean {
-    if (!channel.isText()) return false;
-    if (!this.envService.massMultiplayerEventCategoryName) return false;
-
-    const channelParent = (channel as GuildChannel).parent;
-    if (channelParent === null) return false;
-
-    return (
-      channelParent.name === this.envService.massMultiplayerEventCategoryName
-    );
-  }
-
-  /**
-   * Permet de savoir si le canal fourni est le canal d'administration des
-   * événements multijoueurs.
-   *
-   * @param channel Le canal concerné
-   * @returns Vrai si le canal est le canal d'aministration des événements
-   */
-  public isAdminChannel(channel: Channel): boolean {
-    if (!channel.isText()) return false;
-    if (!this.envService.massMultiplayerEventCategoryName) return false;
-    if (!this.envService.massMultiplayerEventAdminChannelName) return false;
-
-    const channelParent = (channel as GuildChannel).parent;
-    if (channelParent === null) return false;
-
-    return (
-      channelParent.name === this.envService.massMultiplayerEventCategoryName &&
-      (channel as TextChannel).name ===
-        this.envService.massMultiplayerEventAdminChannelName
-    );
-  }
-
-  /**
-   * Permet de récupérer pour un serveur donné le canal d'administration des
-   * événements multijoueurs.
-   *
-   * @param guild Le serveur concerné
-   * @returns Le canal d'administration des événements s'il a été trouvé
-   */
-  public getAdminChannel(guild: Guild): TextChannel | undefined {
-    if (
-      !this.envService.massMultiplayerEventCategoryName &&
-      !this.envService.massMultiplayerEventAdminChannelName
-    )
-      throw MassMultiplayerEventServiceError.configurationMissing();
-
-    return guild.channels.cache.find(
-      (channel) =>
-        channel.parent !== null &&
-        channel.parent.name ===
-          this.envService.massMultiplayerEventCategoryName &&
-        channel.type === "GUILD_TEXT" &&
-        channel.name === this.envService.massMultiplayerEventAdminChannelName
-    ) as TextChannel | undefined;
+  // TODO Supprimer la fonction à la fin du refactoring
+  public isAdminChannel(_channel: Channel): boolean {
+    return false;
   }
 
   /**
@@ -179,6 +150,8 @@ export class MassMultiplayerEventService extends BaseService {
         this.envService.massMultiplayerEventCategoryName
       );
 
+    const textChannelIds: string[] = [];
+    const voiceChannelIds: string[] = [];
     for (let groupNumber = 1; groupNumber <= numberOfGroups; groupNumber++) {
       const groupChannel = await guild.channels.create(
         `groupe-${groupNumber}`,
@@ -187,6 +160,7 @@ export class MassMultiplayerEventService extends BaseService {
         }
       );
       await groupChannel.setParent(categoryId);
+      textChannelIds.push(groupChannel.id);
 
       const groupVoiceChannel = await guild.channels.create(
         `voice-groupe-${groupNumber}`,
@@ -195,18 +169,13 @@ export class MassMultiplayerEventService extends BaseService {
         }
       );
       await groupVoiceChannel.setParent(categoryId);
-
-      if (this.groupChannelsIdByGuildId[guild.id]) {
-        this.groupChannelsIdByGuildId[guild.id].push(groupChannel.id);
-        this.groupChannelsIdByGuildId[guild.id].push(groupVoiceChannel.id);
-      } else {
-        this.groupChannelsIdByGuildId[guild.id] = [
-          groupChannel.id,
-          groupVoiceChannel.id,
-        ];
-      }
+      voiceChannelIds.push(groupVoiceChannel.id);
     }
-    await this.saveState(guild);
+    await this.eventState.set(guild, {
+      running: true,
+      textChannelIds,
+      voiceChannelIds,
+    });
   }
 
   /**
@@ -217,9 +186,12 @@ export class MassMultiplayerEventService extends BaseService {
    * @returns Une promesse résolue une fois les canaux supprimés
    */
   public async cleanGroupChannels(guild: Guild): Promise<void> {
-    const groupsId = this.groupChannelsIdByGuildId[guild.id];
+    const channelsId = [
+      ...this.getEventState(guild).textChannelIds,
+      ...this.getEventState(guild).voiceChannelIds,
+    ];
     await Promise.all(
-      groupsId.map((groupId) => {
+      channelsId.map((groupId) => {
         const channel = guild.channels.cache.find(
           (channel) => channel.id === groupId
         );
@@ -228,8 +200,11 @@ export class MassMultiplayerEventService extends BaseService {
           : Promise.resolve(null);
       })
     );
-    this.groupChannelsIdByGuildId[guild.id] = [];
-    await this.saveState(guild);
+    await this.eventState.set(guild, {
+      running: false,
+      textChannelIds: [],
+      voiceChannelIds: [],
+    });
   }
 
   /**
@@ -247,12 +222,14 @@ export class MassMultiplayerEventService extends BaseService {
     messageOptions: MessageOptions,
     excludeGroupIds?: string[]
   ): Promise<Message[]> {
-    let groupsId = this.groupChannelsIdByGuildId[guild.id];
+    let textChannelIds = this.getEventState(guild).textChannelIds;
     if (excludeGroupIds) {
-      groupsId = groupsId.filter((id) => !excludeGroupIds.includes(id));
+      textChannelIds = textChannelIds.filter(
+        (id) => !excludeGroupIds.includes(id)
+      );
     }
 
-    const channels = groupsId.reduce((memo, groupId) => {
+    const channels = textChannelIds.reduce((memo, groupId) => {
       const maybeChannel = guild.channels.cache.find(
         (channel) => channel.id === groupId
       );
@@ -261,11 +238,6 @@ export class MassMultiplayerEventService extends BaseService {
       }
       return memo;
     }, [] as TextChannel[]);
-
-    const adminChannel = this.getAdminChannel(guild);
-    if (adminChannel) {
-      channels.push(adminChannel);
-    }
 
     return await Promise.all(
       channels.map((channel) => {
@@ -290,59 +262,5 @@ export class MassMultiplayerEventService extends BaseService {
         guildChannel.type === "GUILD_CATEGORY" &&
         guildChannel.name === categoryName
     )?.id;
-  }
-
-  /**
-   * Sauvegarder l'état du service concernant un serveur donné.
-   *
-   * @param guild Le serveur concerné
-   * @returns Une promesse résolue une fois la sauvegarde terminée
-   */
-  private async saveState(guild: Guild): Promise<void> {
-    try {
-      await this.resourcesService.saveGuildResource(
-        guild,
-        MassMultiplayerEventService.STATE_FILE_NAME,
-        JSON.stringify(this.groupChannelsIdByGuildId[guild.id])
-      );
-    } catch (error) {
-      this.logger.error(
-        MassMultiplayerEventService.LOG_LABEL,
-        "Erreur à la sauvegare de l'état",
-        { error }
-      );
-    }
-  }
-
-  /**
-   * Charge l'état du service pour un serveur donnée.
-   *
-   * @param guild Le serveur concerné
-   * @returns Une promesse résolue une fois le chargement terminé.
-   */
-  private async loadState(guild: Guild): Promise<void> {
-    try {
-      if (
-        await this.resourcesService.guildResourceExists(
-          guild,
-          MassMultiplayerEventService.STATE_FILE_NAME
-        )
-      ) {
-        const raw = await this.resourcesService.readGuildResource(
-          guild,
-          `massMultiplayerEventsGroups.json`
-        );
-        if (raw) {
-          const groupsId = JSON.parse(raw) as string[];
-          this.groupChannelsIdByGuildId[guild.id] = groupsId;
-        }
-      }
-    } catch (error) {
-      this.logger.error(
-        MassMultiplayerEventService.LOG_LABEL,
-        "Erreur au chargement de l'état",
-        { error }
-      );
-    }
   }
 }
