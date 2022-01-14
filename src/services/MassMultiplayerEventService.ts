@@ -4,7 +4,7 @@ import {
   Guild,
   GuildChannel,
   Message,
-  MessageEmbed,
+  MessageOptions,
   TextChannel,
 } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
@@ -244,7 +244,7 @@ export class MassMultiplayerEventService extends BaseService {
    */
   public async broadcastMessage(
     guild: Guild,
-    content: string | MessageEmbed,
+    messageOptions: MessageOptions,
     excludeGroupIds?: string[]
   ): Promise<Message[]> {
     let groupsId = this.groupChannelsIdByGuildId[guild.id];
@@ -269,11 +269,7 @@ export class MassMultiplayerEventService extends BaseService {
 
     return await Promise.all(
       channels.map((channel) => {
-        if (typeof content === "string") {
-          return channel.send(content);
-        } else {
-          return channel.send({ embeds: [content] });
-        }
+        return channel.send(messageOptions);
       })
     );
   }

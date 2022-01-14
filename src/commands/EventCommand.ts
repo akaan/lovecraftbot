@@ -110,6 +110,13 @@ export class EventCommand implements IApplicationCommand {
       return this.startEvent(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommandGroup === null && subCommand === "msg") {
+      return this.broadcastMessage(
+        commandInteraction,
+        commandInteraction.guild
+      );
+    }
+
     if (subCommandGroup === null && subCommand === "end") {
       return this.endEvent(commandInteraction, commandInteraction.guild);
     }
@@ -166,6 +173,50 @@ export class EventCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Evénement démarré");
+  }
+
+  /**
+   * Traite le cas de la sous-commande d'envoi de message à tous les groupes
+   * d'un événement multijoueurs.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async broadcastMessage(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il n'y a pas d'événement en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible d'envoyer un message : il n'y a pas d'événement en cours"
+      );
+    }
+
+    const message = commandInteraction.options.getString("message");
+    if (!message) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le message à envoyer",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible d'envoyer un message sans le message"
+      );
+    }
+
+    await this.massMultiplayerEventService.broadcastMessage(guild, {
+      content: message,
+    });
+
+    await commandInteraction.reply({
+      content: "Message envoyé !",
+      ephemeral: true,
+    });
+    return this.commandResult("Message envoyé");
   }
 
   /**

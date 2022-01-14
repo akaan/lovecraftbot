@@ -282,10 +282,9 @@ export class BlobGameService extends BaseService {
     const gameStateEmbed = this.createGameStateEmbed(guild);
     if (gameStateEmbed) {
       this.gameStateMessagesByGuildId[guild.id] =
-        await this.massMultiplayerEventService.broadcastMessage(
-          guild,
-          gameStateEmbed
-        );
+        await this.massMultiplayerEventService.broadcastMessage(guild, {
+          embeds: [gameStateEmbed],
+        });
       this.saveState(guild).catch((error) =>
         this.logger.error(
           BlobGameService.LOG_LABEL,
@@ -374,7 +373,7 @@ export class BlobGameService extends BaseService {
    */
   private timeIsUp(guild: Guild): void {
     this.massMultiplayerEventService
-      .broadcastMessage(guild, "La partie est terminée !")
+      .broadcastMessage(guild, { content: "La partie est terminée !" })
       .catch((error) =>
         this.logger.error(
           BlobGameService.LOG_LABEL,
@@ -394,12 +393,11 @@ export class BlobGameService extends BaseService {
   private tellTimeRemaining(guild: Guild): void {
     if (guild.id in this.gameTimerByGuildId) {
       this.massMultiplayerEventService
-        .broadcastMessage(
-          guild,
-          `Le temps passe ... il reste ${
+        .broadcastMessage(guild, {
+          content: `Le temps passe ... il reste ${
             this.gameTimerByGuildId[guild.id]
-          } minutes pour vaincre le Dévoreur`
-        )
+          } minutes pour vaincre le Dévoreur`,
+        })
         .catch((error) =>
           this.logger.error(
             BlobGameService.LOG_LABEL,
@@ -667,14 +665,18 @@ export class BlobGameService extends BaseService {
       );
       await this.massMultiplayerEventService.broadcastMessage(
         guild,
-        `${groupChannel.name} a porté le coup fatal en infligeant ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        {
+          content: `${groupChannel.name} a porté le coup fatal en infligeant ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        },
         [groupChannel.id]
       );
       await this.gameWon(guild);
     } else {
       await this.massMultiplayerEventService.broadcastMessage(
         guild,
-        `${groupChannel.name} a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        {
+          content: `${groupChannel.name} a infligé ${numberOfDamageDealt} dégât(s) au Dévoreur !`,
+        },
         [groupChannel.id]
       );
     }
@@ -720,7 +722,9 @@ export class BlobGameService extends BaseService {
 
     await this.massMultiplayerEventService.broadcastMessage(
       guild,
-      `${groupChannel.name} a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
+      {
+        content: `${groupChannel.name} a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
+      },
       [groupChannel.id]
     );
 
@@ -728,10 +732,9 @@ export class BlobGameService extends BaseService {
       this.currentGameByGuildId[guild.id].getNumberOfCluesOnAct1() ===
       this.currentGameByGuildId[guild.id].getAct1ClueThreshold()
     ) {
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        `Les investigateurs ont réunis l'ensemble des indices nécessaires. Dès le prochain round, vous pouvez faire avancer l'Acte 1.`
-      );
+      await this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `Les investigateurs ont réunis l'ensemble des indices nécessaires. Dès le prochain round, vous pouvez faire avancer l'Acte 1.`,
+      });
     }
   }
 
@@ -772,7 +775,9 @@ export class BlobGameService extends BaseService {
     );
     await this.massMultiplayerEventService.broadcastMessage(
       guild,
-      `${groupChannel.name} a ajouté ${numberOfCounterMeasures} contre-mesures(s) !`,
+      {
+        content: `${groupChannel.name} a ajouté ${numberOfCounterMeasures} contre-mesures(s) !`,
+      },
       [groupChannel.id]
     );
   }
@@ -814,7 +819,9 @@ export class BlobGameService extends BaseService {
     );
     await this.massMultiplayerEventService.broadcastMessage(
       guild,
-      `${groupChannel.name} a dépensé ${numberOfCounterMeasures} contre-mesures(s) !`,
+      {
+        content: `${groupChannel.name} a dépensé ${numberOfCounterMeasures} contre-mesures(s) !`,
+      },
       [groupChannel.id]
     );
   }
@@ -907,16 +914,14 @@ export class BlobGameService extends BaseService {
    * @returns Une promesse résolue une fois le traitement terminé
    */
   private async gameWon(guild: Guild): Promise<void> {
-    await this.massMultiplayerEventService.broadcastMessage(
-      guild,
-      `Félications, vous avez vaincu le Dévoreur !`
-    );
+    await this.massMultiplayerEventService.broadcastMessage(guild, {
+      content: `Félications, vous avez vaincu le Dévoreur !`,
+    });
     const statsEmbed = this.createGameStatsEmbed(guild);
     if (statsEmbed) {
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        statsEmbed
-      );
+      await this.massMultiplayerEventService.broadcastMessage(guild, {
+        embeds: [statsEmbed],
+      });
     }
   }
 
