@@ -129,6 +129,18 @@ export class EventCommand implements IApplicationCommand {
       return this.endEvent(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommandGroup === "timer" && subCommand === "start") {
+      return this.startTimer(commandInteraction, commandInteraction.guild);
+    }
+
+    if (subCommandGroup === "timer" && subCommand === "pause") {
+      return this.pauseTimer(commandInteraction, commandInteraction.guild);
+    }
+
+    if (subCommandGroup === "timer" && subCommand === "resume") {
+      return this.resumeTimer(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -267,6 +279,166 @@ export class EventCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Evénement terminé");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de démarrage de minuterie.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async startTimer(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+      return this.noEvent(commandInteraction);
+    }
+    if (this.massMultiplayerEventService.isTimerRunning(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il y a déjà une minuterie en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer une minuterie : il y en a déjà une en cours"
+      );
+    }
+
+    const minutes = commandInteraction.options.getInteger("minutes");
+    if (!minutes) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de minutes",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer une minuterie sans la nombre de minutes"
+      );
+    }
+
+    this.massMultiplayerEventService.startTimer(
+      guild,
+      minutes,
+      this.tellTimeRemaining(guild)
+    );
+
+    await commandInteraction.reply({
+      content: "Minuterie démarrée !",
+      ephemeral: true,
+    });
+    return this.commandResult("Minuterie démarrée", { minutes });
+  }
+
+  /**
+   * Traite le cas de la sous-commande de pause de la minuterie.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async pauseTimer(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+      return this.noEvent(commandInteraction);
+    }
+    if (!this.massMultiplayerEventService.isTimerRunning(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il n'y a pas de minuterie en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de mettre en pause la minuterie : il n'y en a pas en cours"
+      );
+    }
+
+    this.massMultiplayerEventService.pauseTimer(guild);
+
+    await commandInteraction.reply({
+      content: "Minuterie en pause !",
+      ephemeral: true,
+    });
+    return this.commandResult("Minuterie mise en pause");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de remise en route de la minuterie.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async resumeTimer(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+      return this.noEvent(commandInteraction);
+    }
+    if (this.massMultiplayerEventService.isTimerRunning(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, la minuterie est déjà cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de remettre en marche la minuterie : elle est déjà en cours"
+      );
+    }
+
+    this.massMultiplayerEventService.resumeTimer(
+      guild,
+      this.tellTimeRemaining(guild)
+    );
+
+    await commandInteraction.reply({
+      content: "Minuterie redémarrée !",
+      ephemeral: true,
+    });
+    return this.commandResult("Minuterie redémarrée");
+  }
+
+  /**
+   * Répond qu'il n'y a pas d'événement en cours.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async noEvent(
+    commandInteraction: CommandInteraction
+  ): Promise<IApplicationCommandResult> {
+    await commandInteraction.reply({
+      content: "Impossible, il n'y a pas d'événement en cours",
+      ephemeral: true,
+    });
+    return this.commandResult(
+      "Impossible de mettre fin l'événement : il n'y en a pas en cours"
+    );
+  }
+
+  private tellTimeRemaining(
+    guild: Guild
+  ): (remaining: number | undefined) => void {
+    return (remaining) => {
+      if (remaining !== undefined) {
+        if (
+          (remaining >= 60 && remaining % 15 === 0) ||
+          (remaining < 60 && remaining >= 30 && remaining % 10 === 0) ||
+          (remaining < 30 && remaining >= 10 && remaining % 5 === 0) ||
+          (remaining < 10 && remaining > 0)
+        ) {
+          void this.massMultiplayerEventService.broadcastMessage(guild, {
+            content: `Il ne reste plus que ${remaining} minute(s)`,
+          });
+        }
+
+        if (remaining === 0) {
+          void this.massMultiplayerEventService.broadcastMessage(guild, {
+            content: `Le temps est écoulé ! C'est fini.`,
+          });
+        }
+      }
+    };
   }
 
   /**

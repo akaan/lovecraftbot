@@ -27,6 +27,9 @@ interface MassMultiplayerEventServiceState {
 
   /** Les identifiants des canaux voix créés */
   voiceChannelIds: string[];
+
+  /** Temps restant en minutes */
+  minutesRemaining?: number;
 }
 
 @Singleton
@@ -43,7 +46,11 @@ export class MassMultiplayerEventService extends BaseService {
   /** Nom du fichier de sauvegarde de l'état d'un événement multijoueurs */
   private static STATE_FILE_NAME = "event.json";
 
+  /** Etat du service */
   private eventState!: GuildResource<MassMultiplayerEventServiceState>;
+
+  /** Les timers (par serveur) permettant de gérer la minuterie */
+  private timerByGuildId: { [guildId: string]: NodeJS.Timer } = {};
 
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
@@ -206,20 +213,112 @@ export class MassMultiplayerEventService extends BaseService {
   }
 
   /**
-   * Récupère sur un serveur donné une catégorie de canaux à partir de son nom.
+   * Démarre la minuterie sur le serveur concerné.
+   * Renverra faux si une minuterie est déjà en cours.
    *
    * @param guild Le serveur concerné
-   * @param categoryName Le nom de la catégorie
-   * @returns La catégorie de canaux si elle a été trouvée
+   * @param minutes Le nombre de minutes
+   * @param tick Une fonction à exécuter à chaque minute écoulée
+   * @returns Vrai si la minuterie a été démarré
    */
-  private getCategoryIdByName(
+  public startTimer(
     guild: Guild,
-    categoryName: string
-  ): string | undefined {
-    return guild.channels.cache.find(
-      (guildChannel) =>
-        guildChannel.type === "GUILD_CATEGORY" &&
-        guildChannel.name === categoryName
-    )?.id;
+    minutes: number,
+    tick?: (remaining: number) => void
+  ): boolean {
+    if (this.isTimerRunning(guild)) return false;
+
+    this.updateMinutesRemaining(guild, () => minutes);
+    this.createTimerInterval(guild, tick);
+    return true;
+  }
+
+  /**
+   * Permet de savoi si la minuterie court sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns Vrai si la minuterie est active
+   */
+  public isTimerRunning(guild: Guild): boolean {
+    return !!this.timerByGuildId[guild.id];
+  }
+
+  /**
+   * Permet de mettre en pause la minuterie sur le serveur indiqué.
+   * Renverra faux s'il n'y a pas de minuterie en cours.
+   *
+   * @param guild Le serveur concerné
+   * @returns Vrai si la minuterie a été mise en pause
+   */
+  public pauseTimer(guild: Guild): boolean {
+    if (this.timerByGuildId[guild.id]) {
+      clearInterval(this.timerByGuildId[guild.id]);
+      delete this.timerByGuildId[guild.id];
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Redémarre une minuterie mise en pause sur le serveur indiqué.
+   * Renverra faux si il n'y a pas de minuterie en pause.
+   *
+   * @param guild Le serveur concerné
+   * @param tick Une fonction à exécuter à chaque minute écoulée
+   * @returns Vrai si une minuterie a été redémarrée
+   */
+  public resumeTimer(
+    guild: Guild,
+    tick?: (remaining: number) => void
+  ): boolean {
+    if (this.isTimerRunning(guild)) return false;
+
+    this.createTimerInterval(guild, tick);
+    return true;
+  }
+
+  /**
+   * Permet de mettre à jour le temps restant pour un serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param updater Une fonction de mise à jour qui reçoit l'ancienne valeur
+   * et renvoie la nouvelle
+   */
+  private updateMinutesRemaining(
+    guild: Guild,
+    updater: (oldValue: number | undefined) => number
+  ): void {
+    const state = this.getEventState(guild);
+    void this.eventState.set(guild, {
+      ...state,
+      minutesRemaining: updater(state.minutesRemaining),
+    });
+  }
+
+  /**
+   * Mise de la routine nécessaire pour la minuterie.
+   *
+   * @param guild Le serveur concerné
+   * @param tick Une fonction à exécuter à chaque minute écoulée
+   */
+  private createTimerInterval(
+    guild: Guild,
+    tick?: (remaining: number) => void
+  ): void {
+    this.timerByGuildId[guild.id] = setInterval(() => {
+      this.updateMinutesRemaining(guild, (previousValue) => {
+        if (previousValue !== undefined) return previousValue - 1;
+        return 0; // Ne devrait pas arriver
+      });
+      const remaining = this.getEventState(guild).minutesRemaining;
+      if (remaining !== undefined) {
+        if (tick) tick(remaining);
+        if (remaining === 0) {
+          clearInterval(this.timerByGuildId[guild.id]);
+          delete this.timerByGuildId[guild.id];
+        }
+      }
+    }, 1000 * 60);
   }
 }
