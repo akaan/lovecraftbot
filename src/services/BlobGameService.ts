@@ -1,5 +1,5 @@
 import { Client, Guild } from "discord.js";
-import { Inject } from "typescript-ioc";
+import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
 import { BlobGame } from "../domain/BlobGame";
@@ -12,7 +12,12 @@ import { MassMultiplayerEventService } from "./MassMultiplayerEventService";
 /**
  * Service de gestion d'une partie du Dévoreur de Toute Chose.
  */
+@Singleton
+@OnlyInstantiableByContainer
 export class BlobGameService extends BaseService {
+  /** Etiquette utilisée pour les logs de ce service */
+  private static LOG_LABEL = "BlobGameService";
+
   @Inject logger!: LoggerService;
   @Inject massMultiplayerEventService!: MassMultiplayerEventService;
 
@@ -24,6 +29,9 @@ export class BlobGameService extends BaseService {
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
+
+    client.guilds.cache.forEach((guild) => void this.continueLatestGame(guild));
+    client.on("guildCreate", (guild) => this.continueLatestGame(guild));
   }
 
   /**
@@ -93,6 +101,30 @@ export class BlobGameService extends BaseService {
   private setCurrentGame(guild: Guild, game: BlobGame): void {
     this.currentGame[guild.id] = game;
   }
+
+  /**
+   * Reprend la partie en cours s'il y en a une.
+   *
+   * @param guild Le serveur concerné
+   */
+  private async continueLatestGame(guild: Guild): Promise<void> {
+    const repository = this.getRepository(guild);
+
+    const allGames = await repository.load();
+    if (allGames.length === 0) return;
+
+    const runningGames = allGames.filter(
+      (game) => game.getDateEnded() === undefined
+    );
+    if (runningGames.length === 0) return;
+
+    const latestGame = runningGames.sort(sortByDateDesc)[0];
+    this.logger.warn(BlobGameService.LOG_LABEL, `Reprise d'une partie`, {
+      guild: guild.name,
+      gameCreated: latestGame.getDateCreated().toLocaleString(),
+    });
+    this.setCurrentGame(guild, latestGame);
+  }
 }
 
 /**
@@ -118,3 +150,17 @@ export class BlobGameServiceError extends Error {
     return new BlobGameServiceError("Il y a déjà une partie en cours");
   }
 }
+
+/**
+ * Fonction de comparaison permettant de classer les parties par date de
+ * création descendante.
+ *
+ * @param bg1 Première partie à comparer
+ * @param bg2 Seconde partie à comparer
+ * @returns Le résultat de la comparaison des 2 parties
+ */
+const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
+  if (bg1.getDateCreated() < bg2.getDateCreated()) return 1;
+  if (bg1.getDateCreated() > bg2.getDateCreated()) return -1;
+  return 0;
+};
