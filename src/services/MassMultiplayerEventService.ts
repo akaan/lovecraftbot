@@ -291,24 +291,8 @@ export class MassMultiplayerEventService extends BaseService {
    * @returns Le nombre de minutes restantes ou `undefined` si la minuterie n'a
    * pas été initialisée
    */
-  public getTimeReminaing(guild: Guild): number | undefined {
+  public getTimeRemaining(guild: Guild): number | undefined {
     return this.getServiceState(guild).minutesRemaining;
-  }
-
-  /**
-   * Permet d'obtenir pour le serveur indiqué un message texte indiquant l'état
-   * de la minuterie.
-   *
-   * @param guild Le serveur concerné
-   * @returns Un message d'état de la minuterie
-   */
-  public getTimerMessage(guild: Guild): string {
-    const minutesRemaining = this.getServiceState(guild).minutesRemaining;
-    const isRunning = this.isTimerRunning(guild);
-
-    if (!minutesRemaining) return "Minuterie non initialisée";
-
-    return `${minutesRemaining} minutes${isRunning ? "" : " (en pause)"}`;
   }
 
   /**

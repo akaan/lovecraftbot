@@ -387,7 +387,7 @@ export class EventCommand implements IApplicationCommand {
     }
 
     if (
-      this.massMultiplayerEventService.getTimeReminaing(guild) === undefined
+      this.massMultiplayerEventService.getTimeRemaining(guild) === undefined
     ) {
       await commandInteraction.reply({
         content:

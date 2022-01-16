@@ -1,4 +1,4 @@
-import { Client, Guild } from "discord.js";
+import { Client, Guild, MessageEmbed } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -67,6 +67,17 @@ export class BlobGameService extends BaseService {
     const newGame = new BlobGame(nextId, new Date(), numberOfPlayers);
     await repository.save(newGame);
     this.setCurrentGame(guild, newGame);
+
+    const stateEmbed = createGameStateEmbed(
+      newGame,
+      this.massMultiplayerEventService.getTimeRemaining(guild),
+      this.massMultiplayerEventService.isTimerRunning(guild)
+    );
+    const stateMessages =
+      await this.massMultiplayerEventService.broadcastMessage(guild, {
+        embeds: [stateEmbed],
+      });
+    await Promise.all(stateMessages.map((msg) => msg.pin()));
   }
 
   /**
@@ -197,3 +208,54 @@ const sortByDateDesc = (bg1: BlobGame, bg2: BlobGame) => {
   if (bg1.getDateCreated() > bg2.getDateCreated()) return -1;
   return 0;
 };
+
+/**
+ * Permet de créer un encart Discord d'affichage de l'état de la partie.
+ *
+ * @param game La partie du Dévoreur
+ * @param minutesRemaining Le temps restant (`undefined` si non initialisé)
+ * @param isTimerRunning Si la minuterie est active
+ * @returns Un encart d'affichage de l'état de la partie si une partie est en
+ * cours
+ */
+function createGameStateEmbed(
+  game: BlobGame,
+  minutesRemaining: number | undefined,
+  isTimerRunning: boolean
+): MessageEmbed {
+  const embed = new MessageEmbed();
+
+  embed.setTitle(
+    `Le Dévoreur de Toute Chose - ${game.getDateCreated().toLocaleDateString()}`
+  );
+  embed.setThumbnail(
+    `https://images-cdn.fantasyflightgames.com/filer_public/ce/57/ce570809-b79c-46fe-a0a8-e10ef8d54328/ahc45_preview1.png`
+  );
+  embed.setColor(0x67c355);
+  embed.addFields([
+    {
+      name: "Nombre de joueurs",
+      value: game.getNumberOfPlayers().toString(),
+    },
+    {
+      name: "Points de vie restants / total",
+      value: `${game.getBlobRemainingHealth()} / ${game.getBlobTotalHealth()}`,
+    },
+    {
+      name: "Indices sur l'Acte 1",
+      value: `${game.getNumberOfCluesOnAct1()} / ${game.getAct1ClueThreshold()}`,
+    },
+    {
+      name: "Nombre de contre-mesures",
+      value: game.getNumberOfCounterMeasures().toString(),
+    },
+    {
+      name: "Temps restant",
+      value: minutesRemaining
+        ? `${minutesRemaining} minutes${isTimerRunning ? "" : " (en pause)"}`
+        : `Minuterie non initialisée`,
+    },
+  ]);
+
+  return embed;
+}
