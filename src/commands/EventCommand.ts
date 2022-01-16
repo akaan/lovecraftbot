@@ -162,7 +162,7 @@ export class EventCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
-    if (this.massMultiplayerEventService.runningEvent(guild)) {
+    if (this.massMultiplayerEventService.isEventRunning(guild)) {
       await commandInteraction.reply({
         content: "Impossible, il y a déjà un événement en cours",
         ephemeral: true,
@@ -219,7 +219,7 @@ export class EventCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
-    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+    if (!this.massMultiplayerEventService.isEventRunning(guild)) {
       await commandInteraction.reply({
         content: "Impossible, il n'y a pas d'événement en cours",
         ephemeral: true,
@@ -262,7 +262,7 @@ export class EventCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
-    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+    if (!this.massMultiplayerEventService.isEventRunning(guild)) {
       await commandInteraction.reply({
         content: "Impossible, il n'y a pas d'événement en cours",
         ephemeral: true,
@@ -292,7 +292,7 @@ export class EventCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
-    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+    if (!this.massMultiplayerEventService.isEventRunning(guild)) {
       return this.noEvent(commandInteraction);
     }
     if (this.massMultiplayerEventService.isTimerRunning(guild)) {
@@ -340,7 +340,7 @@ export class EventCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
-    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+    if (!this.massMultiplayerEventService.isEventRunning(guild)) {
       return this.noEvent(commandInteraction);
     }
     if (!this.massMultiplayerEventService.isTimerRunning(guild)) {
@@ -373,7 +373,7 @@ export class EventCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
-    if (!this.massMultiplayerEventService.runningEvent(guild)) {
+    if (!this.massMultiplayerEventService.isEventRunning(guild)) {
       return this.noEvent(commandInteraction);
     }
     if (this.massMultiplayerEventService.isTimerRunning(guild)) {
@@ -383,6 +383,19 @@ export class EventCommand implements IApplicationCommand {
       });
       return this.commandResult(
         "Impossible de remettre en marche la minuterie : elle est déjà en cours"
+      );
+    }
+
+    if (
+      this.massMultiplayerEventService.getTimeReminaing(guild) === undefined
+    ) {
+      await commandInteraction.reply({
+        content:
+          "Impossible, la minuterie n'a pas été initialisée avec un nombre de minutes.",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de remettre en marche la minuterie : elle n'a pas été initialisée"
       );
     }
 
