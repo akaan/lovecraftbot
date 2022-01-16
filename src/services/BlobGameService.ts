@@ -1,4 +1,4 @@
-import { Client, Guild, MessageEmbed } from "discord.js";
+import { Client, Guild, Message, MessageEmbed } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -26,6 +26,9 @@ export class BlobGameService extends BaseService {
 
   /** Les entrepôts de sauvegarde des parties, par serveur */
   private repository: { [guildId: string]: IBlobGameRepository } = {};
+
+  /** Les messages d'état de la partie, par serveur */
+  private gameStateMessages: { [guildId: string]: Message[] } = {};
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
@@ -70,16 +73,7 @@ export class BlobGameService extends BaseService {
     await repository.save(newGame);
     this.setCurrentGame(guild, newGame);
 
-    const stateEmbed = createGameStateEmbed(
-      newGame,
-      this.massMultiplayerEventService.getTimeRemaining(guild),
-      this.massMultiplayerEventService.isTimerRunning(guild)
-    );
-    const stateMessages =
-      await this.massMultiplayerEventService.broadcastMessage(guild, {
-        embeds: [stateEmbed],
-      });
-    await Promise.all(stateMessages.map((msg) => msg.pin()));
+    await this.publishOrUpdateGameState(guild);
   }
 
   /**
@@ -113,6 +107,8 @@ export class BlobGameService extends BaseService {
     const game = this.getCurrentGame(guild) as BlobGame;
     game.setCluesOnAct1(numberOfCluesOnAct1);
     await repository.save(game);
+
+    await this.publishOrUpdateGameState(guild);
   }
 
   //#endregion
@@ -181,6 +177,68 @@ export class BlobGameService extends BaseService {
       gameCreated: latestGame.getDateCreated().toLocaleString(),
     });
     this.setCurrentGame(guild, latestGame);
+  }
+
+  /**
+   * Récupère les messages d'état de la partie pour le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns La liste des messages
+   */
+  private getGameStateMessages(guild: Guild): Message[] {
+    if (!(guild.id in this.gameStateMessages)) {
+      this.gameStateMessages[guild.id] = [];
+    }
+    return this.gameStateMessages[guild.id];
+  }
+
+  /**
+   * Positionne les messages d'état de la partie pour le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param messages Les messages d'état de la partie
+   */
+  private setGameStateMessages(guild: Guild, messages: Message[]): void {
+    this.gameStateMessages[guild.id] = messages;
+  }
+
+  /**
+   * Créé ou met à jour les messages indiquant l'état de la partie.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une promess résolue une fois le messages créés ou mis à jour
+   */
+  private async publishOrUpdateGameState(guild: Guild): Promise<void> {
+    if (
+      !(
+        this.massMultiplayerEventService.isEventRunning(guild) &&
+        this.isGameRunning(guild)
+      )
+    )
+      return;
+
+    const game = this.getCurrentGame(guild) as BlobGame;
+
+    const stateEmbed = createGameStateEmbed(
+      game,
+      this.massMultiplayerEventService.getTimeRemaining(guild),
+      this.massMultiplayerEventService.isTimerRunning(guild)
+    );
+
+    const existingStateMessages = this.getGameStateMessages(guild);
+
+    if (existingStateMessages.length === 0) {
+      const stateMessages =
+        await this.massMultiplayerEventService.broadcastMessage(guild, {
+          embeds: [stateEmbed],
+        });
+      await Promise.all(stateMessages.map((msg) => msg.pin()));
+      this.setGameStateMessages(guild, stateMessages);
+    } else {
+      await Promise.all(
+        existingStateMessages.map((msg) => msg.edit({ embeds: [stateEmbed] }))
+      );
+    }
   }
 }
 
