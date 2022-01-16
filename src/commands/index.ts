@@ -1,3 +1,4 @@
+export * from "./AdminBlobCommand";
 export * from "./BagCommand";
 export * from "./CardCommand";
 export * from "./CardOfTheDayCommand";
