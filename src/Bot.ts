@@ -3,6 +3,7 @@ import { Inject } from "typescript-ioc";
 
 import { BaseService } from "./base/BaseService";
 import { ApplicationCommandManager } from "./services/ApplicationCommandManager";
+import { BlobGameService } from "./services/BlobGameService";
 import { CardOfTheDayService } from "./services/CardOfTheDayService";
 import { CardService } from "./services/CardService";
 import { CommandParser } from "./services/CommandParser";
@@ -25,6 +26,7 @@ export class Bot {
   private client!: Discord.Client;
   private commandPrefix!: string;
 
+  @Inject private blobGameService!: BlobGameService;
   @Inject private cardOfTheDayService!: CardOfTheDayService;
   @Inject private cardService!: CardService;
   @Inject private envService!: EnvService;
@@ -73,6 +75,7 @@ export class Bot {
       this.newsService,
       this.rulesService,
       this.massMultiplayerEventService,
+      this.blobGameService,
       this.commandParser,
       this.applicationCommandManager,
     ];

@@ -1,18 +1,23 @@
 import {
   ApplicationCommandSubCommandData,
   CommandInteraction,
+  Guild,
 } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { Inject } from "typescript-ioc";
 
 import {
   ApplicationCommandAccess,
   IApplicationCommand,
   IApplicationCommandResult,
 } from "../interfaces";
+import { BlobGameService } from "../services/BlobGameService";
 
 /** Commande de gestion d'une partie du Dévoreur de Toute Chose */
 export class AdminBlobCommand implements IApplicationCommand {
+  @Inject blobGameService!: BlobGameService;
+
   commandAccess = ApplicationCommandAccess.ADMIN;
 
   commandData = {
@@ -94,6 +99,10 @@ export class AdminBlobCommand implements IApplicationCommand {
 
     const subCommand = commandInteraction.options.getSubcommand();
 
+    if (subCommand === "start") {
+      return this.startNewGame(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -101,6 +110,36 @@ export class AdminBlobCommand implements IApplicationCommand {
     return this.commandResult("Commande non implémentée", {
       subCommand,
     });
+  }
+
+  /**
+   * Traite le cas de la sous-commande de démarage d'une nouvelle partie.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async startNewGame(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    const numberOfPlayers = commandInteraction.options.getInteger("joueurs");
+    if (!numberOfPlayers) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de minutes",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer une minuterie sans la nombre de minutes"
+      );
+    }
+
+    await this.blobGameService.startNewGame(guild, numberOfPlayers);
+    await commandInteraction.reply({
+      content: "Nouvelle partie du Dévoreur de Toute Chose démarrée !",
+      ephemeral: true,
+    });
+    return this.commandResult("Partie du Dévoreur démarrée");
   }
 
   /**
