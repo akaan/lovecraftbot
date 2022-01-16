@@ -105,6 +105,10 @@ export class AdminBlobCommand implements IApplicationCommand {
       return this.startNewGame(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommand === "end") {
+      return this.endGame(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -155,6 +159,35 @@ export class AdminBlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Partie du Dévoreur démarrée");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de fin d'une partie.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async endGame(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.blobGameService.isGameRunning(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il n'y a pas de partie en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de mettre fin à une partie car il n'y en a pas en cours"
+      );
+    }
+
+    await this.blobGameService.endGame(guild);
+    await commandInteraction.reply({
+      content: "Partie Dévoreur de Toute Chose terminée !",
+      ephemeral: true,
+    });
+    return this.commandResult("Partie du Dévoreur terminée");
   }
 
   /**

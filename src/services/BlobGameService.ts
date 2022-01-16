@@ -70,6 +70,21 @@ export class BlobGameService extends BaseService {
   }
 
   /**
+   * Met fin à la partie en cours sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   */
+  public async endGame(guild: Guild): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.endGame(new Date());
+    await repository.save(game);
+    this.eraseCurrentGame(guild);
+  }
+
+  /**
    * Récupère l'entrepôt de sauvegarde des parties pour le serveur indiqué.
    *
    * @param guild Le serveur concerné
@@ -100,6 +115,15 @@ export class BlobGameService extends BaseService {
    */
   private setCurrentGame(guild: Guild, game: BlobGame): void {
     this.currentGame[guild.id] = game;
+  }
+
+  /**
+   * Efface la partie en cours pour le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   */
+  private eraseCurrentGame(guild: Guild): void {
+    delete this.currentGame[guild.id];
   }
 
   /**
@@ -148,6 +172,15 @@ export class BlobGameServiceError extends Error {
    */
   public static gameAlreadyRunning(): BlobGameServiceError {
     return new BlobGameServiceError("Il y a déjà une partie en cours");
+  }
+
+  /**
+   * Créé une erreur d'absence de partie.
+   *
+   * @returns Une erreur d'absence de partie
+   */
+  public static noGame(): BlobGameServiceError {
+    return new BlobGameServiceError("Pas de partie en cours");
   }
 }
 
