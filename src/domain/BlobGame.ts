@@ -151,6 +151,17 @@ export class BlobGame {
   }
 
   /**
+   * Corrige le nombre d'indices sur l'acte 1.
+   *
+   * @param numberOfClues Le nombre d'indices
+   * @returns La partie
+   */
+  public setCluesOnAct1(numberOfClues: number): this {
+    this.numberOfCluesOnAct1 = numberOfClues;
+    return this;
+  }
+
+  /**
    * Renvoie le nombre de contre-mesures des investigateurs.
    *
    * @returns Le nombre de contre-mesures

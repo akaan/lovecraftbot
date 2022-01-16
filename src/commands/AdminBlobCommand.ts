@@ -109,6 +109,10 @@ export class AdminBlobCommand implements IApplicationCommand {
       return this.endGame(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommand === "i") {
+      return this.fixClues(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -145,11 +149,11 @@ export class AdminBlobCommand implements IApplicationCommand {
     const numberOfPlayers = commandInteraction.options.getInteger("joueurs");
     if (!numberOfPlayers) {
       await commandInteraction.reply({
-        content: "Ooops, je n'ai pas le nombre de minutes",
+        content: "Ooops, je n'ai pas le nombre de joueurs",
         ephemeral: true,
       });
       return this.commandResult(
-        "Impossible de démarrer une minuterie sans la nombre de minutes"
+        "Impossible de démarrer une minuterie sans la nombre de joueurs"
       );
     }
 
@@ -173,13 +177,7 @@ export class AdminBlobCommand implements IApplicationCommand {
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.blobGameService.isGameRunning(guild)) {
-      await commandInteraction.reply({
-        content: "Impossible, il n'y a pas de partie en cours",
-        ephemeral: true,
-      });
-      return this.commandResult(
-        "Impossible de mettre fin à une partie car il n'y en a pas en cours"
-      );
+      return this.noGame(commandInteraction, "end");
     }
 
     await this.blobGameService.endGame(guild);
@@ -188,6 +186,39 @@ export class AdminBlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Partie du Dévoreur terminée");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de correction du nombre d'indices sur
+   * l'acte 1.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async fixClues(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.blobGameService.isGameRunning(guild)) {
+      return this.noGame(commandInteraction, "i");
+    }
+
+    const numberOfClues = commandInteraction.options.getInteger("indices");
+    if (!numberOfClues) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre d'indices",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible de corriger sans nombre d'indices");
+    }
+
+    await this.blobGameService.fixNumberOfCluesOnAct1(guild, numberOfClues);
+    await commandInteraction.reply({
+      content: "Nombre d'indices sur l'acte 1 corrigé !",
+      ephemeral: true,
+    });
+    return this.commandResult("Nombre d'indices sur l'acte 1 corrigé");
   }
 
   /**
@@ -205,6 +236,25 @@ export class AdminBlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Impossible : pas d'événement en cours", {
+      subCommand,
+    });
+  }
+
+  /**
+   * Répond qu'il n'y a pas de partie en cours.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async noGame(
+    commandInteraction: CommandInteraction,
+    subCommand: string
+  ): Promise<IApplicationCommandResult> {
+    await commandInteraction.reply({
+      content: "Impossible, il n'y a pas de partie du Dévoreur en cours",
+      ephemeral: true,
+    });
+    return this.commandResult("Impossible : pas de partie en cours", {
       subCommand,
     });
   }

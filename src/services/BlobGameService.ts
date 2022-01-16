@@ -45,6 +45,8 @@ export class BlobGameService extends BaseService {
     return guild.id in this.currentGame;
   }
 
+  //#region Administration de la partie
+
   /**
    * Démarre une nouvelle partie du Dévorreur de Toute Chose.
    *
@@ -94,6 +96,26 @@ export class BlobGameService extends BaseService {
     await repository.save(game);
     this.eraseCurrentGame(guild);
   }
+
+  /**
+   * Corrige le nombre d'indices sur l'acte 1.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCluesOnAct1 Le nombre d'indices
+   */
+  public async fixNumberOfCluesOnAct1(
+    guild: Guild,
+    numberOfCluesOnAct1: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.setCluesOnAct1(numberOfCluesOnAct1);
+    await repository.save(game);
+  }
+
+  //#endregion
 
   /**
    * Récupère l'entrepôt de sauvegarde des parties pour le serveur indiqué.
