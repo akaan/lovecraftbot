@@ -8,6 +8,8 @@ import { IBlobGameRepository } from "../domain/IBlobGameRepository";
 import { BlobGameFileRepository } from "./BlobGameFileRepository";
 import { LoggerService } from "./LoggerService";
 import { MassMultiplayerEventService } from "./MassMultiplayerEventService";
+import { GuildResource } from "./resources/GuildResource";
+import { ResourcesService } from "./ResourcesService";
 
 /**
  * Service de gestion d'une partie du Dévoreur de Toute Chose.
@@ -20,6 +22,7 @@ export class BlobGameService extends BaseService {
 
   @Inject logger!: LoggerService;
   @Inject massMultiplayerEventService!: MassMultiplayerEventService;
+  @Inject resourcesService!: ResourcesService;
 
   /** Les parties en cours par serveur */
   private currentGame: { [guildId: string]: BlobGame } = {};
@@ -30,10 +33,25 @@ export class BlobGameService extends BaseService {
   /** Les messages d'état de la partie, par serveur */
   private gameStateMessages: { [guildId: string]: Message[] } = {};
 
+  /** L'état du service */
+  private serviceState!: GuildResource<BlobGameServiceState>;
+
   public async init(client: Client): Promise<void> {
     await super.init(client);
 
-    client.guilds.cache.forEach((guild) => void this.continueLatestGame(guild));
+    this.serviceState = new GuildResource({
+      client,
+      filename: `blobGameService.json`,
+      logLabel: BlobGameService.LOG_LABEL,
+      logger: this.logger,
+      resourcesService: this.resourcesService,
+      onLoaded: () => {
+        client.guilds.cache.forEach(
+          (guild) => void this.continueLatestGame(guild)
+        );
+      },
+    });
+
     client.on("guildCreate", (guild) => this.continueLatestGame(guild));
   }
 
@@ -89,6 +107,7 @@ export class BlobGameService extends BaseService {
     game.endGame(new Date());
     await repository.save(game);
     this.eraseCurrentGame(guild);
+    this.setGameStateMessages(guild, []);
   }
 
   /**
@@ -112,6 +131,34 @@ export class BlobGameService extends BaseService {
   }
 
   //#endregion
+
+  /**
+   * Récupère l'état du service pour le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @returns L'état du service
+   */
+  private getServiceState(guild: Guild): BlobGameServiceState {
+    const state = this.serviceState.get(guild);
+    if (!state) {
+      const initial = {
+        gameStateMessages: [],
+      };
+      void this.serviceState.set(guild, initial);
+      return initial;
+    }
+    return state;
+  }
+
+  /**
+   * Met à jour l'état du service pour le seveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param state Le nouvel état
+   */
+  private setServiceState(guild: Guild, state: BlobGameServiceState): void {
+    void this.serviceState.set(guild, state);
+  }
 
   /**
    * Récupère l'entrepôt de sauvegarde des parties pour le serveur indiqué.
@@ -177,6 +224,18 @@ export class BlobGameService extends BaseService {
       gameCreated: latestGame.getDateCreated().toLocaleString(),
     });
     this.setCurrentGame(guild, latestGame);
+
+    const state = this.getServiceState(guild);
+    if (state.gameStateMessages.length > 0) {
+      const stateMessages = (
+        await Promise.all(
+          state.gameStateMessages.map(({ channelId, msgId }) =>
+            getMessage(guild, channelId, msgId)
+          )
+        )
+      ).filter((msg) => msg !== undefined) as Message[];
+      this.setGameStateMessages(guild, stateMessages);
+    }
   }
 
   /**
@@ -200,6 +259,12 @@ export class BlobGameService extends BaseService {
    */
   private setGameStateMessages(guild: Guild, messages: Message[]): void {
     this.gameStateMessages[guild.id] = messages;
+    this.setServiceState(guild, {
+      gameStateMessages: messages.map((msg) => ({
+        channelId: msg.channelId,
+        msgId: msg.id,
+      })),
+    });
   }
 
   /**
@@ -240,6 +305,11 @@ export class BlobGameService extends BaseService {
       );
     }
   }
+}
+
+interface BlobGameServiceState {
+  /** Les identifiants des messages présentant l'état de la partie */
+  gameStateMessages: { channelId: string; msgId: string }[];
 }
 
 /**
@@ -338,4 +408,29 @@ function createGameStateEmbed(
   ]);
 
   return embed;
+}
+
+/**
+ * Permet de récupérer un message (en vue de le mettre à jour) sur un serveur
+ * donné en précisant son canal et son identifiant.
+ *
+ * @param guild Le serveur concerné
+ * @param channelId L'identifiant du canal
+ * @param msgId L'identifiant du message
+ * @returns Une promesse résolue avec le message si trouvé
+ */
+async function getMessage(
+  guild: Guild,
+  channelId: string,
+  msgId: string
+): Promise<Message | undefined> {
+  const channel = guild.channels.cache.find((c) => c.id === channelId);
+  if (channel && channel.isText()) {
+    try {
+      return await channel.messages.fetch(msgId);
+    } catch (err) {
+      return undefined;
+    }
+  }
+  return undefined;
 }
