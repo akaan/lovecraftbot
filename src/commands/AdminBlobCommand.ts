@@ -125,6 +125,16 @@ export class AdminBlobCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
+    if (this.blobGameService.isGameRunning(guild)) {
+      await commandInteraction.reply({
+        content: "Impossible, il y a déjà une partie en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de démarrer une partie car il y en a déjà une en cours"
+      );
+    }
+
     if (!this.massMultiplayerEventService.isEventRunning(guild))
       return this.noEvent(commandInteraction, "start");
 
