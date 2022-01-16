@@ -13,10 +13,12 @@ import {
   IApplicationCommandResult,
 } from "../interfaces";
 import { BlobGameService } from "../services/BlobGameService";
+import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
 
 /** Commande de gestion d'une partie du Dévoreur de Toute Chose */
 export class AdminBlobCommand implements IApplicationCommand {
   @Inject blobGameService!: BlobGameService;
+  @Inject massMultiplayerEventService!: MassMultiplayerEventService;
 
   commandAccess = ApplicationCommandAccess.ADMIN;
 
@@ -123,6 +125,9 @@ export class AdminBlobCommand implements IApplicationCommand {
     commandInteraction: CommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
+    if (!this.massMultiplayerEventService.isEventRunning(guild))
+      return this.noEvent(commandInteraction, "start");
+
     const numberOfPlayers = commandInteraction.options.getInteger("joueurs");
     if (!numberOfPlayers) {
       await commandInteraction.reply({
@@ -140,6 +145,25 @@ export class AdminBlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Partie du Dévoreur démarrée");
+  }
+
+  /**
+   * Répond qu'il n'y a pas d'événement en cours.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  private async noEvent(
+    commandInteraction: CommandInteraction,
+    subCommand: string
+  ): Promise<IApplicationCommandResult> {
+    await commandInteraction.reply({
+      content: "Impossible, il n'y a pas d'événement en cours",
+      ephemeral: true,
+    });
+    return this.commandResult("Impossible : pas d'événement en cours", {
+      subCommand,
+    });
   }
 
   /**
