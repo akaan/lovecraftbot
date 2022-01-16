@@ -1,5 +1,6 @@
 .env*
 .nvmrc
+*.backup.*
 node_modules/
 data/
 !data/factions.json
