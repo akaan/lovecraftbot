@@ -173,7 +173,7 @@ export class BlobGame {
   public setCluesOnAct1(numberOfClues: number): this {
     this.numberOfCluesOnAct1 = Math.min(
       this.getAct1ClueThreshold(),
-      this.numberOfCluesOnAct1 + numberOfClues
+      numberOfClues
     );
     return this;
   }
