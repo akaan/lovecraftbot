@@ -12,11 +12,13 @@ import {
   IApplicationCommand,
   IApplicationCommandResult,
 } from "../interfaces";
+import { BlobGameService } from "../services/BlobGameService";
 import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
 
 /** Commande pour les joueurs d'une partie du Dévoreur de Toute Chose */
 export class BlobCommand implements IApplicationCommand {
   @Inject massMultiplayerEventService!: MassMultiplayerEventService;
+  @Inject blobGameService!: BlobGameService;
 
   commandAccess = ApplicationCommandAccess.GUILD;
 
@@ -112,6 +114,17 @@ export class BlobCommand implements IApplicationCommand {
       });
       return this.commandResult(
         "Impossible d'exécuter cette commande hors d'un canal dédié à un événement"
+      );
+    }
+
+    if (!this.blobGameService.isGameRunning(commandInteraction.guild)) {
+      await commandInteraction.reply({
+        content:
+          "Désolé, mais il n'y a pas de partie du Dévoreur de Toute Chose en cours",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible d'exécuter cette commande sans partie en cours"
       );
     }
 
