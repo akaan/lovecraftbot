@@ -219,6 +219,19 @@ export class BlobGameService extends BaseService {
       [channel.id]
     );
 
+    this.massMultiplayerEventService.recordStat<number>(
+      guild,
+      channel,
+      "numberOfClues",
+      (oldNumberOfClues) => {
+        if (oldNumberOfClues === undefined) {
+          return numberOfClues;
+        } else {
+          return oldNumberOfClues + numberOfClues;
+        }
+      }
+    );
+
     if (game.getNumberOfCluesOnAct1() >= game.getAct1ClueThreshold()) {
       await this.massMultiplayerEventService.broadcastMessage(guild, {
         content: `Les investigateurs ont réunis l'ensemble des indices nécessaires. Dès le prochain round, vous pouvez faire avancer l'Acte 1.`,
@@ -256,6 +269,19 @@ export class BlobGameService extends BaseService {
         content: `${channel.name} a ajouté ${numberOfCounterMeasures} contre-mesure(s) !`,
       },
       [channel.id]
+    );
+
+    this.massMultiplayerEventService.recordStat<number>(
+      guild,
+      channel,
+      "numberOfCounterMeasuresGained",
+      (oldNumberOfCounterMeasures) => {
+        if (oldNumberOfCounterMeasures === undefined) {
+          return numberOfCounterMeasures;
+        } else {
+          return oldNumberOfCounterMeasures + numberOfCounterMeasures;
+        }
+      }
     );
 
     await this.publishOrUpdateGameState(guild);
@@ -314,6 +340,19 @@ export class BlobGameService extends BaseService {
       [channel.id]
     );
 
+    this.massMultiplayerEventService.recordStat<number>(
+      guild,
+      channel,
+      "numberOfCounterMeasuresSpend",
+      (oldNumberOfCounterMeasures) => {
+        if (oldNumberOfCounterMeasures === undefined) {
+          return numberOfCounterMeasures;
+        } else {
+          return oldNumberOfCounterMeasures + numberOfCounterMeasures;
+        }
+      }
+    );
+
     await this.publishOrUpdateGameState(guild);
   }
 
@@ -352,6 +391,19 @@ export class BlobGameService extends BaseService {
         [channel.id]
       );
     }
+
+    this.massMultiplayerEventService.recordStat<number>(
+      guild,
+      channel,
+      "numberOfDamageDealtToBlob",
+      (oldNumberOfDamageDealtToBlob) => {
+        if (oldNumberOfDamageDealtToBlob === undefined) {
+          return numberOfDamageDealtToBlob;
+        } else {
+          return oldNumberOfDamageDealtToBlob + numberOfDamageDealtToBlob;
+        }
+      }
+    );
 
     await this.publishOrUpdateGameState(guild);
   }

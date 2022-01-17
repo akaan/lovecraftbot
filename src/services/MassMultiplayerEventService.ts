@@ -67,6 +67,7 @@ export class MassMultiplayerEventService extends BaseService {
         running: false,
         textChannelIds: [],
         voiceChannelIds: [],
+        groupStats: {},
       };
       void this.serviceState.set(guild, initial);
       return initial;
@@ -120,6 +121,7 @@ export class MassMultiplayerEventService extends BaseService {
 
     const textChannelIds: string[] = [];
     const voiceChannelIds: string[] = [];
+    const groupStats: { [groupId: string]: GroupStats } = {};
     for (let groupNumber = 1; groupNumber <= numberOfGroups; groupNumber++) {
       const groupChannel = await guild.channels.create(
         `groupe-${groupNumber}`,
@@ -138,11 +140,14 @@ export class MassMultiplayerEventService extends BaseService {
       );
       await groupVoiceChannel.setParent(categoryChannel);
       voiceChannelIds.push(groupVoiceChannel.id);
+
+      groupStats[groupChannel.id] = {};
     }
     await this.serviceState.set(guild, {
       running: true,
       textChannelIds,
       voiceChannelIds,
+      groupStats,
     });
   }
 
@@ -176,6 +181,7 @@ export class MassMultiplayerEventService extends BaseService {
       running: false,
       textChannelIds: [],
       voiceChannelIds: [],
+      groupStats: {},
     });
   }
 
@@ -363,7 +369,47 @@ export class MassMultiplayerEventService extends BaseService {
       }
     }, 1000 * 60);
   }
+
+  /**
+   * Met à jour une statistique pour un groupe de joueurs sur le serveur
+   * indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param channel Le canal du groupe de joueurs
+   * @param statName Le nom de la statistique
+   * @param updater Un fonction de mise à jour de la statistique
+   * @throws S'il n'y a pas d'événement en cours
+   */
+  public recordStat<T>(
+    guild: Guild,
+    channel: TextChannel,
+    statName: string,
+    updater: (oldValue: T) => T
+  ): void {
+    if (!this.isEventRunning(guild))
+      throw MassMultiplayerEventServiceError.noEvent();
+
+    const state = this.getServiceState(guild);
+    const groupStats = state.groupStats;
+    const groupStatsForGroup = groupStats[channel.id];
+    if (groupStatsForGroup) {
+      const oldValue = groupStatsForGroup[statName];
+      void this.serviceState.set(guild, {
+        ...state,
+        groupStats: {
+          ...groupStats,
+          [channel.id]: {
+            ...groupStatsForGroup,
+            [statName]: updater(oldValue as T),
+          },
+        },
+      });
+    }
+  }
 }
+
+/** Les statistiques de l'événement pour un groupe donné */
+type GroupStats = { [statName: string]: unknown };
 
 /**
  * Les données sauvegardées, pour un seerveur donné.
@@ -380,6 +426,9 @@ interface MassMultiplayerEventServiceState {
 
   /** Temps restant en minutes */
   minutesRemaining?: number;
+
+  /** Statistiques par groupe */
+  groupStats: { [groupId: string]: GroupStats };
 }
 
 /**
