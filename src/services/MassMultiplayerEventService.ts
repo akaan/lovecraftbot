@@ -430,8 +430,12 @@ export class MassMultiplayerEventServiceError extends Error {
   }
 }
 
+/** Les types d'événement de la minuterie */
 export type TimerEvent = "start" | "pause" | "resume" | "tick" | "ended";
 
+/**
+ * Le type d'un écouteur d'événement de la minuterie
+ */
 export interface TimerListener {
   (guild: Guild, event: TimerEvent, minutesRemaining: number | undefined): void;
 }

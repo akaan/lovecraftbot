@@ -432,11 +432,11 @@ export class EventCommand implements IApplicationCommand {
   }
 
   /**
-   * Créé une fonction d'écoute de la minuterie qui préviendra les joueurs du
-   * temps restant.
+   * Tient les joueurs au courant du temps restant.
    *
    * @param guild Le serveur concerné
-   * @returns Une fonction d'écoute
+   * @param event L'événement survenu
+   * @param remaining Le temps restant
    */
   private tellTimeRemaining(
     guild: Guild,
