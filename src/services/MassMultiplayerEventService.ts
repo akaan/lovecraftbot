@@ -15,83 +15,6 @@ import { LoggerService } from "./LoggerService";
 import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
 
-/**
- * Les données sauvegardées, pour un seerveur donné.
- */
-interface MassMultiplayerEventServiceState {
-  /** Vrai si un événement est cours */
-  running: boolean;
-
-  /** Les identifiants des canaux texte créés */
-  textChannelIds: string[];
-
-  /** Les identifiants des canaux voix créés */
-  voiceChannelIds: string[];
-
-  /** Temps restant en minutes */
-  minutesRemaining?: number;
-}
-
-/**
- * Erreur spécifique au service de gestion des événements multijoueurs
- */
-export class MassMultiplayerEventServiceError extends Error {
-  /**
-   * Créé une erreur d'absence d'événement en cours.
-   *
-   * @returns Une erreur d'absence d'événement en cours
-   */
-  public static noEvent(): MassMultiplayerEventServiceError {
-    return new MassMultiplayerEventServiceError(
-      "Il n'y a pas d'événement en cours"
-    );
-  }
-
-  /**
-   * Créé une erreur d'événement déjà en cours.
-   *
-   * @returns Une erreur d'événement déjà en cours
-   */
-  public static eventAlready(): MassMultiplayerEventServiceError {
-    return new MassMultiplayerEventServiceError(
-      "Il y a pas déjà un événement en cours"
-    );
-  }
-
-  /**
-   * Créé une erreur d'absence de minuterie en cours.
-   *
-   * @returns Une erreur d'absence de minuterie en cours
-   */
-  public static noTimer(): MassMultiplayerEventServiceError {
-    return new MassMultiplayerEventServiceError(
-      "Il n'y a pas de minuterie en cours"
-    );
-  }
-
-  /**
-   * Créé une erreur de minuterie déjà en cours.
-   *
-   * @returns Une erreur de minuterie déjà en cours
-   */
-  public static timerAlready(): MassMultiplayerEventServiceError {
-    return new MassMultiplayerEventServiceError(
-      "Il y a déjà une minuterie en cours"
-    );
-  }
-
-  /**
-   * Créé une erreur de minuterie non initialisée.
-   *
-   * @returns Une erreur de minuterie non initialisée
-   */
-  public static noMinutesRemaining(): MassMultiplayerEventServiceError {
-    return new MassMultiplayerEventServiceError(
-      "La minuterie n'a pas été initialisée"
-    );
-  }
-}
-
 @Singleton
 @OnlyInstantiableByContainer
 /**
@@ -427,6 +350,83 @@ export class MassMultiplayerEventService extends BaseService {
         }
       }
     }, 1000 * 60);
+  }
+}
+
+/**
+ * Les données sauvegardées, pour un seerveur donné.
+ */
+interface MassMultiplayerEventServiceState {
+  /** Vrai si un événement est cours */
+  running: boolean;
+
+  /** Les identifiants des canaux texte créés */
+  textChannelIds: string[];
+
+  /** Les identifiants des canaux voix créés */
+  voiceChannelIds: string[];
+
+  /** Temps restant en minutes */
+  minutesRemaining?: number;
+}
+
+/**
+ * Erreur spécifique au service de gestion des événements multijoueurs
+ */
+export class MassMultiplayerEventServiceError extends Error {
+  /**
+   * Créé une erreur d'absence d'événement en cours.
+   *
+   * @returns Une erreur d'absence d'événement en cours
+   */
+  public static noEvent(): MassMultiplayerEventServiceError {
+    return new MassMultiplayerEventServiceError(
+      "Il n'y a pas d'événement en cours"
+    );
+  }
+
+  /**
+   * Créé une erreur d'événement déjà en cours.
+   *
+   * @returns Une erreur d'événement déjà en cours
+   */
+  public static eventAlready(): MassMultiplayerEventServiceError {
+    return new MassMultiplayerEventServiceError(
+      "Il y a pas déjà un événement en cours"
+    );
+  }
+
+  /**
+   * Créé une erreur d'absence de minuterie en cours.
+   *
+   * @returns Une erreur d'absence de minuterie en cours
+   */
+  public static noTimer(): MassMultiplayerEventServiceError {
+    return new MassMultiplayerEventServiceError(
+      "Il n'y a pas de minuterie en cours"
+    );
+  }
+
+  /**
+   * Créé une erreur de minuterie déjà en cours.
+   *
+   * @returns Une erreur de minuterie déjà en cours
+   */
+  public static timerAlready(): MassMultiplayerEventServiceError {
+    return new MassMultiplayerEventServiceError(
+      "Il y a déjà une minuterie en cours"
+    );
+  }
+
+  /**
+   * Créé une erreur de minuterie non initialisée.
+   *
+   * @returns Une erreur de minuterie non initialisée
+   */
+  public static noMinutesRemaining(): MassMultiplayerEventServiceError {
+    return new MassMultiplayerEventServiceError(
+      "La minuterie n'a pas été initialisée"
+    );
   }
 }
 
