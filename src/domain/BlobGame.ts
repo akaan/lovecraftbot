@@ -10,10 +10,10 @@ export class BlobGame {
 
   /** Les histoires possibles à l'issue de l'acte 1 */
   public static POSSIBLE_STORIES = [
-    "RESCUE_THE_CHEMIST",
-    "RECOVER_THE_SAMPLE",
-    "DRIVE_OFF_THE_MIGO",
-    "DEFUSE_THE_EXPLOSIVES",
+    "Secourir la Chimiste",
+    "Récupérer le Fragment",
+    "Repousser les Mi-Go",
+    "Désarmorcer les Explosifs",
   ];
 
   /** Identifiant de la partie */

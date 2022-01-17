@@ -18,6 +18,7 @@ import {
   MassMultiplayerEventService,
   TimerEvent,
 } from "./MassMultiplayerEventService";
+import { RandomService } from "./RandomService";
 import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
 
@@ -33,6 +34,7 @@ export class BlobGameService extends BaseService {
   @Inject logger!: LoggerService;
   @Inject massMultiplayerEventService!: MassMultiplayerEventService;
   @Inject resourcesService!: ResourcesService;
+  @Inject randomService!: RandomService;
 
   /** Les parties en cours par serveur */
   private currentGame: { [guildId: string]: BlobGame } = {};
@@ -240,6 +242,15 @@ export class BlobGameService extends BaseService {
     );
 
     if (game.getNumberOfCluesOnAct1() >= game.getAct1ClueThreshold()) {
+      game.chooseStory(
+        BlobGame.POSSIBLE_STORIES[
+          this.randomService.getRandomInt(
+            0,
+            BlobGame.POSSIBLE_STORIES.length - 1
+          )
+        ]
+      );
+      await repository.save(game);
       await this.massMultiplayerEventService.broadcastMessage(guild, {
         content: `Les investigateurs ont réunis l'ensemble des indices nécessaires. Dès le prochain round, vous pouvez faire avancer l'Acte 1.`,
       });
@@ -414,6 +425,20 @@ export class BlobGameService extends BaseService {
     }
 
     await this.publishOrUpdateGameState(guild);
+  }
+
+  /**
+   * Renvoie l'histoire sélectionnée pour la partie, s'il y en a une, sur le
+   * serveur indiqué.
+   *
+   * @param guild Le serrveur concerné
+   * @returns L'histoire sélectionnée pour la partie
+   */
+  public getStory(guild: Guild): string | undefined {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+
+    const game = this.getCurrentGame(guild) as BlobGame;
+    return game.getStory();
   }
   //#endregion
 

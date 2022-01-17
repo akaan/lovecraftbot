@@ -177,6 +177,10 @@ export class BlobCommand implements IApplicationCommand {
       );
     }
 
+    if (subCommand === "histoire") {
+      return this.getStory(commandInteraction, commandInteraction.guild);
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -337,6 +341,31 @@ export class BlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Dégâts infligés au Dévoreur");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de demande de l'histoire sélectionnée.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async getStory(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    const story = this.blobGameService.getStory(guild);
+    if (story) {
+      await commandInteraction.reply({
+        content: `L'histoire sélectionnée pour cette partie est : ${story}.`,
+      });
+    } else {
+      await commandInteraction.reply({
+        content: `Pas encore d'histoire sélectionnée pour cette partie.`,
+      });
+    }
+
+    return this.commandResult("Histoire envoyée");
   }
 
   /**
