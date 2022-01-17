@@ -1,18 +1,23 @@
 import {
   ApplicationCommandSubCommandData,
   CommandInteraction,
+  Channel,
 } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { Inject } from "typescript-ioc";
 
 import {
   ApplicationCommandAccess,
   IApplicationCommand,
   IApplicationCommandResult,
 } from "../interfaces";
+import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
 
 /** Commande pour les joueurs d'une partie du Dévoreur de Toute Chose */
 export class BlobCommand implements IApplicationCommand {
+  @Inject massMultiplayerEventService!: MassMultiplayerEventService;
+
   commandAccess = ApplicationCommandAccess.GUILD;
 
   commandData = {
@@ -89,6 +94,24 @@ export class BlobCommand implements IApplicationCommand {
       });
       return this.commandResult(
         "Impossible d'exécuter cette commande hors serveur"
+      );
+    }
+
+    const channel = commandInteraction.channel;
+    if (
+      !channel ||
+      !this.massMultiplayerEventService.isGroupChannel(
+        commandInteraction.guild,
+        channel as Channel
+      )
+    ) {
+      await commandInteraction.reply({
+        content:
+          "Désolé, mais il faut être dans l'un des canaux de l'événement pour lancer cette commande",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible d'exécuter cette commande hors d'un canal dédié à un événement"
       );
     }
 

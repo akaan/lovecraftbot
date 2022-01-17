@@ -84,9 +84,15 @@ export class MassMultiplayerEventService extends BaseService {
     return this.getServiceState(guild).running;
   }
 
-  // TODO Supprimer la fonction à la fin du refactoring
-  public isAdminChannel(_channel: Channel): boolean {
-    return false;
+  /**
+   * Permet de savoir si le canal indiqué est un canal créé pour un événement.
+   *
+   * @param guild Le serveur concerné
+   * @param channel Le canal
+   * @returns Vrai si le canal est un canal texte créé pour l'événement
+   */
+  public isGroupChannel(guild: Guild, channel: Channel): boolean {
+    return this.getServiceState(guild).textChannelIds.includes(channel.id);
   }
 
   /**
