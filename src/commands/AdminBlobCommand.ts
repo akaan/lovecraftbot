@@ -219,7 +219,7 @@ export class AdminBlobCommand implements IApplicationCommand {
     }
 
     const numberOfClues = commandInteraction.options.getInteger("indices");
-    if (!numberOfClues) {
+    if (numberOfClues == undefined) {
       await commandInteraction.reply({
         content: "Ooops, je n'ai pas le nombre d'indices",
         ephemeral: true,
@@ -253,7 +253,7 @@ export class AdminBlobCommand implements IApplicationCommand {
 
     const numberOfCounterMeasures =
       commandInteraction.options.getInteger("contre-mesures");
-    if (!numberOfCounterMeasures) {
+    if (numberOfCounterMeasures == undefined) {
       await commandInteraction.reply({
         content: "Ooops, je n'ai pas le nombre de contre-mesures",
         ephemeral: true,
@@ -291,7 +291,7 @@ export class AdminBlobCommand implements IApplicationCommand {
     }
 
     const numberOfDamages = commandInteraction.options.getInteger("dégâts");
-    if (!numberOfDamages) {
+    if (numberOfDamages == undefined) {
       await commandInteraction.reply({
         content: "Ooops, je n'ai pas le nombre de dégâts",
         ephemeral: true,
