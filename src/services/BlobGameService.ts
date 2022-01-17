@@ -227,6 +227,45 @@ export class BlobGameService extends BaseService {
 
     await this.publishOrUpdateGameState(guild);
   }
+
+  /**
+   * Inflige des dégâts au Dévoreur sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCluesOnAct1 Le nombre d'indices
+   * @throws S'il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas active
+   */
+  public async dealDamageToBlob(
+    guild: Guild,
+    channel: TextChannel,
+    numberOfDamageDealtToBlob: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+    if (!this.massMultiplayerEventService.isTimerRunning(guild))
+      throw BlobGameServiceError.noRunningTimer();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.dealDamageToBlob(numberOfDamageDealtToBlob);
+    await repository.save(game);
+
+    if (game.getBlobRemainingHealth() === 0) {
+      await this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `${channel.name} a porté le coup fatal en infligeant ${numberOfDamageDealtToBlob} dégât(s) au Dévoreur !`,
+      });
+    } else {
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        {
+          content: `${channel.name} a infligé ${numberOfDamageDealtToBlob} dégâts(s) au Dévoreur !`,
+        },
+        [channel.id]
+      );
+    }
+
+    await this.publishOrUpdateGameState(guild);
+  }
   //#endregion
 
   /**

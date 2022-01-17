@@ -153,6 +153,14 @@ export class BlobCommand implements IApplicationCommand {
       );
     }
 
+    if (subCommand === "d") {
+      return this.dealDamageToBlob(
+        commandInteraction,
+        commandInteraction.guild,
+        channel as TextChannel
+      );
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -198,6 +206,40 @@ export class BlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Indices posés sur l'Acte 1");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de pose de dégâts sur le Dévoreur.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async dealDamageToBlob(
+    commandInteraction: CommandInteraction,
+    guild: Guild,
+    channel: TextChannel
+  ): Promise<IApplicationCommandResult> {
+    const numberOfDamageDealtToBlob =
+      commandInteraction.options.getInteger("dégâts");
+    if (!numberOfDamageDealtToBlob) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de dégâts",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible sans nombre de dégâts");
+    }
+
+    await this.blobGameService.dealDamageToBlob(
+      guild,
+      channel,
+      numberOfDamageDealtToBlob
+    );
+    await commandInteraction.reply({
+      content: `${numberOfDamageDealtToBlob} dégât(s) infligé(s) au Dévoreur`,
+      ephemeral: true,
+    });
+    return this.commandResult("Dégâts infligés au Dévoreur");
   }
 
   /**
