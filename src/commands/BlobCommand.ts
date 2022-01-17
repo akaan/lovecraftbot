@@ -161,6 +161,22 @@ export class BlobCommand implements IApplicationCommand {
       );
     }
 
+    if (subCommand === "cm-gain") {
+      return this.gainCounterMeasures(
+        commandInteraction,
+        commandInteraction.guild,
+        channel as TextChannel
+      );
+    }
+
+    if (subCommand === "cm-depense") {
+      return this.spendCounterMeasures(
+        commandInteraction,
+        commandInteraction.guild,
+        channel as TextChannel
+      );
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -206,6 +222,87 @@ export class BlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Indices posés sur l'Acte 1");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de gain de contre-mesures.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async gainCounterMeasures(
+    commandInteraction: CommandInteraction,
+    guild: Guild,
+    channel: TextChannel
+  ): Promise<IApplicationCommandResult> {
+    const numberOfCounterMeasures =
+      commandInteraction.options.getInteger("contre-mesures");
+    if (!numberOfCounterMeasures) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de contre-mesures",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible sans nombre de contre-mesures");
+    }
+
+    await this.blobGameService.gainCounterMeasures(
+      guild,
+      channel,
+      numberOfCounterMeasures
+    );
+    await commandInteraction.reply({
+      content: `${numberOfCounterMeasures} contre-mesures gagnées`,
+      ephemeral: true,
+    });
+    return this.commandResult("Contre-mesures gagnées");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de dépense de contre-mesures.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async spendCounterMeasures(
+    commandInteraction: CommandInteraction,
+    guild: Guild,
+    channel: TextChannel
+  ): Promise<IApplicationCommandResult> {
+    const numberOfCounterMeasures =
+      commandInteraction.options.getInteger("contre-mesures");
+    if (!numberOfCounterMeasures) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de contre-mesures",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible sans nombre de contre-mesures");
+    }
+
+    if (
+      !this.blobGameService.canSpendCounterMeasure(
+        guild,
+        numberOfCounterMeasures
+      )
+    ) {
+      await commandInteraction.reply({
+        content: "Désolé, vous n'avez pas assez de contre-mesures",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible sans nombre de contre-mesures");
+    }
+
+    await this.blobGameService.spendCounterMeasures(
+      guild,
+      channel,
+      numberOfCounterMeasures
+    );
+    await commandInteraction.reply({
+      content: `${numberOfCounterMeasures} contre-mesures dépensées`,
+      ephemeral: true,
+    });
+    return this.commandResult("Contre-mesures dépensées");
   }
 
   /**

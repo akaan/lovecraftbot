@@ -229,6 +229,95 @@ export class BlobGameService extends BaseService {
   }
 
   /**
+   * Indique que des contre-mesures ont été obtenues sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCounterMeasures Le nombre de contre-mesures
+   * @throws S'il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas active
+   */
+  public async gainCounterMeasures(
+    guild: Guild,
+    channel: TextChannel,
+    numberOfCounterMeasures: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+    if (!this.massMultiplayerEventService.isTimerRunning(guild))
+      throw BlobGameServiceError.noRunningTimer();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.gainCounterMeasures(numberOfCounterMeasures);
+    await repository.save(game);
+
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      {
+        content: `${channel.name} a ajouté ${numberOfCounterMeasures} contre-mesure(s) !`,
+      },
+      [channel.id]
+    );
+
+    await this.publishOrUpdateGameState(guild);
+  }
+
+  /**
+   * Permet de savoir s'il est possible de dépenser ce nombre de contre-mesures
+   * sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCounterMeasures Le nombre de contre-mesures
+   * @throws S'il n'y a pas de partie en cours
+   */
+  public canSpendCounterMeasure(
+    guild: Guild,
+    numberOfCounterMeasures: number
+  ): boolean {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+
+    const game = this.getCurrentGame(guild) as BlobGame;
+    return numberOfCounterMeasures <= game.getNumberOfCounterMeasures();
+  }
+
+  /**
+   * Indique que des contre-mesures ont été dépensées sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCounterMeasures Le nombre de contre-mesures
+   * @throws S'il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas active
+   * @throws S'il n'y a pas assez de contre-mesures
+   */
+  public async spendCounterMeasures(
+    guild: Guild,
+    channel: TextChannel,
+    numberOfCounterMeasures: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+    if (!this.massMultiplayerEventService.isTimerRunning(guild))
+      throw BlobGameServiceError.noRunningTimer();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    if (numberOfCounterMeasures > game.getNumberOfCounterMeasures()) {
+      throw BlobGameServiceError.notEnoughCounterMeasures();
+    }
+
+    game.spendCounterMeasures(numberOfCounterMeasures);
+    await repository.save(game);
+
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      {
+        content: `${channel.name} a dépensé ${numberOfCounterMeasures} contre-mesure(s) !`,
+      },
+      [channel.id]
+    );
+
+    await this.publishOrUpdateGameState(guild);
+  }
+
+  /**
    * Inflige des dégâts au Dévoreur sur le serveur indiqué.
    *
    * @param guild Le serveur concerné
@@ -513,6 +602,15 @@ export class BlobGameServiceError extends Error {
     return new BlobGameServiceError(
       "Impossible de placer plus de 3 indices en 1 seule fois"
     );
+  }
+
+  /**
+   * Créé une erreur de nombre de contre-mesures insuffisant.
+   *
+   * @returns Une erreur de nombre de contre-mesures insuffisant
+   */
+  public static notEnoughCounterMeasures(): BlobGameServiceError {
+    return new BlobGameServiceError("Pas assez de contre-mesures disponibles");
   }
 }
 
