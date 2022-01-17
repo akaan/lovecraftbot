@@ -91,8 +91,14 @@ export class MassMultiplayerEventService extends BaseService {
    * @param channel Le canal
    * @returns Vrai si le canal est un canal texte créé pour l'événement
    */
-  public isGroupChannel(guild: Guild, channel: Channel): boolean {
-    return this.getServiceState(guild).textChannelIds.includes(channel.id);
+  public isGroupChannel(
+    guild: Guild,
+    channel: Channel
+  ): channel is TextChannel {
+    return (
+      channel.isText() &&
+      this.getServiceState(guild).textChannelIds.includes(channel.id)
+    );
   }
 
   /**

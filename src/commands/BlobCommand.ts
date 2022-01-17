@@ -2,6 +2,8 @@ import {
   ApplicationCommandSubCommandData,
   CommandInteraction,
   Channel,
+  Guild,
+  TextChannel,
 } from "discord.js";
 // eslint-disable-next-line import/no-unresolved
 import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
@@ -120,15 +122,36 @@ export class BlobCommand implements IApplicationCommand {
     if (!this.blobGameService.isGameRunning(commandInteraction.guild)) {
       await commandInteraction.reply({
         content:
-          "Désolé, mais il n'y a pas de partie du Dévoreur de Toute Chose en cours",
+          "Désolé, il n'y a pas de partie du Dévoreur de Toute Chose en cours",
         ephemeral: true,
       });
       return this.commandResult(
         "Impossible d'exécuter cette commande sans partie en cours"
       );
     }
-
     const subCommand = commandInteraction.options.getSubcommand();
+
+    if (
+      subCommand !== "histoire" &&
+      !this.massMultiplayerEventService.isTimerRunning(commandInteraction.guild)
+    ) {
+      await commandInteraction.reply({
+        content: "Désolé, il faut attendre que la minuterie soit active",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible d'exécuter cette commande sans minuterie active"
+      );
+    }
+
+    if (subCommand === "i") {
+      return this.placeCluesOnAct1(
+        commandInteraction,
+        commandInteraction.guild,
+        // On a vérifié via massMultiplayerEventService#isGroupChannel
+        channel as TextChannel
+      );
+    }
 
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
@@ -137,6 +160,44 @@ export class BlobCommand implements IApplicationCommand {
     return this.commandResult("Commande non implémentée", {
       subCommand,
     });
+  }
+
+  /**
+   * Traite le cas de la sous-commande de pose d'indices sur l'Acte 1.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async placeCluesOnAct1(
+    commandInteraction: CommandInteraction,
+    guild: Guild,
+    channel: TextChannel
+  ): Promise<IApplicationCommandResult> {
+    const numberOfClues = commandInteraction.options.getInteger("indices");
+    if (!numberOfClues) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre d'indices",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible sans nombre d'indices");
+    }
+
+    if (numberOfClues > 3) {
+      await commandInteraction.reply({
+        content:
+          "Désolé, il n'est pas possible de poser plus de 3 indices à la fois",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible, trop d'indices");
+    }
+
+    await this.blobGameService.placeCluesOnAct1(guild, channel, numberOfClues);
+    await commandInteraction.reply({
+      content: `${numberOfClues} indice(s) posé(s) sur l'Acte 1`,
+      ephemeral: true,
+    });
+    return this.commandResult("Indices posés sur l'Acte 1");
   }
 
   /**

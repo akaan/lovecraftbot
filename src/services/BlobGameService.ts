@@ -1,4 +1,4 @@
-import { Client, Guild, Message, MessageEmbed } from "discord.js";
+import { Client, Guild, Message, MessageEmbed, TextChannel } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -108,6 +108,7 @@ export class BlobGameService extends BaseService {
    * Met fin à la partie en cours sur le serveur indiqué.
    *
    * @param guild Le serveur concerné
+   * @throws S'il n'y a pas de partie en cours
    */
   public async endGame(guild: Guild): Promise<void> {
     if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
@@ -125,6 +126,7 @@ export class BlobGameService extends BaseService {
    *
    * @param guild Le serveur concerné
    * @param numberOfCluesOnAct1 Le nombre d'indices
+   * @throws S'il n'y a pas de partie en cours
    */
   public async fixNumberOfCluesOnAct1(
     guild: Guild,
@@ -145,6 +147,7 @@ export class BlobGameService extends BaseService {
    *
    * @param guild Le serveur concerné
    * @param numberOfCounterMeasures Le nombre de contre-mesures
+   * @throws S'il n'y a pas de partie en cours
    */
   public async fixNumberOfCounterMeasures(
     guild: Guild,
@@ -165,6 +168,7 @@ export class BlobGameService extends BaseService {
    *
    * @param guild Le serveur concerné
    * @param numberOfDamage Le nombre de dégâts
+   * @throws S'il n'y a pas de partie en cours
    */
   public async fixNumberOfDamageDealtToBlob(
     guild: Guild,
@@ -180,6 +184,49 @@ export class BlobGameService extends BaseService {
     await this.publishOrUpdateGameState(guild);
   }
 
+  //#endregion
+
+  //#region Commandes joueurs
+  /**
+   * Place des indices sur l'acte 1 sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCluesOnAct1 Le nombre d'indices
+   * @throws S'il n'y a pas de partie en cours
+   * @throws Si la minuterie n'est pas active
+   * @throws Si trop d'indices sont posés à la fois
+   */
+  public async placeCluesOnAct1(
+    guild: Guild,
+    channel: TextChannel,
+    numberOfClues: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+    if (!this.massMultiplayerEventService.isTimerRunning(guild))
+      throw BlobGameServiceError.noRunningTimer();
+    if (numberOfClues > 3) throw BlobGameServiceError.tooMuchCluesAtOnce();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.placeCluesOnAct1(numberOfClues);
+    await repository.save(game);
+
+    await this.massMultiplayerEventService.broadcastMessage(
+      guild,
+      {
+        content: `${channel.name} a placé ${numberOfClues} indice(s) sur l'Acte 1 !`,
+      },
+      [channel.id]
+    );
+
+    if (game.getNumberOfCluesOnAct1() >= game.getAct1ClueThreshold()) {
+      await this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `Les investigateurs ont réunis l'ensemble des indices nécessaires. Dès le prochain round, vous pouvez faire avancer l'Acte 1.`,
+      });
+    }
+
+    await this.publishOrUpdateGameState(guild);
+  }
   //#endregion
 
   /**
@@ -407,6 +454,26 @@ export class BlobGameServiceError extends Error {
    */
   public static noGame(): BlobGameServiceError {
     return new BlobGameServiceError("Pas de partie en cours");
+  }
+
+  /**
+   * Créé une erreur d'action impossible hors minuterie active.
+   *
+   * @returns Une erreur d'action impossible hors minuterie active
+   */
+  public static noRunningTimer(): BlobGameServiceError {
+    return new BlobGameServiceError("Action impossible hors minuterie active");
+  }
+
+  /**
+   * Créé une erreur de pose d'indices en trop.
+   *
+   * @returns Une erreur de pose d'indices en trop
+   */
+  public static tooMuchCluesAtOnce(): BlobGameServiceError {
+    return new BlobGameServiceError(
+      "Impossible de placer plus de 3 indices en 1 seule fois"
+    );
   }
 }
 
