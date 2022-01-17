@@ -352,9 +352,9 @@ export class CardService extends BaseService {
       return this.getFrenchCards().filter((card) => card.code === searchString);
     }
 
-    return this.getFrenchCards().filter((card) =>
-      matchCard(card, searchString)
-    );
+    return this.getFrenchCards()
+      .filter((card) => card.pack_code !== "rcore")
+      .filter((card) => matchCard(card, searchString));
   }
 
   /**
@@ -367,6 +367,7 @@ export class CardService extends BaseService {
     return this.getFrenchCards()
       .filter((card) => card.faction_code !== "mythos")
       .filter((card) => card.encounter_code === undefined)
+      .filter((card) => card.pack_code !== "rcore")
       .map((card) => card.code);
   }
 
