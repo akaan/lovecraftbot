@@ -112,6 +112,9 @@ export class MassMultiplayerEventService extends BaseService {
   /** Les timers (par serveur) permettant de gérer la minuterie */
   private timerByGuildId: { [guildId: string]: NodeJS.Timer } = {};
 
+  /** Les écouteurs des ticks de la minuterie, par serveur */
+  private timerListeners: TimerListener[] = [];
+
   @Inject logger!: LoggerService;
   @Inject resourcesService!: ResourcesService;
 
@@ -300,19 +303,15 @@ export class MassMultiplayerEventService extends BaseService {
    *
    * @param guild Le serveur concerné
    * @param minutes Le nombre de minutes
-   * @param tick Une fonction à exécuter à chaque minute écoulée
    * @throws S'il y a déjà une minuterie en cours
    */
-  public startTimer(
-    guild: Guild,
-    minutes: number,
-    tick?: (remaining: number) => void
-  ): void {
+  public startTimer(guild: Guild, minutes: number): void {
     if (this.isTimerRunning(guild))
       throw MassMultiplayerEventServiceError.timerAlready();
 
     this.updateMinutesRemaining(guild, () => minutes);
-    this.createTimerInterval(guild, tick);
+    this.createTimerInterval(guild);
+    this.emitTimerEvent(guild, "start");
   }
 
   /**
@@ -335,6 +334,7 @@ export class MassMultiplayerEventService extends BaseService {
     if (this.timerByGuildId[guild.id]) {
       clearInterval(this.timerByGuildId[guild.id]);
       delete this.timerByGuildId[guild.id];
+      this.emitTimerEvent(guild, "pause");
     } else {
       throw MassMultiplayerEventServiceError.noTimer();
     }
@@ -344,18 +344,48 @@ export class MassMultiplayerEventService extends BaseService {
    * Redémarre une minuterie mise en pause sur le serveur indiqué.
    *
    * @param guild Le serveur concerné
-   * @param tick Une fonction à exécuter à chaque minute écoulée
    * @throws S'il n'y a pas de minuterie à redémarrer
    * @throws S'il la minuterie n'a pas été initialisée
    */
-  public resumeTimer(guild: Guild, tick?: (remaining: number) => void): void {
+  public resumeTimer(guild: Guild): void {
     if (this.isTimerRunning(guild))
       throw MassMultiplayerEventServiceError.timerAlready();
 
     if (!this.getServiceState(guild).minutesRemaining)
       throw MassMultiplayerEventServiceError.noMinutesRemaining();
 
-    this.createTimerInterval(guild, tick);
+    this.createTimerInterval(guild);
+    this.emitTimerEvent(guild, "resume");
+  }
+
+  /**
+   * Permet d'inscrire un écouteur à la minuterie.
+   *
+   * @param listener L'écouteur
+   * @returns Une fonction permet de désinscrire l'écouteur
+   */
+  public addTimerListener(listener: TimerListener): () => void {
+    this.timerListeners.push(listener);
+    return () => this.removeTimerListener(listener);
+  }
+
+  /**
+   * Permet de désinscrire un écouteur de la minuterie pour le serveur indiqué.
+   *
+   * @param listener L'écouteur à désinscrire
+   */
+  private removeTimerListener(listener: TimerListener): void {
+    const idx = this.timerListeners.indexOf(listener);
+    if (idx > -1) {
+      this.timerListeners.splice(idx, 1);
+    }
+  }
+
+  private emitTimerEvent(guild: Guild, event: TimerEvent): void {
+    const minutesRemaining = this.getTimeRemaining(guild);
+    this.timerListeners.forEach((listener) =>
+      listener(guild, event, minutesRemaining)
+    );
   }
 
   /**
@@ -380,12 +410,8 @@ export class MassMultiplayerEventService extends BaseService {
    * Mise de la routine nécessaire pour la minuterie.
    *
    * @param guild Le serveur concerné
-   * @param tick Une fonction à exécuter à chaque minute écoulée
    */
-  private createTimerInterval(
-    guild: Guild,
-    tick?: (remaining: number) => void
-  ): void {
+  private createTimerInterval(guild: Guild): void {
     this.timerByGuildId[guild.id] = setInterval(() => {
       this.updateMinutesRemaining(guild, (previousValue) => {
         if (previousValue !== undefined) return previousValue - 1;
@@ -393,12 +419,19 @@ export class MassMultiplayerEventService extends BaseService {
       });
       const remaining = this.getServiceState(guild).minutesRemaining;
       if (remaining !== undefined) {
-        if (tick) tick(remaining);
+        this.emitTimerEvent(guild, "tick");
         if (remaining === 0) {
           clearInterval(this.timerByGuildId[guild.id]);
           delete this.timerByGuildId[guild.id];
+          this.emitTimerEvent(guild, "ended");
         }
       }
     }, 1000 * 60);
   }
+}
+
+export type TimerEvent = "start" | "pause" | "resume" | "tick" | "ended";
+
+export interface TimerListener {
+  (guild: Guild, event: TimerEvent, minutesRemaining: number | undefined): void;
 }

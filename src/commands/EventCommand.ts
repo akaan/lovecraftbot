@@ -14,7 +14,10 @@ import {
   IApplicationCommand,
   IApplicationCommandResult,
 } from "../interfaces";
-import { MassMultiplayerEventService } from "../services/MassMultiplayerEventService";
+import {
+  MassMultiplayerEventService,
+  TimerEvent,
+} from "../services/MassMultiplayerEventService";
 
 /** Commande de gestion des événements multijoueurs */
 export class EventCommand implements IApplicationCommand {
@@ -96,6 +99,12 @@ export class EventCommand implements IApplicationCommand {
       } as ApplicationCommandSubCommandData,
     ],
   };
+
+  constructor() {
+    this.massMultiplayerEventService.addTimerListener(
+      this.tellTimeRemaining.bind(this)
+    );
+  }
 
   async execute(
     commandInteraction: CommandInteraction
@@ -316,11 +325,7 @@ export class EventCommand implements IApplicationCommand {
       );
     }
 
-    this.massMultiplayerEventService.startTimer(
-      guild,
-      minutes,
-      this.tellTimeRemaining(guild)
-    );
+    this.massMultiplayerEventService.startTimer(guild, minutes);
 
     await commandInteraction.reply({
       content: "Minuterie démarrée !",
@@ -399,10 +404,7 @@ export class EventCommand implements IApplicationCommand {
       );
     }
 
-    this.massMultiplayerEventService.resumeTimer(
-      guild,
-      this.tellTimeRemaining(guild)
-    );
+    this.massMultiplayerEventService.resumeTimer(guild);
 
     await commandInteraction.reply({
       content: "Minuterie redémarrée !",
@@ -429,10 +431,33 @@ export class EventCommand implements IApplicationCommand {
     );
   }
 
+  /**
+   * Créé une fonction d'écoute de la minuterie qui préviendra les joueurs du
+   * temps restant.
+   *
+   * @param guild Le serveur concerné
+   * @returns Une fonction d'écoute
+   */
   private tellTimeRemaining(
-    guild: Guild
-  ): (remaining: number | undefined) => void {
-    return (remaining) => {
+    guild: Guild,
+    event: TimerEvent,
+    remaining: number | undefined
+  ): void {
+    if (!this.massMultiplayerEventService.isEventRunning(guild)) return;
+
+    if (event === "start" || event === "resume") {
+      void this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `Démarrage de la minuterie !`,
+      });
+    }
+
+    if (event === "pause") {
+      void this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `La minuterie a été mise en pause.`,
+      });
+    }
+
+    if (event === "tick") {
       if (remaining !== undefined) {
         if (
           (remaining >= 60 && remaining % 15 === 0) ||
@@ -444,14 +469,14 @@ export class EventCommand implements IApplicationCommand {
             content: `Il ne reste plus que ${remaining} minute(s)`,
           });
         }
-
-        if (remaining === 0) {
-          void this.massMultiplayerEventService.broadcastMessage(guild, {
-            content: `Le temps est écoulé ! C'est fini.`,
-          });
-        }
       }
-    };
+    }
+
+    if (event === "ended") {
+      void this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `Le temps est écoulé ! C'est fini.`,
+      });
+    }
   }
 
   /**
