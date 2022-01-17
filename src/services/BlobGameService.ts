@@ -1,4 +1,11 @@
-import { Client, Guild, Message, MessageEmbed, TextChannel } from "discord.js";
+import {
+  Client,
+  EmbedFieldData,
+  Guild,
+  Message,
+  MessageEmbed,
+  TextChannel,
+} from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -219,7 +226,7 @@ export class BlobGameService extends BaseService {
       [channel.id]
     );
 
-    this.massMultiplayerEventService.recordStat<number>(
+    await this.massMultiplayerEventService.recordStat<number>(
       guild,
       channel,
       "numberOfClues",
@@ -271,7 +278,7 @@ export class BlobGameService extends BaseService {
       [channel.id]
     );
 
-    this.massMultiplayerEventService.recordStat<number>(
+    await this.massMultiplayerEventService.recordStat<number>(
       guild,
       channel,
       "numberOfCounterMeasuresGained",
@@ -340,7 +347,7 @@ export class BlobGameService extends BaseService {
       [channel.id]
     );
 
-    this.massMultiplayerEventService.recordStat<number>(
+    await this.massMultiplayerEventService.recordStat<number>(
       guild,
       channel,
       "numberOfCounterMeasuresSpend",
@@ -378,21 +385,7 @@ export class BlobGameService extends BaseService {
     game.dealDamageToBlob(numberOfDamageDealtToBlob);
     await repository.save(game);
 
-    if (game.getBlobRemainingHealth() === 0) {
-      await this.massMultiplayerEventService.broadcastMessage(guild, {
-        content: `${channel.name} a porté le coup fatal en infligeant ${numberOfDamageDealtToBlob} dégât(s) au Dévoreur !`,
-      });
-    } else {
-      await this.massMultiplayerEventService.broadcastMessage(
-        guild,
-        {
-          content: `${channel.name} a infligé ${numberOfDamageDealtToBlob} dégâts(s) au Dévoreur !`,
-        },
-        [channel.id]
-      );
-    }
-
-    this.massMultiplayerEventService.recordStat<number>(
+    await this.massMultiplayerEventService.recordStat<number>(
       guild,
       channel,
       "numberOfDamageDealtToBlob",
@@ -404,6 +397,21 @@ export class BlobGameService extends BaseService {
         }
       }
     );
+
+    if (game.getBlobRemainingHealth() === 0) {
+      await this.massMultiplayerEventService.broadcastMessage(guild, {
+        content: `${channel.name} a porté le coup fatal en infligeant ${numberOfDamageDealtToBlob} dégât(s) au Dévoreur !`,
+      });
+      this.publishGameStats(guild);
+    } else {
+      await this.massMultiplayerEventService.broadcastMessage(
+        guild,
+        {
+          content: `${channel.name} a infligé ${numberOfDamageDealtToBlob} dégâts(s) au Dévoreur !`,
+        },
+        [channel.id]
+      );
+    }
 
     await this.publishOrUpdateGameState(guild);
   }
@@ -584,6 +592,32 @@ export class BlobGameService extends BaseService {
   }
 
   /**
+   * Publie les statistiques de la partie sur le serveur indiqué.
+   *
+   * @param guild Le serveur concerné
+   */
+  private publishGameStats(guild: Guild): void {
+    const game = this.getCurrentGame(guild);
+    if (game) {
+      const gameStats = this.massMultiplayerEventService.getStats(guild);
+      const gameStatsWithGroupNames: BlobGameStats = Object.entries(
+        gameStats
+      ).reduce((memo, [groupId, groupStats]) => {
+        const groupChannel = guild.channels.cache.find((c) => c.id === groupId);
+        if (groupChannel) {
+          memo[groupChannel.name] = groupStats;
+        }
+        return memo;
+      }, {} as BlobGameStats);
+
+      const statsEmbed = createGameStatsEmbed(game, gameStatsWithGroupNames);
+      void this.massMultiplayerEventService.broadcastMessage(guild, {
+        embeds: [statsEmbed],
+      });
+    }
+  }
+
+  /**
    * Met à jour l'état de la partie sur les événements de la minuterie.
    *
    * @param guild Le serveur concerné
@@ -727,6 +761,59 @@ function createGameStateEmbed(
         : `Minuterie non initialisée`,
     },
   ]);
+
+  return embed;
+}
+
+type BlobGameStats = { [groupName: string]: { [statName: string]: unknown } };
+
+/**
+ * Permet de créer un encart Discord d'affichage des statistiques d'une
+ * partie sur un serveur donné.
+ *
+ * @param game La partie du Dévoreur
+ * @param gameStats Les statistiques
+ * @returns Un encart d'affichage des statistiquesde la partie
+ */
+function createGameStatsEmbed(
+  game: BlobGame,
+  gameStats: BlobGameStats
+): MessageEmbed {
+  const embed = new MessageEmbed();
+
+  embed.setTitle(
+    `Le Dévoreur de Toute Chose - ${game
+      .getDateCreated()
+      .toLocaleDateString()} - Statistiques`
+  );
+  embed.setThumbnail(
+    `https://images-cdn.fantasyflightgames.com/filer_public/ce/57/ce570809-b79c-46fe-a0a8-e10ef8d54328/ahc45_preview1.png`
+  );
+  embed.setColor(0x67c355);
+
+  const fields: EmbedFieldData[] = Object.keys(gameStats).reduce(
+    (memo, groupName) => {
+      const statsForGroup = gameStats[groupName];
+      const fieldValue = [
+        `Nombre de dégât(s): ${
+          (statsForGroup["numberOfDamageDealtToBlob"] as number) || 0
+        }`,
+        `Nombre d'indice(s): ${
+          (statsForGroup["numberOfClues"] as number) || 0
+        }`,
+        `Nombre de contre-mesures ajoutée(s): ${
+          (statsForGroup["numberOfCounterMeasuresGained"] as number) || 0
+        }`,
+        `Nombre de contre-mesures dépensée(s): ${
+          (statsForGroup["numberOfCounterMeasuresSpend"] as number) || 0
+        }`,
+      ].join("\n");
+      memo.push({ name: groupName, value: fieldValue });
+      return memo;
+    },
+    [] as EmbedFieldData[]
+  );
+  embed.addFields(fields);
 
   return embed;
 }

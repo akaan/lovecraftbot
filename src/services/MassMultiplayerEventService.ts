@@ -380,12 +380,12 @@ export class MassMultiplayerEventService extends BaseService {
    * @param updater Un fonction de mise à jour de la statistique
    * @throws S'il n'y a pas d'événement en cours
    */
-  public recordStat<T>(
+  public async recordStat<T>(
     guild: Guild,
     channel: TextChannel,
     statName: string,
     updater: (oldValue: T) => T
-  ): void {
+  ): Promise<void> {
     if (!this.isEventRunning(guild))
       throw MassMultiplayerEventServiceError.noEvent();
 
@@ -394,7 +394,7 @@ export class MassMultiplayerEventService extends BaseService {
     const groupStatsForGroup = groupStats[channel.id];
     if (groupStatsForGroup) {
       const oldValue = groupStatsForGroup[statName];
-      void this.serviceState.set(guild, {
+      await this.serviceState.set(guild, {
         ...state,
         groupStats: {
           ...groupStats,
@@ -405,6 +405,16 @@ export class MassMultiplayerEventService extends BaseService {
         },
       });
     }
+  }
+
+  /**
+   * Récupère les statistiques par groupe pour un serveur donné.
+   *
+   * @param guild Le serveur concerné
+   * @returns Les statistiques par groupe
+   */
+  public getStats(guild: Guild): { [groupId: string]: GroupStats } {
+    return this.getServiceState(guild).groupStats;
   }
 }
 
