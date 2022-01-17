@@ -113,6 +113,13 @@ export class AdminBlobCommand implements IApplicationCommand {
       return this.fixClues(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommand === "cm") {
+      return this.fixNumberOfCounterMeasures(
+        commandInteraction,
+        commandInteraction.guild
+      );
+    }
+
     if (subCommand === "d") {
       return this.fixDamageDealtToBlob(
         commandInteraction,
@@ -226,6 +233,45 @@ export class AdminBlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Nombre d'indices sur l'acte 1 corrigé");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de correction du nombre d'indices sur
+   * l'acte 1.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async fixNumberOfCounterMeasures(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.blobGameService.isGameRunning(guild)) {
+      return this.noGame(commandInteraction, "cm");
+    }
+
+    const numberOfCounterMeasures =
+      commandInteraction.options.getInteger("contre-mesures");
+    if (!numberOfCounterMeasures) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de contre-mesures",
+        ephemeral: true,
+      });
+      return this.commandResult(
+        "Impossible de corriger sans nombre de contre-mesures"
+      );
+    }
+
+    await this.blobGameService.fixNumberOfCounterMeasures(
+      guild,
+      numberOfCounterMeasures
+    );
+    await commandInteraction.reply({
+      content: "Nombre de contre-mesures corrigé !",
+      ephemeral: true,
+    });
+    return this.commandResult("Nombre de contre-mesures corrigé");
   }
 
   /**

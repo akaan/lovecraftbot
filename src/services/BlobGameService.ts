@@ -141,6 +141,26 @@ export class BlobGameService extends BaseService {
   }
 
   /**
+   * Corrige le nombre de contre-mesures.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfCounterMeasures Le nombre de contre-mesures
+   */
+  public async fixNumberOfCounterMeasures(
+    guild: Guild,
+    numberOfCounterMeasures: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.setNumberOfCounterMeasures(numberOfCounterMeasures);
+    await repository.save(game);
+
+    await this.publishOrUpdateGameState(guild);
+  }
+
+  /**
    * Corrige le nombre de dégâts sur le Dévoreur.
    *
    * @param guild Le serveur concerné

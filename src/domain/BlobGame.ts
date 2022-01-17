@@ -226,6 +226,17 @@ export class BlobGame {
   }
 
   /**
+   * Corrige le nombre de contre-mesures.
+   *
+   * @param numberOfCounterMeasures Le nombre de contre-mesures
+   * @returns La partie
+   */
+  public setNumberOfCounterMeasures(numberOfCounterMeasures: number): this {
+    this.numberOfCounterMeasures = numberOfCounterMeasures;
+    return this;
+  }
+
+  /**
    * Renvoie l'histoire sélectionnée après l'acte 1 (si l'ate 1 a été passé).
    *
    * @returns L'histoire
