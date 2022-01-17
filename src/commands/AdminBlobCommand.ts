@@ -113,6 +113,13 @@ export class AdminBlobCommand implements IApplicationCommand {
       return this.fixClues(commandInteraction, commandInteraction.guild);
     }
 
+    if (subCommand === "d") {
+      return this.fixDamageDealtToBlob(
+        commandInteraction,
+        commandInteraction.guild
+      );
+    }
+
     await commandInteraction.reply({
       content: "Je ne sais pas encore faire ça",
       ephemeral: true,
@@ -219,6 +226,42 @@ export class AdminBlobCommand implements IApplicationCommand {
       ephemeral: true,
     });
     return this.commandResult("Nombre d'indices sur l'acte 1 corrigé");
+  }
+
+  /**
+   * Traite le cas de la sous-commande de correction du nombre de dégâts sur le
+   * Dévoreur.
+   *
+   * @param commandInteraction L'interaction déclenchée par la commande
+   * @param guild Le serveur concerné
+   * @returns Une promesse résolue avec le résultat de la commande
+   */
+  public async fixDamageDealtToBlob(
+    commandInteraction: CommandInteraction,
+    guild: Guild
+  ): Promise<IApplicationCommandResult> {
+    if (!this.blobGameService.isGameRunning(guild)) {
+      return this.noGame(commandInteraction, "d");
+    }
+
+    const numberOfDamages = commandInteraction.options.getInteger("dégâts");
+    if (!numberOfDamages) {
+      await commandInteraction.reply({
+        content: "Ooops, je n'ai pas le nombre de dégâts",
+        ephemeral: true,
+      });
+      return this.commandResult("Impossible de corriger sans nombre de dégâts");
+    }
+
+    await this.blobGameService.fixNumberOfDamageDealtToBlob(
+      guild,
+      numberOfDamages
+    );
+    await commandInteraction.reply({
+      content: "Nombre de dégâts sur le Dévoreur corrigé !",
+      ephemeral: true,
+    });
+    return this.commandResult("Nombre de dégâts sur le Dévoreur corrigé");
   }
 
   /**

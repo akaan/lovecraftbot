@@ -140,6 +140,26 @@ export class BlobGameService extends BaseService {
     await this.publishOrUpdateGameState(guild);
   }
 
+  /**
+   * Corrige le nombre de dégâts sur le Dévoreur.
+   *
+   * @param guild Le serveur concerné
+   * @param numberOfDamage Le nombre de dégâts
+   */
+  public async fixNumberOfDamageDealtToBlob(
+    guild: Guild,
+    numberOfDamage: number
+  ): Promise<void> {
+    if (!this.isGameRunning(guild)) throw BlobGameServiceError.noGame();
+
+    const repository = this.getRepository(guild);
+    const game = this.getCurrentGame(guild) as BlobGame;
+    game.setNumberOfDamageDealtToBlob(numberOfDamage);
+    await repository.save(game);
+
+    await this.publishOrUpdateGameState(guild);
+  }
+
   //#endregion
 
   /**

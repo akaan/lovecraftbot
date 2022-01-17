@@ -119,6 +119,20 @@ export class BlobGame {
   }
 
   /**
+   * Corrige le nombre de points de dégâts infligés au Dévoreur.
+   *
+   * @param numberOfDamage Le nombre de points de dégât
+   * @returns La partie
+   */
+  public setNumberOfDamageDealtToBlob(numberOfDamage: number): this {
+    this.numberOfDamageDealtToBlob = Math.min(
+      this.getBlobTotalHealth(),
+      numberOfDamage
+    );
+    return this;
+  }
+
+  /**
    * Renvoie le seuil d'indices de l'acte 1.
    *
    * @returns Le seuil d'indices de l'acte 1
