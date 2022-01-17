@@ -7,7 +7,10 @@ import { IBlobGameRepository } from "../domain/IBlobGameRepository";
 
 import { BlobGameFileRepository } from "./BlobGameFileRepository";
 import { LoggerService } from "./LoggerService";
-import { MassMultiplayerEventService } from "./MassMultiplayerEventService";
+import {
+  MassMultiplayerEventService,
+  TimerEvent,
+} from "./MassMultiplayerEventService";
 import { GuildResource } from "./resources/GuildResource";
 import { ResourcesService } from "./ResourcesService";
 
@@ -35,6 +38,13 @@ export class BlobGameService extends BaseService {
 
   /** L'état du service */
   private serviceState!: GuildResource<BlobGameServiceState>;
+
+  constructor() {
+    super();
+    this.massMultiplayerEventService.addTimerListener(
+      this.onTimerEvent.bind(this)
+    );
+  }
 
   public async init(client: Client): Promise<void> {
     await super.init(client);
@@ -304,6 +314,21 @@ export class BlobGameService extends BaseService {
         existingStateMessages.map((msg) => msg.edit({ embeds: [stateEmbed] }))
       );
     }
+  }
+
+  /**
+   * Met à jour l'état de la partie sur les événements de la minuterie.
+   *
+   * @param guild Le serveur concerné
+   * @param _event L'événement de minuterie
+   * @param _minutesRemaining Le temps restant
+   */
+  private onTimerEvent(
+    guild: Guild,
+    _event: TimerEvent,
+    _minutesRemaining: number | undefined
+  ): void {
+    void this.publishOrUpdateGameState(guild);
   }
 }
 
