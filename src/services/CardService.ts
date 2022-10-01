@@ -465,6 +465,23 @@ export class CardService extends BaseService {
           embed.addField("Coût", card.cost.toString(), true);
         }
 
+        if (card.slot) {
+          let splitString = ". ";
+          if (card.slot.includes("–")) {
+            // Cas des cartes en français. Attention ce n'est pas le tiret du 6.
+            // – et non -
+            splitString = " – ";
+          }
+
+          const slotIcons = card.slot
+            .split(splitString)
+            .map((slotName) =>
+              this.formatService.format(`[${slotName.toLowerCase()}]`)
+            );
+
+          embed.addField("Emplacement", slotIcons.join(" "), true);
+        }
+
         const maybePack = this.getPacks().find(
           (pack) => pack.code == card.pack_code
         );
