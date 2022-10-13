@@ -32,6 +32,16 @@ const ICONS: { [key: string]: string } = {
   auto_fail: "ChaosFail",
   bless: "bless",
   curse: "curse",
+  hand: "Slot1Hand",
+  "hand x2": "Slot2Hand",
+  accessory: "SlotAccessoty",
+  ally: "SlotAlly",
+  arcane: "Slot1Arcane",
+  "arcane x2": "Slot2Arcane",
+  body: "SlotBody",
+  tarot: "SlotTarot",
+  damage: "TokenDamage",
+  horror: "TokenHorror",
 };
 
 @Singleton

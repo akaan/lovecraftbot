@@ -59,6 +59,8 @@ export interface ArkhamDBCard {
   skill_wild: number;
   cost: string;
   slot: string;
+  health: number;
+  sanity: number;
 }
 
 /**
@@ -463,6 +465,35 @@ export class CardService extends BaseService {
 
         if (card.cost) {
           embed.addField("Coût", card.cost.toString(), true);
+        }
+
+        if (card.slot) {
+          let splitString = ". ";
+          if (card.slot.includes("–")) {
+            // Cas des cartes en français. Attention ce n'est pas le tiret du 6.
+            // – et non -
+            splitString = " – ";
+          }
+
+          const slotIcons = card.slot
+            .split(splitString)
+            .map((slotName) =>
+              this.formatService.format(`[${slotName.toLowerCase()}]`)
+            );
+
+          embed.addField("Emplacement", slotIcons.join(" "), true);
+        }
+
+        if (card.health !== undefined || card.sanity !== undefined) {
+          const healthAndSanity = `${
+            card.health !== undefined ? card.health : "-"
+          }[damage] ${card.sanity !== undefined ? card.sanity : "-"}[horror]`;
+
+          embed.addField(
+            "Vie & santé mentale",
+            this.formatService.format(healthAndSanity),
+            true
+          );
         }
 
         const maybePack = this.getPacks().find(
