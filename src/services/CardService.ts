@@ -59,6 +59,8 @@ export interface ArkhamDBCard {
   skill_wild: number;
   cost: string;
   slot: string;
+  health: number;
+  sanity: number;
 }
 
 /**
@@ -480,6 +482,18 @@ export class CardService extends BaseService {
             );
 
           embed.addField("Emplacement", slotIcons.join(" "), true);
+        }
+
+        if (card.health !== undefined || card.sanity !== undefined) {
+          const healthAndSanity = `${
+            card.health !== undefined ? card.health : "-"
+          }[damage] ${card.sanity !== undefined ? card.sanity : "-"}[horror]`;
+
+          embed.addField(
+            "Vie & santé mentale",
+            this.formatService.format(healthAndSanity),
+            true
+          );
         }
 
         const maybePack = this.getPacks().find(

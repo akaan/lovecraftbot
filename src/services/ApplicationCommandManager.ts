@@ -391,6 +391,8 @@ export class ApplicationCommandManager extends BaseService {
         const fullPermissions = adminCommands.map((c) =>
           createCommandPermission(c, [createRolePermission(botAdminRole)])
         );
+        // FIXME Endpoint supprimé de l'API Discord
+        // https://discord.com/developers/docs/change-log#updated-command-permissions
         await guild.commands.permissions.set({ fullPermissions });
         this.logger.warn(
           ApplicationCommandManager.LOG_LABEL,

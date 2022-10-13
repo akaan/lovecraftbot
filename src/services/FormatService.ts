@@ -40,6 +40,8 @@ const ICONS: { [key: string]: string } = {
   "arcane x2": "Slot2Arcane",
   body: "SlotBody",
   tarot: "SlotTarot",
+  damage: "TokenDamage",
+  horror: "TokenHorror",
 };
 
 @Singleton
