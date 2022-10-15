@@ -156,10 +156,6 @@ export class ApplicationCommandManager extends BaseService {
           applicationCommandInstance.commandData.setDefaultMemberPermissions(
             PermissionFlagsBits.Administrator
           );
-        } else {
-          applicationCommandInstance.commandData.setDefaultMemberPermissions(
-            PermissionFlagsBits.Administrator
-          );
         }
         this.applicationCommands.push(applicationCommandInstance);
       }
