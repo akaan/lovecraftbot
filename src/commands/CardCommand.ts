@@ -144,12 +144,12 @@ export class CardCommand implements IApplicationCommand {
     card: ArkhamDBCard,
     options: SearchOptions
   ): Promise<IApplicationCommandResult> {
-    const cardEmbed = await this.cardService.createEmbed(card, {
+    const cardEmbeds = await this.cardService.createEmbeds(card, {
       back: options.back,
       extended: options.extended,
     });
     await interaction.reply({
-      embeds: [cardEmbed],
+      embeds: cardEmbeds,
       ephemeral: options.ephemeral,
     });
     return { cmd: "CardCommand", result: `Carte envoyée` };
