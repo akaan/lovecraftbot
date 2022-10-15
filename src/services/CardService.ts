@@ -396,8 +396,10 @@ export class CardService extends BaseService {
     card: ArkhamDBCard,
     embedOptions: EmbedOptions
   ): Promise<Discord.EmbedBuilder[]> {
-    const embed = new Discord.EmbedBuilder();
-    this.decorateEmbedForCard(embed, card);
+    const embeds: Discord.EmbedBuilder[] = [];
+
+    const mainEmbed = new Discord.EmbedBuilder();
+    this.decorateEmbedForCard(mainEmbed, card);
 
     const cardFaction = findOrDefaultToCode(
       this.getFactions(),
@@ -418,12 +420,12 @@ export class CardService extends BaseService {
 
     const isMulticlass = !!card.faction2_code;
     if (!["neutral", "mythos"].includes(card.faction_code) && !isMulticlass) {
-      embed.setAuthor({
+      mainEmbed.setAuthor({
         name: `${cardType} ${factions}`,
         iconURL: `https://arkhamdb.com/bundles/app/images/factions/${card.faction_code}.png`,
       });
     } else {
-      embed.setAuthor({ name: `${cardType} ${factions}` });
+      mainEmbed.setAuthor({ name: `${cardType} ${factions}` });
     }
 
     const maybeCardImageLink = await this.getCardImageLink(
@@ -431,19 +433,19 @@ export class CardService extends BaseService {
       embedOptions.back
     );
     if (maybeCardImageLink) {
-      embed.setImage(maybeCardImageLink);
+      mainEmbed.setImage(maybeCardImageLink);
     }
 
     const cardText = embedOptions.back ? card.back_text : card.text;
 
     if (embedOptions.extended || !maybeCardImageLink) {
       if (cardText) {
-        embed.setDescription(this.formatService.format(cardText));
+        mainEmbed.setDescription(this.formatService.format(cardText));
       }
 
       if (!embedOptions.back) {
         if (card.xp) {
-          embed.addFields({
+          mainEmbed.addFields({
             name: "Niveau",
             value: card.xp.toString(),
             inline: true,
@@ -461,7 +463,7 @@ export class CardService extends BaseService {
             "[combat]".repeat(card.skill_combat || 0) +
             "[agility]".repeat(card.skill_agility || 0) +
             "[wild]".repeat(card.skill_wild || 0);
-          embed.addFields({
+          mainEmbed.addFields({
             name: "Icônes",
             value: icons !== "" ? this.formatService.format(icons) : "-",
             inline: true,
@@ -469,7 +471,7 @@ export class CardService extends BaseService {
         }
 
         if (card.cost) {
-          embed.addFields({
+          mainEmbed.addFields({
             name: "Coût",
             value: card.cost.toString(),
             inline: true,
@@ -490,7 +492,7 @@ export class CardService extends BaseService {
               this.formatService.format(`[${slotName.toLowerCase()}]`)
             );
 
-          embed.addFields({
+          mainEmbed.addFields({
             name: "Emplacement",
             value: slotIcons.join(" "),
             inline: true,
@@ -502,7 +504,7 @@ export class CardService extends BaseService {
             card.health !== undefined ? card.health : "-"
           }[damage] ${card.sanity !== undefined ? card.sanity : "-"}[horror]`;
 
-          embed.addFields({
+          mainEmbed.addFields({
             name: "Vie & santé mentale",
             value: this.formatService.format(healthAndSanity),
             inline: true,
@@ -513,10 +515,10 @@ export class CardService extends BaseService {
           (pack) => pack.code == card.pack_code
         );
         if (maybePack) {
-          embed.addFields({ name: "Pack", value: maybePack.name });
+          mainEmbed.addFields({ name: "Pack", value: maybePack.name });
         }
 
-        embed.addFields({ name: "Nom anglais", value: card.real_name });
+        mainEmbed.addFields({ name: "Nom anglais", value: card.real_name });
       }
     }
 
@@ -531,7 +533,7 @@ export class CardService extends BaseService {
       if (maybeTaboo.text) {
         tabooText.push(this.formatService.format(maybeTaboo.text));
       }
-      embed.addFields({ name: "Taboo", value: tabooText.join("\n") });
+      mainEmbed.addFields({ name: "Taboo", value: tabooText.join("\n") });
     }
 
     const cardFAQs = await this.getCardFAQ(card);
@@ -545,10 +547,22 @@ export class CardService extends BaseService {
     }
 
     if (footerParts.length > 0) {
-      embed.setFooter({ text: footerParts.join(" ") });
+      mainEmbed.setFooter({ text: footerParts.join(" ") });
     }
 
-    return [embed];
+    embeds.push(mainEmbed);
+
+    if (card.customization_text) {
+      const customizableSheetEmbed = new Discord.EmbedBuilder();
+      customizableSheetEmbed.setTitle("Personnalisations");
+      customizableSheetEmbed.setColor(CLASS_COLORS[card.faction_code]);
+      customizableSheetEmbed.setDescription(
+        this.formatService.format(card.customization_text)
+      );
+      embeds.push(customizableSheetEmbed);
+    }
+
+    return embeds;
   }
 
   /**
