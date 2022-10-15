@@ -1,12 +1,11 @@
 import {
-  ApplicationCommandSubCommandData,
   CommandInteraction,
   Channel,
   Guild,
   TextChannel,
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
 } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -24,69 +23,60 @@ export class BlobCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GUILD;
 
-  commandData = {
-    name: "blob",
-    description: `Commandes joueurs pour une partie du Dévoreur de Tout Chose`,
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "i",
-        description: "Placer un nombre d'indices sur l'Acte 1",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "indices",
-            description: "Nombre d'indices",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "cm-gain",
-        description: "Indiquer que des contre-mesures ont été gagnées",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "contre-mesures",
-            description: "Nombre de contre-mesures gagnées",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "cm-depense",
-        description: "Indiquer que des contre-mesures ont été dépensées",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "contre-mesures",
-            description: "Nombre de contre-mesures dépensées",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "d",
-        description: "Infliger un nombre de dégâts au Dévoreur",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "dégâts",
-            description: "Nombre de dégâts",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "histoire",
-        description: "Obtenir un rappel de l'histoire sélectionnée",
-      } as ApplicationCommandSubCommandData,
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("blob")
+    .setDescription(
+      `Commandes joueurs pour une partie du Dévoreur de Tout Chose`
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("i")
+        .setDescription("Placer un nombre d'indices sur l'Acte 1")
+        .addIntegerOption((option) =>
+          option
+            .setName("indices")
+            .setDescription("Nombre d'indices")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("cm-gain")
+        .setDescription("Indiquer que des contre-mesures ont été gagnées")
+        .addIntegerOption((option) =>
+          option
+            .setName("contre-mesures")
+            .setDescription("Nombre de contre-mesures gagnées")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("cm-depense")
+        .setDescription("Indiquer que des contre-mesures ont été dépensées")
+        .addIntegerOption((option) =>
+          option
+            .setName("contre-mesures")
+            .setDescription("Nombre de contre-mesures dépensées")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("d")
+        .setDescription("Infliger un nombre de dégâts au Dévoreur")
+        .addIntegerOption((option) =>
+          option
+            .setName("dégâts")
+            .setDescription("Nombre de dégâts")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("histoire")
+        .setDescription("Obtenir un rappel de l'histoire sélectionnée")
+    );
 
   async execute(
     commandInteraction: CommandInteraction
@@ -99,6 +89,10 @@ export class BlobCommand implements IApplicationCommand {
       return this.commandResult(
         "Impossible d'exécuter cette commande hors serveur"
       );
+    }
+
+    if (!commandInteraction.isChatInputCommand()) {
+      return this.commandResult("Oups, y'a eu un problème");
     }
 
     const channel = commandInteraction.channel;
@@ -198,7 +192,7 @@ export class BlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async placeCluesOnAct1(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild,
     channel: TextChannel
   ): Promise<IApplicationCommandResult> {
@@ -236,7 +230,7 @@ export class BlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async gainCounterMeasures(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild,
     channel: TextChannel
   ): Promise<IApplicationCommandResult> {
@@ -270,7 +264,7 @@ export class BlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async spendCounterMeasures(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild,
     channel: TextChannel
   ): Promise<IApplicationCommandResult> {
@@ -317,7 +311,7 @@ export class BlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async dealDamageToBlob(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild,
     channel: TextChannel
   ): Promise<IApplicationCommandResult> {
@@ -351,7 +345,7 @@ export class BlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async getStory(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     const story = this.blobGameService.getStory(guild);
@@ -379,6 +373,6 @@ export class BlobCommand implements IApplicationCommand {
     result: string,
     meta?: Omit<IApplicationCommandResult, "cmd" | "result">
   ) {
-    return { cmd: "AdminBlobCommand", result, ...meta };
+    return { cmd: "BlobCommand", result, ...meta };
   }
 }

@@ -1,6 +1,8 @@
-import { CommandInteraction, SelectMenuInteraction } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import {
+  CommandInteraction,
+  SelectMenuInteraction,
+  SlashCommandBuilder,
+} from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -38,42 +40,46 @@ export class CardCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "c",
-    description: `Pour l'affichage de carte(s)`,
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.STRING,
-        name: "recherche",
-        description:
-          "Code de la carte ou texte à chercher dans le titre de la carte",
-        required: true,
-      },
-      {
-        type: ApplicationCommandOptionTypes.BOOLEAN,
-        name: "complet",
-        description:
-          "Pour envoyer une description complète de la carte (et non seulement l'image)",
-        required: false,
-      },
-      {
-        type: ApplicationCommandOptionTypes.BOOLEAN,
-        name: "dos",
-        description: "Pour envoyer le dos de la carte",
-        required: false,
-      },
-      {
-        type: ApplicationCommandOptionTypes.BOOLEAN,
-        name: "ephemere",
-        description: "Si vrai, seul toi pourra voir la réponse",
-        required: false,
-      },
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("c")
+    .setDescription(`Pour l'affichage de carte(s)`)
+    .addStringOption((option) =>
+      option
+        .setName("recherche")
+        .setDescription(
+          "Code de la carte ou texte à chercher dans le titre de la carte"
+        )
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("complet")
+        .setDescription(
+          "Pour envoyer une description complète de la carte (et non seulement l'image)"
+        )
+        .setRequired(false)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("dos")
+        .setDescription("Pour envoyer le dos de la carte")
+        .setRequired(false)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("ephemere")
+        .setDescription("Si vrai, seul toi pourra voir la réponse")
+        .setRequired(false)
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "CardCommand", result: "Interaction hors chat" };
+    }
+
     const search = commandInteraction.options.getString("recherche");
     const extended = commandInteraction.options.getBoolean("complet") || false;
     const back = commandInteraction.options.getBoolean("dos") || false;

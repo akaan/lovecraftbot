@@ -1,9 +1,8 @@
 import {
-  ApplicationCommandSubCommandData,
+  ChannelType,
   CommandInteraction,
+  SlashCommandBuilder,
 } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -21,33 +20,33 @@ export class NewsCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.ADMIN;
 
-  commandData = {
-    name: "news",
-    description: "Administration de l'envoi des news",
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "canal",
-        description: "Définit le canal d'envoi des news",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.CHANNEL,
-            name: "canal",
-            description: "Le canal sur lequel envoyer les news",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("news")
+    .setDescription("Administration de l'envoi des news")
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("canal")
+        .setDescription("Définit le canal d'envoi des news")
+        .addChannelOption((option) =>
+          option
+            .setName("canal")
+            .setDescription("Le canal sur lequel envoyer les news")
+            .setRequired(true)
+        )
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "NewsCommand", result: "Interaction hors chat" };
+    }
+
     if (commandInteraction.options.getSubcommand() === "canal") {
       if (commandInteraction.guild) {
         const channel = commandInteraction.options.getChannel("canal");
-        if (channel && channel.type === "GUILD_TEXT") {
+        if (channel && channel.type === ChannelType.GuildText) {
           await this.guildConfigurationService.setConfig(
             commandInteraction.guild,
             "newsChannelId",

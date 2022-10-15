@@ -1,12 +1,10 @@
 import {
+  ActionRowBuilder,
   CommandInteraction,
-  Message,
-  MessageActionRow,
-  MessageSelectMenu,
+  SelectMenuBuilder,
   SelectMenuInteraction,
+  SlashCommandBuilder,
 } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import { createSelectMenuCollector, getEmbedSize } from "../discordHelpers";
@@ -30,28 +28,30 @@ export class RuleCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "regle",
-    description: "Afficher un point de règle",
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.STRING,
-        name: "recherche",
-        description: "Texte à chercher dans les titres de règles",
-        required: true,
-      },
-      {
-        type: ApplicationCommandOptionTypes.BOOLEAN,
-        name: "ephemere",
-        description: "Si vrai, seul toi pourra voir la réponse",
-        required: false,
-      },
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("regle")
+    .setDescription("Afficher un point de règle")
+    .addStringOption((option) =>
+      option
+        .setName("recherche")
+        .setDescription("Texte à chercher dans les titres de règles")
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("ephemere")
+        .setDescription("Si vrai, seul toi pourra voir la réponse")
+        .setRequired(false)
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "RuleCommand", result: "Interaction hors chat" };
+    }
+
     const search = commandInteraction.options.getString("recherche");
     const ephemeral =
       commandInteraction.options.getBoolean("ephemere") || false;
@@ -107,7 +107,7 @@ export class RuleCommand implements IApplicationCommand {
     if (partitionOversized.fail.length > 0) {
       await interaction.reply({
         content: `Je ne peux pas afficher les règles suivantes qui sont trop grosses pour Discord: ${partitionOversized.fail
-          .map((e) => e.author?.name)
+          .map((e) => e.data.author?.name)
           .join(", ")}`,
         embeds: partitionOversized.pass,
         ephemeral: options.ephemeral,
@@ -142,14 +142,15 @@ export class RuleCommand implements IApplicationCommand {
       }))
       .slice(0, MAX_RULES);
 
-    const menuComponent = new MessageActionRow().addComponents([
-      new MessageSelectMenu()
-        .setCustomId("ruleId")
-        .setPlaceholder("Choisissez une règle à afficher")
-        .addOptions(ruleChoices),
-    ]);
+    const menuComponent =
+      new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+        new SelectMenuBuilder()
+          .setCustomId("ruledId")
+          .setPlaceholder("Choisissez une règle à afficher")
+          .addOptions(ruleChoices)
+      );
 
-    const menu = (await interaction.reply({
+    const menu = await interaction.reply({
       content: `${rules.length} règles correspondent à la recherche.${
         rules.length > 25
           ? " Je vous proposent seulement les 25 premières, essayez d'affiner votre recherche."
@@ -158,7 +159,7 @@ export class RuleCommand implements IApplicationCommand {
       components: [menuComponent],
       ephemeral: true,
       fetchReply: true,
-    })) as Message;
+    });
 
     const menuCollector = await createSelectMenuCollector(menu, interaction);
 

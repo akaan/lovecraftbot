@@ -1,6 +1,9 @@
-import { CommandInteraction, SelectMenuInteraction } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import {
+  ChatInputCommandInteraction,
+  CommandInteraction,
+  SelectMenuInteraction,
+  SlashCommandBuilder,
+} from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -21,29 +24,32 @@ export class FaqCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "faq",
-    description: "Affichage de la FAQ associée à la carte",
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.STRING,
-        name: "recherche",
-        description:
-          "Code de la carte ou texte à chercher dans le titre de la carte",
-        required: true,
-      },
-      {
-        type: ApplicationCommandOptionTypes.BOOLEAN,
-        name: "ephemere",
-        description: "Si vrai, seul toi pourra voir la réponse",
-        required: false,
-      },
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("faq")
+    .setDescription("Affichage de la FAQ associée à la carte")
+    .addStringOption((option) =>
+      option
+        .setName("recherche")
+        .setDescription(
+          "Code de la carte ou texte à chercher dans le titre de la carte"
+        )
+        .setRequired(true)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("ephemere")
+        .setDescription("Si vrai, seul toi pourra voir la réponse")
+        .setRequired(false)
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "FaqCommand", result: "Interaction hors chat" };
+    }
+
     const search = commandInteraction.options.getString("recherche");
     const ephemeral =
       commandInteraction.options.getBoolean("ephemere") || false;
@@ -139,7 +145,7 @@ export class FaqCommand implements IApplicationCommand {
    * @returns Le résultat de l'exécution de la commande
    */
   private async noCardMatched(
-    interaction: CommandInteraction
+    interaction: ChatInputCommandInteraction
   ): Promise<IApplicationCommandResult> {
     await interaction.reply({
       content: "Aucune carte ne correspond à cette recherche",

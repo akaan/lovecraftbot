@@ -1,6 +1,8 @@
 import {
-  ChatInputApplicationCommandData,
   CommandInteraction,
+  ContextMenuCommandBuilder,
+  SlashCommandBuilder,
+  SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
 /**
@@ -14,7 +16,7 @@ export enum ApplicationCommandAccess {
   GUILD,
 
   /**
-   * Commande accessibles uniquement sur un serveur et pour les amdinsitrateurs
+   * Commande accessibles uniquement sur un serveur et pour les administrateurs
    */
   ADMIN,
 }
@@ -33,6 +35,12 @@ export interface IApplicationCommandResult {
   [key: string]: unknown;
 }
 
+export type CommandData =
+  | SlashCommandBuilder
+  | ContextMenuCommandBuilder
+  | SlashCommandSubcommandsOnlyBuilder
+  | Omit<SlashCommandBuilder, "addSubcommandGroup" | "addSubcommand">;
+
 /** Représente une commande d'application reconnue par le bot. */
 export interface IApplicationCommand {
   /** Niveau d'accès de la commande */
@@ -41,7 +49,7 @@ export interface IApplicationCommand {
   /**
    * Les données de configuration de la commande d'application.
    */
-  commandData: ChatInputApplicationCommandData;
+  commandData: CommandData;
 
   /**
    * Exécute la commande d'application.

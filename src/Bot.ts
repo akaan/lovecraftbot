@@ -88,9 +88,9 @@ export class Bot {
 
     this.client = new Discord.Client({
       intents: [
-        Discord.Intents.FLAGS.GUILDS,
-        Discord.Intents.FLAGS.GUILD_MESSAGES,
-        Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+        Discord.GatewayIntentBits.Guilds,
+        Discord.GatewayIntentBits.GuildMessages,
+        Discord.GatewayIntentBits.GuildMessageReactions,
       ],
     });
     this.client.on("ready", () => this.handleReady());
@@ -98,11 +98,13 @@ export class Bot {
       this.handleInteraction(interaction)
     );
     this.client.on("messageCreate", (msg) => this.handleMessage(msg));
-    this.client.on("messageReactionAdd", (reaction, user) =>
-      this.handleAddReaction(reaction, user)
+    this.client.on<"messageReactionAdd">(
+      "messageReactionAdd",
+      (reaction, user) => this.handleAddReaction(reaction, user)
     );
-    this.client.on("messageReactionRemove", (reaction, user) =>
-      this.handleRemoveReaction(reaction, user)
+    this.client.on<"messageReactionRemove">(
+      "messageReactionRemove",
+      (reaction, user) => this.handleRemoveReaction(reaction, user)
     );
 
     this.logger.info(Bot.LOG_LABEL, "Connexion à Discord ...");

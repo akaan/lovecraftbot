@@ -1,11 +1,5 @@
-import {
-  Client,
-  EmbedFieldData,
-  Guild,
-  Message,
-  MessageEmbed,
-  TextChannel,
-} from "discord.js";
+import { APIEmbedField } from "discord-api-types/v10";
+import { Client, EmbedBuilder, Guild, Message, TextChannel } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
 import { BaseService } from "../base/BaseService";
@@ -752,8 +746,8 @@ function createGameStateEmbed(
   game: BlobGame,
   minutesRemaining: number | undefined,
   isTimerRunning: boolean
-): MessageEmbed {
-  const embed = new MessageEmbed();
+): EmbedBuilder {
+  const embed = new EmbedBuilder();
 
   embed.setTitle(
     `Le Dévoreur de Toute Chose - ${game.getDateCreated().toLocaleDateString()}`
@@ -803,8 +797,8 @@ type BlobGameStats = { [groupName: string]: { [statName: string]: unknown } };
 function createGameStatsEmbed(
   game: BlobGame,
   gameStats: BlobGameStats
-): MessageEmbed {
-  const embed = new MessageEmbed();
+): EmbedBuilder {
+  const embed = new EmbedBuilder();
 
   embed.setTitle(
     `Le Dévoreur de Toute Chose - ${game
@@ -816,7 +810,7 @@ function createGameStatsEmbed(
   );
   embed.setColor(0x67c355);
 
-  const fields: EmbedFieldData[] = Object.keys(gameStats).reduce(
+  const fields: APIEmbedField[] = Object.keys(gameStats).reduce(
     (memo, groupName) => {
       const statsForGroup = gameStats[groupName];
       const fieldValue = [
@@ -836,7 +830,7 @@ function createGameStatsEmbed(
       memo.push({ name: groupName, value: fieldValue });
       return memo;
     },
-    [] as EmbedFieldData[]
+    [] as APIEmbedField[]
   );
   embed.addFields(fields);
 
@@ -858,7 +852,7 @@ async function getMessage(
   msgId: string
 ): Promise<Message | undefined> {
   const channel = guild.channels.cache.find((c) => c.id === channelId);
-  if (channel && channel.isText()) {
+  if (channel && channel.isTextBased()) {
     try {
       return await channel.messages.fetch(msgId);
     } catch (err) {

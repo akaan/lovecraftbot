@@ -394,8 +394,8 @@ export class CardService extends BaseService {
   public async createEmbed(
     card: ArkhamDBCard,
     embedOptions: EmbedOptions
-  ): Promise<Discord.MessageEmbed> {
-    const embed = new Discord.MessageEmbed();
+  ): Promise<Discord.EmbedBuilder> {
+    const embed = new Discord.EmbedBuilder();
     this.decorateEmbedForCard(embed, card);
 
     const cardFaction = findOrDefaultToCode(
@@ -417,12 +417,12 @@ export class CardService extends BaseService {
 
     const isMulticlass = !!card.faction2_code;
     if (!["neutral", "mythos"].includes(card.faction_code) && !isMulticlass) {
-      embed.setAuthor(
-        `${cardType} ${factions}`,
-        `https://arkhamdb.com/bundles/app/images/factions/${card.faction_code}.png`
-      );
+      embed.setAuthor({
+        name: `${cardType} ${factions}`,
+        iconURL: `https://arkhamdb.com/bundles/app/images/factions/${card.faction_code}.png`,
+      });
     } else {
-      embed.setAuthor(`${cardType} ${factions}`);
+      embed.setAuthor({ name: `${cardType} ${factions}` });
     }
 
     const maybeCardImageLink = await this.getCardImageLink(
@@ -442,7 +442,11 @@ export class CardService extends BaseService {
 
       if (!embedOptions.back) {
         if (card.xp) {
-          embed.addField("Niveau", card.xp.toString(), true);
+          embed.addFields({
+            name: "Niveau",
+            value: card.xp.toString(),
+            inline: true,
+          });
         }
 
         if (
@@ -456,15 +460,19 @@ export class CardService extends BaseService {
             "[combat]".repeat(card.skill_combat || 0) +
             "[agility]".repeat(card.skill_agility || 0) +
             "[wild]".repeat(card.skill_wild || 0);
-          embed.addField(
-            "Icônes",
-            icons !== "" ? this.formatService.format(icons) : "-",
-            true
-          );
+          embed.addFields({
+            name: "Icônes",
+            value: icons !== "" ? this.formatService.format(icons) : "-",
+            inline: true,
+          });
         }
 
         if (card.cost) {
-          embed.addField("Coût", card.cost.toString(), true);
+          embed.addFields({
+            name: "Coût",
+            value: card.cost.toString(),
+            inline: true,
+          });
         }
 
         if (card.slot) {
@@ -481,7 +489,11 @@ export class CardService extends BaseService {
               this.formatService.format(`[${slotName.toLowerCase()}]`)
             );
 
-          embed.addField("Emplacement", slotIcons.join(" "), true);
+          embed.addFields({
+            name: "Emplacement",
+            value: slotIcons.join(" "),
+            inline: true,
+          });
         }
 
         if (card.health !== undefined || card.sanity !== undefined) {
@@ -489,21 +501,21 @@ export class CardService extends BaseService {
             card.health !== undefined ? card.health : "-"
           }[damage] ${card.sanity !== undefined ? card.sanity : "-"}[horror]`;
 
-          embed.addField(
-            "Vie & santé mentale",
-            this.formatService.format(healthAndSanity),
-            true
-          );
+          embed.addFields({
+            name: "Vie & santé mentale",
+            value: this.formatService.format(healthAndSanity),
+            inline: true,
+          });
         }
 
         const maybePack = this.getPacks().find(
           (pack) => pack.code == card.pack_code
         );
         if (maybePack) {
-          embed.addField("Pack", maybePack.name);
+          embed.addFields({ name: "Pack", value: maybePack.name });
         }
 
-        embed.addField("Nom anglais", card.real_name);
+        embed.addFields({ name: "Nom anglais", value: card.real_name });
       }
     }
 
@@ -518,7 +530,7 @@ export class CardService extends BaseService {
       if (maybeTaboo.text) {
         tabooText.push(this.formatService.format(maybeTaboo.text));
       }
-      embed.addField("Taboo", tabooText.join("\n"));
+      embed.addFields({ name: "Taboo", value: tabooText.join("\n") });
     }
 
     const cardFAQs = await this.getCardFAQ(card);
@@ -532,7 +544,7 @@ export class CardService extends BaseService {
     }
 
     if (footerParts.length > 0) {
-      embed.setFooter(footerParts.join(" "));
+      embed.setFooter({ text: footerParts.join(" ") });
     }
 
     return embed;
@@ -548,10 +560,10 @@ export class CardService extends BaseService {
   public createFaqEmbed(
     card: ArkhamDBCard,
     faqEntries: CardFAQEntry[]
-  ): Discord.MessageEmbed {
-    const embed = new Discord.MessageEmbed();
+  ): Discord.EmbedBuilder {
+    const embed = new Discord.EmbedBuilder();
     this.decorateEmbedForCard(embed, card);
-    embed.setAuthor("FAQ");
+    embed.setAuthor({ name: "FAQ" });
 
     const fullDescription = faqEntries.map((entry) => entry.text).join("\n\n");
     const withIcons = this.formatService.replaceIcons(fullDescription);
@@ -559,9 +571,9 @@ export class CardService extends BaseService {
       embed.setDescription(withIcons);
     } else {
       embed.setDescription(withIcons.slice(0, 4093) + "...");
-      embed.setFooter(
-        "Entrée de FAQ tronquée, suivre le lien pour la FAQ complète."
-      );
+      embed.setFooter({
+        text: "Entrée de FAQ tronquée, suivre le lien pour la FAQ complète.",
+      });
     }
 
     return embed;
@@ -575,7 +587,7 @@ export class CardService extends BaseService {
    * @param card La carte concerné
    */
   private decorateEmbedForCard(
-    embed: Discord.MessageEmbed,
+    embed: Discord.EmbedBuilder,
     card: ArkhamDBCard
   ): void {
     embed.setTitle(card.name);

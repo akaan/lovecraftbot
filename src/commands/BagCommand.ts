@@ -1,4 +1,4 @@
-import { CommandInteraction } from "discord.js";
+import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -16,10 +16,9 @@ export class BagCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "bag",
-    description: "Tire un jeton chaos (Nuit de la Zélatrice Standard)",
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("bag")
+    .setDescription("Tire un jeton chaos (Nuit de la Zélatrice Standard)");
 
   async execute(
     commandInteraction: CommandInteraction

@@ -1,6 +1,4 @@
-import { CommandInteraction } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -16,22 +14,24 @@ export class DeckCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "deck",
-    description: "Affiche le deck correspondant à l'ID fourni",
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.STRING,
-        name: "deckid",
-        description: "L'identifiant du deck sur ArkhamDB",
-        required: true,
-      },
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("deck")
+    .setDescription("Affiche le deck correspondant à l'ID fourni")
+    .addStringOption((option) =>
+      option
+        .setName("deckid")
+        .setDescription("L'identifiant du deck sur ArkhamDB")
+        .setRequired(true)
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "DeckCommand", result: "Interaction hors chat" };
+    }
+
     const deckId = commandInteraction.options.getString("deckid");
     if (deckId) {
       const deck = await this.deckService.getDeck(deckId);

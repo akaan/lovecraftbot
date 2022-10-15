@@ -142,7 +142,7 @@ export class CardOfTheDayService extends BaseService {
       );
       return;
     }
-    if (!cardOfTheDayChannel.isText()) {
+    if (!cardOfTheDayChannel.isTextBased()) {
       this.logger.warn(
         CardOfTheDayService.LOG_LABEL,
         `Impossible d'envoyer la carte du jour sur le canal ${cardOfTheDayChannel.name}`,

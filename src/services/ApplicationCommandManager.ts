@@ -1,16 +1,13 @@
 import {
   ApplicationCommand,
   ApplicationCommandManager as GlobalApplicationCommandManager,
-  ApplicationCommandPermissionData,
-  ChatInputApplicationCommandData,
   Client,
   Collection,
   CommandInteraction,
   Guild,
   GuildApplicationCommandManager,
-  GuildApplicationCommandPermissionData,
   GuildResolvable,
-  Role,
+  PermissionFlagsBits,
 } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
 
@@ -21,6 +18,7 @@ import {
   IApplicationCommandResult,
   ApplicationCommandConstructor,
   ApplicationCommandAccess,
+  CommandData,
 } from "../interfaces";
 
 import { EnvService } from "./EnvService";
@@ -155,9 +153,13 @@ export class ApplicationCommandManager extends BaseService {
           applicationCommandInstance.commandAccess ===
           ApplicationCommandAccess.ADMIN
         ) {
-          applicationCommandInstance.commandData.defaultPermission = false;
+          applicationCommandInstance.commandData.setDefaultMemberPermissions(
+            PermissionFlagsBits.Administrator
+          );
         } else {
-          applicationCommandInstance.commandData.defaultPermission = true;
+          applicationCommandInstance.commandData.setDefaultMemberPermissions(
+            PermissionFlagsBits.Administrator
+          );
         }
         this.applicationCommands.push(applicationCommandInstance);
       }
@@ -224,7 +226,6 @@ export class ApplicationCommandManager extends BaseService {
         commandManager
       );
       await this.updateCommands(deployedCommands, botCommands);
-      await this.setAdminApplicationCommandsPermissions(guild);
     } catch (error) {
       this.logger.error(
         ApplicationCommandManager.LOG_LABEL,
@@ -246,7 +247,7 @@ export class ApplicationCommandManager extends BaseService {
       string,
       ApplicationCommand<{ guild: GuildResolvable }>
     >,
-    botCommands: ChatInputApplicationCommandData[]
+    botCommands: CommandData[]
   ): Promise<void> {
     const deployedCommandsToDelete = deployedCommands.filter(
       (deployedCommand) =>
@@ -285,7 +286,7 @@ export class ApplicationCommandManager extends BaseService {
       string,
       ApplicationCommand<{ guild: GuildResolvable }>
     >,
-    botCommands: ChatInputApplicationCommandData[],
+    botCommands: CommandData[],
     commandManager:
       | GlobalApplicationCommandManager
       | GuildApplicationCommandManager
@@ -320,20 +321,20 @@ export class ApplicationCommandManager extends BaseService {
    *
    * @param deployedCommands Les commandes déployées sur Discord
    * @param botCommands Les commandes gérées par le bot
-   * @returns Une promesse résolue uen fois le traitement terminé
+   * @returns Une promesse résolue une fois le traitement terminé
    */
   private async updateCommands(
     deployedCommands: Collection<
       string,
       ApplicationCommand<{ guild: GuildResolvable }>
     >,
-    botCommands: ChatInputApplicationCommandData[]
+    botCommands: CommandData[]
   ): Promise<void> {
     const edits = botCommands.map(async (botCommand) => {
       const deployedCommand = deployedCommands.find(
         (c) => c.name === botCommand.name
       );
-      if (deployedCommand && !deployedCommand.equals(botCommand)) {
+      if (deployedCommand) {
         const edit = deployedCommand.edit(botCommand);
         this.logger.warn(
           ApplicationCommandManager.LOG_LABEL,
@@ -348,94 +349,4 @@ export class ApplicationCommandManager extends BaseService {
     });
     await Promise.all(edits);
   }
-
-  /**
-   * Référence auprès de Discord les permissions associées aux commandes
-   * d'application de niveau serveur
-   *
-   * @param guild Le serveur concerné
-   * @returns Une promesse résolue une fois les permissions mises en place
-   */
-  private async setAdminApplicationCommandsPermissions(
-    guild: Guild
-  ): Promise<void> {
-    const botAdminRoleName = this.envService.botAdminRoleName;
-    if (!botAdminRoleName) {
-      this.logger.warn(
-        ApplicationCommandManager.LOG_LABEL,
-        `Pas de rôle d'adminsitration du bot configuré`
-      );
-      return;
-    }
-
-    try {
-      const botAdminRole = guild.roles.cache.find(
-        (r) => r.name === botAdminRoleName
-      );
-      if (!botAdminRole) {
-        this.logger.warn(
-          ApplicationCommandManager.LOG_LABEL,
-          `Pas de rôle "${botAdminRoleName}" sur le serveur ${guild.name}`
-        );
-        return;
-      }
-
-      const commands = await guild.commands.fetch();
-      const adminCommandNames = this.getAdminApplicationCommands().map(
-        (c) => c.commandData.name
-      );
-      const adminCommands = commands.filter((c) =>
-        adminCommandNames.includes(c.name)
-      );
-      if (commands.size > 0) {
-        const fullPermissions = adminCommands.map((c) =>
-          createCommandPermission(c, [createRolePermission(botAdminRole)])
-        );
-        // FIXME Endpoint supprimé de l'API Discord
-        // https://discord.com/developers/docs/change-log#updated-command-permissions
-        await guild.commands.permissions.set({ fullPermissions });
-        this.logger.warn(
-          ApplicationCommandManager.LOG_LABEL,
-          `Permissions de commandes d'application niveau serveur mises en place sur le serveur ${guild.name}`
-        );
-      }
-    } catch (err) {
-      this.logger.error(
-        ApplicationCommandManager.LOG_LABEL,
-        `Erreur à la mise en place des permissions pour les commandes d'application niveau serveur sur ${guild.name}`,
-        { error: err }
-      );
-    }
-  }
-}
-
-/**
- * Construit une permission de type rôle.
- *
- * @param role Le rôle concerné par la permission
- * @returns Le descriptif d'une permission basée sur le rôle
- */
-function createRolePermission(role: Role): ApplicationCommandPermissionData {
-  return {
-    id: role.id,
-    type: "ROLE",
-    permission: true,
-  };
-}
-
-/**
- * Construit une permission pour une commande d'application.
- *
- * @param command La commande concernée par la permission
- * @param permissions Les permissions à associer à la commande
- * @returns Une descriptif de permission pour une commande
- */
-function createCommandPermission(
-  command: ApplicationCommand,
-  permissions: ApplicationCommandPermissionData[]
-): GuildApplicationCommandPermissionData {
-  return {
-    id: command.id,
-    permissions,
-  };
 }

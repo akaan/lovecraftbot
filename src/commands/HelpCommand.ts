@@ -1,4 +1,9 @@
-import { CommandInteraction, EmbedFieldData, MessageEmbed } from "discord.js";
+import {
+  APIEmbedField,
+  CommandInteraction,
+  EmbedBuilder,
+  SlashCommandBuilder,
+} from "discord.js";
 import { Container } from "typescript-ioc";
 
 import {
@@ -12,29 +17,29 @@ import { ApplicationCommandManager } from "../services/ApplicationCommandManager
 export class HelpCommand implements IApplicationCommand {
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "aide",
-    description:
-      "Affiche quelques informations sur ce bot et comment l'utiliser",
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("aide")
+    .setDescription(
+      "Affiche quelques informations sur ce bot et comment l'utiliser"
+    );
 
   async execute(
     interaction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
     const applicationCommandManager = Container.get(ApplicationCommandManager);
-    const commandDescriptions: EmbedFieldData[] = [
+    const commandDescriptions: APIEmbedField[] = [
       ...applicationCommandManager.getGlobalApplicationCommands(),
       ...applicationCommandManager.getGuildApplicationCommands(),
     ].map((command) => ({
       name: "/" + command.commandData.name,
       value:
-        command.commandData.description +
+        (command.commandData as SlashCommandBuilder).description +
         (command.commandAccess === ApplicationCommandAccess.GUILD
           ? " - *serveur uniquement*"
           : ""),
     }));
 
-    const embed = new MessageEmbed();
+    const embed = new EmbedBuilder();
     embed.setTitle("Aide");
     embed.setDescription(`Bonjour ! Je suis à ton service sur ce Discord.
 
