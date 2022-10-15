@@ -1,4 +1,4 @@
-import { CommandInteraction } from "discord.js";
+import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -17,10 +17,9 @@ export class RefreshCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.ADMIN;
 
-  commandData = {
-    name: "refresh",
-    description: "Recharge les toutes dernières cartes depuis ArkhamDB",
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("refresh")
+    .setDescription("Recharge les toutes dernières cartes depuis ArkhamDB");
 
   async execute(
     commandInteraction: CommandInteraction

@@ -1,6 +1,4 @@
-import { CommandInteraction } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 
 import {
   ApplicationCommandAccess,
@@ -12,26 +10,26 @@ import {
 export class TimingCommand implements IApplicationCommand {
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "t",
-    description: "Affiche un timing",
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "phases",
-        description: "Affiche le timing des phases du jeu",
-      },
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "test",
-        description: "Affiche le timing d'un test",
-      },
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("t")
+    .setDescription("Affiche un timing")
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("phases")
+        .setDescription("Affiche le timing des phases du jeu")
+    )
+    .addSubcommand((subCommand) =>
+      subCommand.setName("test").setDescription("Affiche le timing d'un test")
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "TimingCommand", result: "Interaction hors chat" };
+    }
+
     if (commandInteraction.options.getSubcommand() === "phases") {
       await commandInteraction.reply({ files: ["assets/phase.jpg"] });
       return {

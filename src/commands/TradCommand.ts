@@ -1,9 +1,4 @@
-import {
-  ApplicationCommandSubCommandData,
-  CommandInteraction,
-} from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -19,54 +14,52 @@ export class TradCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.GLOBAL;
 
-  commandData = {
-    name: "trad",
-    description: `Traduit un nom de carte`,
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "f",
-        description: "Anglais > Français",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.STRING,
-            name: "nom",
-            description: "Nom anglais de la carte",
-            required: true,
-          },
-          {
-            type: ApplicationCommandOptionTypes.BOOLEAN,
-            name: "ephemere",
-            description: "Si vrai, seul toi pourra voir la réponse",
-            required: false,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "e",
-        description: "Français > Anglais",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.STRING,
-            name: "nom",
-            description: "Nom français de la carte",
-            required: true,
-          },
-          {
-            type: ApplicationCommandOptionTypes.BOOLEAN,
-            name: "ephemere",
-            description: "Si vrai, seul toi pourra voir la réponse",
-            required: false,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("trad")
+    .setDescription(`Traduit un nom de carte`)
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("f")
+        .setDescription("Anglais > Français")
+        .addStringOption((option) =>
+          option
+            .setName("nom")
+            .setDescription("Nom anglais de la carte")
+            .setRequired(true)
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("ephemere")
+            .setDescription("Si vrai, seul toi pourra voir la réponse")
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("e")
+        .setDescription("Français > Anglais")
+        .addStringOption((option) =>
+          option
+            .setName("nom")
+            .setDescription("Nom français de la carte")
+            .setRequired(true)
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("ephemere")
+            .setDescription("Si vrai, seul toi pourra voir la réponse")
+            .setRequired(false)
+        )
+    );
 
   async execute(
     commandInteraction: CommandInteraction
   ): Promise<IApplicationCommandResult> {
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "TradCommand", result: "Interaction hors chat" };
+    }
+
     const cardName = commandInteraction.options.getString("nom");
     const ephemeral =
       commandInteraction.options.getBoolean("ephemere") || false;

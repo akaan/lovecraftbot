@@ -1,8 +1,7 @@
 import {
+  ActionRowBuilder,
   CommandInteraction,
-  Message,
-  MessageActionRow,
-  MessageSelectMenu,
+  SelectMenuBuilder,
   SelectMenuInteraction,
 } from "discord.js";
 
@@ -37,14 +36,16 @@ export async function selectCard(
     }))
     .slice(0, 25);
 
-  const menuComponent = new MessageActionRow().addComponents([
-    new MessageSelectMenu()
-      .setCustomId("cardCode")
-      .setPlaceholder("Choisissez une carte à afficher")
-      .addOptions(cardChoices),
-  ]);
+  const menuComponent = new ActionRowBuilder<SelectMenuBuilder>().addComponents(
+    [
+      new SelectMenuBuilder()
+        .setCustomId("cardCode")
+        .setPlaceholder("Choisissez une carte à afficher")
+        .addOptions(cardChoices),
+    ]
+  );
 
-  const menu = (await interaction.reply({
+  const menu = await interaction.reply({
     content: `${cards.length} cartes correspondent à la recherche.${
       cards.length > 25
         ? " Je vous proposent seulement les 25 premières, essayez d'affiner votre recherche."
@@ -53,7 +54,7 @@ export async function selectCard(
     components: [menuComponent],
     ephemeral: true,
     fetchReply: true,
-  })) as Message;
+  });
 
   const menuCollector = await createSelectMenuCollector(menu, interaction);
 

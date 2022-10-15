@@ -1,10 +1,9 @@
 import {
-  ApplicationCommandSubCommandData,
+  ChatInputCommandInteraction,
   CommandInteraction,
   Guild,
+  SlashCommandBuilder,
 } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -22,69 +21,60 @@ export class AdminBlobCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.ADMIN;
 
-  commandData = {
-    name: "ablob",
-    description: `Commandes de gestion d'une partie du Dévoreur de Tout Chose`,
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "start",
-        description: "Démarre une partie du Dévoreur de Toute Chose",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "joueurs",
-            description: "Nombre de joueurs",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "i",
-        description: "Corrige le nombre d'indices sur l'Acte 1",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "indices",
-            description: "Nombre d'indices sur l'Acte 1",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "cm",
-        description: "Corrige le nombre de contre-mesures disponibles",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "contre-mesures",
-            description: "Nombre de contre-mesures",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "d",
-        description: "Corrige le nombre de dégâts sur le Dévoreur",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "dégâts",
-            description: "Nombre de dégâts",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "end",
-        description: "Met fin à la partie du Dévoreur de Toute Chose",
-      } as ApplicationCommandSubCommandData,
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("ablob")
+    .setDescription(
+      `Commandes de gestion d'une partie du Dévoreur de Tout Chose`
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("start")
+        .setDescription("Démarre une partie du Dévoreur de Toute Chose")
+        .addIntegerOption((option) =>
+          option
+            .setName("joueurs")
+            .setDescription("Nombre de joueurs")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("i")
+        .setDescription("Corrige le nombre d'indices sur l'Acte 1")
+        .addIntegerOption((option) =>
+          option
+            .setName("indices")
+            .setDescription("Nombre d'indices sur l'Acte 1")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("cm")
+        .setDescription("Corrige le nombre de contre-mesures disponibles")
+        .addIntegerOption((option) =>
+          option
+            .setName("contre-mesures")
+            .setDescription("Nombre de contre-mesures")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("d")
+        .setDescription("Corrige le nombre de dégâts sur le Dévoreur")
+        .addIntegerOption((option) =>
+          option
+            .setName("dégâts")
+            .setDescription("Nombre de dégâts")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("end")
+        .setDescription("Met fin à la partie du Dévoreur de Toute Chose")
+    );
 
   async execute(
     commandInteraction: CommandInteraction
@@ -97,6 +87,10 @@ export class AdminBlobCommand implements IApplicationCommand {
       return this.commandResult(
         "Impossible d'exécuter cette commande hors serveur"
       );
+    }
+
+    if (!commandInteraction.isChatInputCommand()) {
+      return this.commandResult("Oups, y'a eu un problème");
     }
 
     const subCommand = commandInteraction.options.getSubcommand();
@@ -144,7 +138,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async startNewGame(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (this.blobGameService.isGameRunning(guild)) {
@@ -187,7 +181,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async endGame(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.blobGameService.isGameRunning(guild)) {
@@ -211,7 +205,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async fixClues(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.blobGameService.isGameRunning(guild)) {
@@ -244,7 +238,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async fixNumberOfCounterMeasures(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.blobGameService.isGameRunning(guild)) {
@@ -283,7 +277,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   public async fixDamageDealtToBlob(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.blobGameService.isGameRunning(guild)) {
@@ -317,7 +311,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async noEvent(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     subCommand: string
   ): Promise<IApplicationCommandResult> {
     await commandInteraction.reply({
@@ -336,7 +330,7 @@ export class AdminBlobCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async noGame(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     subCommand: string
   ): Promise<IApplicationCommandResult> {
     await commandInteraction.reply({

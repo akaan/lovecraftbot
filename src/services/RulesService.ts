@@ -138,10 +138,10 @@ export class RulesService extends BaseService {
    * @returns Un ensemble d'encart Discord pour l'affichage de la règle et des
    *          sous-règles
    */
-  public createEmbeds(rule: Rule): Discord.MessageEmbed[] {
-    const mainEmbed = new Discord.MessageEmbed();
-    const subEmbeds: Discord.MessageEmbed[] = [];
-    mainEmbed.setAuthor(rule.title);
+  public createEmbeds(rule: Rule): Discord.EmbedBuilder[] {
+    const mainEmbed = new Discord.EmbedBuilder();
+    const subEmbeds: Discord.EmbedBuilder[] = [];
+    mainEmbed.setAuthor({ name: rule.title });
 
     if (rule.text) {
       const ruleText = this.deleteLinks(rule.text);
@@ -152,8 +152,8 @@ export class RulesService extends BaseService {
       rule.rules.forEach((subRule) => {
         if (subRule.text) {
           const subRuleText = this.deleteLinks(subRule.text);
-          const subEmbed = new Discord.MessageEmbed();
-          subEmbed.setAuthor(subRule.title);
+          const subEmbed = new Discord.EmbedBuilder();
+          subEmbed.setAuthor({ name: subRule.title });
           subEmbed.setDescription(this.formatService.format(subRuleText));
           subEmbeds.push(subEmbed);
         }
@@ -166,8 +166,8 @@ export class RulesService extends BaseService {
               return "";
             })
             .join("\n");
-          const tableEmbed = new Discord.MessageEmbed();
-          tableEmbed.setAuthor(subRule.title);
+          const tableEmbed = new Discord.EmbedBuilder();
+          tableEmbed.setAuthor({ name: subRule.title });
           tableEmbed.setDescription(this.formatService.format(tableAsText));
           subEmbeds.push(tableEmbed);
         }

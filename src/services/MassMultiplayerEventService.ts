@@ -1,10 +1,11 @@
 import {
   CategoryChannel,
   Channel,
+  ChannelType,
   Client,
   Guild,
   Message,
-  MessageOptions,
+  MessageCreateOptions,
   TextChannel,
 } from "discord.js";
 import { Inject, OnlyInstantiableByContainer, Singleton } from "typescript-ioc";
@@ -97,7 +98,7 @@ export class MassMultiplayerEventService extends BaseService {
     channel: Channel
   ): channel is TextChannel {
     return (
-      channel.isText() &&
+      channel.isTextBased() &&
       this.getServiceState(guild).textChannelIds.includes(channel.id)
     );
   }
@@ -123,21 +124,17 @@ export class MassMultiplayerEventService extends BaseService {
     const voiceChannelIds: string[] = [];
     const groupStats: { [groupId: string]: GroupStats } = {};
     for (let groupNumber = 1; groupNumber <= numberOfGroups; groupNumber++) {
-      const groupChannel = await guild.channels.create(
-        `groupe-${groupNumber}`,
-        {
-          type: "GUILD_TEXT",
-        }
-      );
+      const groupChannel = await guild.channels.create({
+        name: `groupe-${groupNumber}`,
+        type: ChannelType.GuildText,
+      });
       await groupChannel.setParent(categoryChannel);
       textChannelIds.push(groupChannel.id);
 
-      const groupVoiceChannel = await guild.channels.create(
-        `voice-groupe-${groupNumber}`,
-        {
-          type: "GUILD_VOICE",
-        }
-      );
+      const groupVoiceChannel = await guild.channels.create({
+        name: `voice-groupe-${groupNumber}`,
+        type: ChannelType.GuildVoice,
+      });
       await groupVoiceChannel.setParent(categoryChannel);
       voiceChannelIds.push(groupVoiceChannel.id);
 
@@ -198,7 +195,7 @@ export class MassMultiplayerEventService extends BaseService {
    */
   public async broadcastMessage(
     guild: Guild,
-    messageOptions: MessageOptions,
+    messageOptions: MessageCreateOptions,
     excludeGroupIds?: string[]
   ): Promise<Message[]> {
     if (!this.isEventRunning(guild))
@@ -215,8 +212,8 @@ export class MassMultiplayerEventService extends BaseService {
       const maybeChannel = guild.channels.cache.find(
         (channel) => channel.id === groupId
       );
-      if (maybeChannel && maybeChannel.type === "GUILD_TEXT") {
-        memo.push(maybeChannel as TextChannel);
+      if (maybeChannel && maybeChannel.type === ChannelType.GuildText) {
+        memo.push(maybeChannel);
       }
       return memo;
     }, [] as TextChannel[]);

@@ -2,8 +2,9 @@ import {
   CommandInteraction,
   InteractionCollector,
   Message,
-  MessageEmbed,
+  EmbedBuilder,
   SelectMenuInteraction,
+  ComponentType,
 } from "discord.js";
 
 /**
@@ -22,15 +23,15 @@ export async function createSelectMenuCollector(
 ): Promise<InteractionCollector<SelectMenuInteraction> | undefined> {
   if (message.createMessageComponentCollector) {
     return message.createMessageComponentCollector({
-      componentType: "SELECT_MENU",
+      componentType: ComponentType.SelectMenu,
     });
   } else {
     // Ici on est dans le cas d'un message hors serveur
     const channelId = interaction.channelId;
     const channel = await interaction.client.channels.fetch(channelId);
-    if (channel && channel.isText()) {
+    if (channel && channel.isTextBased()) {
       return channel.createMessageComponentCollector({
-        componentType: "SELECT_MENU",
+        componentType: ComponentType.SelectMenu,
       });
     }
   }
@@ -43,16 +44,18 @@ export async function createSelectMenuCollector(
  * @param embed L'encart à mesurer
  * @returns La taille totale de l'encart
  */
-export function getEmbedSize(embed: MessageEmbed): number {
-  const titleLength = embed.title ? embed.title.length : 0;
-  const descriptionLength = embed.description ? embed.description.length : 0;
-  const authorNameLength =
-    embed.author && embed.author.name ? embed.author.name.length : 0;
-  const footerLength =
-    embed.footer && embed.footer.text ? embed.footer.text.length : 0;
-  const fieldsLength = embed.fields.reduce((sum, field) => {
-    return sum + field.name.length + field.value.length;
-  }, 0);
+export function getEmbedSize(embed: EmbedBuilder): number {
+  const { title, description, author, footer, fields } = embed.data;
+
+  const titleLength = title ? title.length : 0;
+  const descriptionLength = description ? description.length : 0;
+  const authorNameLength = author && author.name ? author.name.length : 0;
+  const footerLength = footer && footer.text ? footer.text.length : 0;
+  const fieldsLength = fields
+    ? fields.reduce((sum, field) => {
+        return sum + field.name.length + field.value.length;
+      }, 0)
+    : 0;
 
   return (
     titleLength +

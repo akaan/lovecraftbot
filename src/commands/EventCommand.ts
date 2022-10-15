@@ -1,12 +1,11 @@
 import {
-  ApplicationCommandSubCommandData,
-  ApplicationCommandSubGroupData,
   CategoryChannel,
+  ChannelType,
+  ChatInputCommandInteraction,
   CommandInteraction,
   Guild,
+  SlashCommandBuilder,
 } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -25,80 +24,68 @@ export class EventCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.ADMIN;
 
-  commandData = {
-    name: "evt",
-    description: `Commandes de gestion des événements multijoueurs`,
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "start",
-        description: "Démarre un événement multijoueurs",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.CHANNEL,
-            name: "catégorie",
-            description:
-              "La catégorie de canaux dans laquelle créer les canaux",
-            required: true,
-          },
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "groupes",
-            description: "Nombre de groupes",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND_GROUP,
-        name: "timer",
-        description: "Gestion de la minuterie",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.SUB_COMMAND,
-            name: "start",
-            description: "Démarre la minuterie",
-            options: [
-              {
-                type: ApplicationCommandOptionTypes.INTEGER,
-                name: "minutes",
-                description: "Nombre de minutes",
-                required: true,
-              },
-            ],
-          } as ApplicationCommandSubCommandData,
-          {
-            type: ApplicationCommandOptionTypes.SUB_COMMAND,
-            name: "pause",
-            description: "Met la minuterie en pause",
-          } as ApplicationCommandSubCommandData,
-          {
-            type: ApplicationCommandOptionTypes.SUB_COMMAND,
-            name: "resume",
-            description: "Redémarre la minuterie",
-          } as ApplicationCommandSubCommandData,
-        ],
-      } as ApplicationCommandSubGroupData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "msg",
-        description: "Envoie un message à tous les groupes",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.STRING,
-            name: "message",
-            description: "Le message à envoyer",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "end",
-        description: "Met fin à l'événement multijoueurs",
-      } as ApplicationCommandSubCommandData,
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("evt")
+    .setDescription(`Commandes de gestion des événements multijoueurs`)
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("start")
+        .setDescription("Démarre un événement multijoueurs")
+        .addChannelOption((option) =>
+          option
+            .setName("catégorie")
+            .setDescription(
+              "La catégorie de canaux dans laquelle créer les canaux"
+            )
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("groupes")
+            .setDescription("Nombre de groupes")
+            .setRequired(true)
+        )
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("timer")
+        .setDescription("Gestion de la minuterie")
+        .addSubcommand((subCommand) =>
+          subCommand
+            .setName("start")
+            .setDescription("Démarre la minuterie")
+            .addIntegerOption((option) =>
+              option
+                .setName("minutes")
+                .setDescription("Nombre de minutes")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subCommand) =>
+          subCommand
+            .setName("pause")
+            .setDescription("Met la minuterie en pause")
+        )
+        .addSubcommand((subCommand) =>
+          subCommand.setName("resume").setDescription("Redémarre la minuterie")
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("msg")
+        .setDescription("Envoie un message à tous les groupes")
+        .addStringOption((option) =>
+          option
+            .setName("message")
+            .setDescription("Le message à envoyer")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("end")
+        .setDescription("Met fin à l'événement multijoueurs")
+    );
 
   constructor() {
     this.massMultiplayerEventService.addTimerListener(
@@ -117,6 +104,11 @@ export class EventCommand implements IApplicationCommand {
       return this.commandResult(
         "Impossible d'exécuter cette commande hors serveur"
       );
+    }
+
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "EventCommand", result: "Interaction hors chat" };
     }
 
     const subCommandGroup =
@@ -168,7 +160,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async startEvent(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (this.massMultiplayerEventService.isEventRunning(guild)) {
@@ -193,7 +185,10 @@ export class EventCommand implements IApplicationCommand {
     }
 
     const categoryChannel = commandInteraction.options.getChannel("catégorie");
-    if (!categoryChannel || !(categoryChannel.type === "GUILD_CATEGORY")) {
+    if (
+      !categoryChannel ||
+      !(categoryChannel.type === ChannelType.GuildCategory)
+    ) {
       await commandInteraction.reply({
         content: "Impossible sans précisr une catégorie de canaux valide",
         ephemeral: true,
@@ -225,7 +220,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async broadcastMessage(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.massMultiplayerEventService.isEventRunning(guild)) {
@@ -268,7 +263,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async endEvent(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.massMultiplayerEventService.isEventRunning(guild)) {
@@ -298,7 +293,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async startTimer(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.massMultiplayerEventService.isEventRunning(guild)) {
@@ -342,7 +337,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async pauseTimer(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.massMultiplayerEventService.isEventRunning(guild)) {
@@ -375,7 +370,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async resumeTimer(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     if (!this.massMultiplayerEventService.isEventRunning(guild)) {
@@ -420,7 +415,7 @@ export class EventCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async noEvent(
-    commandInteraction: CommandInteraction
+    commandInteraction: ChatInputCommandInteraction
   ): Promise<IApplicationCommandResult> {
     await commandInteraction.reply({
       content: "Impossible, il n'y a pas d'événement en cours",

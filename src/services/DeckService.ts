@@ -207,8 +207,8 @@ export class DeckService extends BaseService {
    * @param deck Le deck à afficher
    * @returns Un encaert Discord affichant le deck
    */
-  public createEmbed(deck: ArkhamDBDeck): Discord.MessageEmbed {
-    const embed = new Discord.MessageEmbed();
+  public createEmbed(deck: ArkhamDBDeck): Discord.EmbedBuilder {
+    const embed = new Discord.EmbedBuilder();
     embed.setTitle(deck.name);
     embed.setURL(`https://fr.arkhamdb.com/deck/view/${deck.id}`);
 

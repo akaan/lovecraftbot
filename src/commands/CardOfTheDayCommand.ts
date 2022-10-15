@@ -1,10 +1,10 @@
 import {
-  ApplicationCommandSubCommandData,
+  ChannelType,
+  ChatInputCommandInteraction,
   CommandInteraction,
   Guild,
+  SlashCommandBuilder,
 } from "discord.js";
-// eslint-disable-next-line import/no-unresolved
-import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
 import { Inject } from "typescript-ioc";
 
 import {
@@ -24,62 +24,52 @@ export class CardOfTheDayCommand implements IApplicationCommand {
 
   commandAccess = ApplicationCommandAccess.ADMIN;
 
-  commandData = {
-    name: "cotd",
-    description: "Commandes de gestion de la carte du jour",
-    options: [
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "canal",
-        description: "Définit le canal d'envoi de la carte du jour",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.CHANNEL,
-            name: "canal",
-            description: "Le canal sur lequel envoyer la carte du jour",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "heure",
-        description: "Définit le l'heure d'envoi de la carte du jour",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.INTEGER,
-            name: "heure",
-            description: "L'heure à laquelle envoyer la carte du jour",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "encore",
-        description: "Retire une nouvelle carte du jour",
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "liste",
-        description: "Liste des cartes déjà tirées",
-      } as ApplicationCommandSubCommandData,
-      {
-        type: ApplicationCommandOptionTypes.SUB_COMMAND,
-        name: "ajouter",
-        description: "Ajoute des cartes à la liste des cartes déjà tirées",
-        options: [
-          {
-            type: ApplicationCommandOptionTypes.STRING,
-            name: "codes",
-            description:
-              "Codes des cartes (séparés par des virgules) à ajouter à la liste des cartes déjà tirées",
-            required: true,
-          },
-        ],
-      } as ApplicationCommandSubCommandData,
-    ],
-  };
+  commandData = new SlashCommandBuilder()
+    .setName("cotd")
+    .setDescription("Commandes de gestion de la carte du jour")
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("canal")
+        .setDescription("Définit le canal d'envoi de la carte du jour")
+        .addChannelOption((option) =>
+          option
+            .setName("canal")
+            .setDescription("Le canal sur lequel envoyer la carte du jour")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("heure")
+        .setDescription("Définit l'heure d'envoi de la carte du jour")
+        .addIntegerOption((option) =>
+          option
+            .setName("heure")
+            .setDescription("L'heure à laquelle envoyer la carte du jour")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("encore")
+        .setDescription("Retire une nouvelle carte du jour")
+    )
+    .addSubcommand((subCommand) =>
+      subCommand.setName("liste").setDescription("Liste des cartes déjà tirées")
+    )
+    .addSubcommand((subCommand) =>
+      subCommand
+        .setName("ajouter")
+        .setDescription("Ajoute des cartes à la liste des cartes déjà tirées")
+        .addStringOption((option) =>
+          option
+            .setName("codes")
+            .setDescription(
+              "Codes des cartes (séparés par des virgules) à ajouter à la liste des cartes déjà tirées"
+            )
+            .setRequired(true)
+        )
+    );
 
   async execute(
     commandInteraction: CommandInteraction
@@ -92,6 +82,11 @@ export class CardOfTheDayCommand implements IApplicationCommand {
       return this.commandResult(
         "Impossible d'exécuter cette commande hors serveur"
       );
+    }
+
+    if (!commandInteraction.isChatInputCommand()) {
+      await commandInteraction.reply("Oups, y'a eu un problème");
+      return { cmd: "CardOfTheDayCommand", result: "Interaction hors chat" };
     }
 
     if (commandInteraction.options.getSubcommand() === "canal") {
@@ -147,11 +142,11 @@ export class CardOfTheDayCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async defineCardOfTheDayChannel(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     const channel = commandInteraction.options.getChannel("canal");
-    if (channel && channel.type === "GUILD_TEXT") {
+    if (channel && channel.type === ChannelType.GuildText) {
       await this.guildConfigurationService.setConfig(
         guild,
         "cardOfTheDayChannelId",
@@ -186,7 +181,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async defineCardOfTheDayHour(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     const hour = commandInteraction.options.getInteger("heure");
@@ -223,7 +218,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async sendCardOfTheDay(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     await this.cardOfTheDayService.sendCardOfTheDay(guild);
@@ -242,7 +237,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async addCardCodesSent(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     const codesText = commandInteraction.options.getString("codes");
@@ -271,7 +266,7 @@ export class CardOfTheDayCommand implements IApplicationCommand {
    * @returns Une promesse résolue avec le résultat de la commande
    */
   private async sendCardCodesSent(
-    commandInteraction: CommandInteraction,
+    commandInteraction: ChatInputCommandInteraction,
     guild: Guild
   ): Promise<IApplicationCommandResult> {
     const cardCodesSent = this.cardOfTheDayService.getCardCodesSent(guild);

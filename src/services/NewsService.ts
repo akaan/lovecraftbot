@@ -103,7 +103,7 @@ export class NewsService extends BaseService {
       }
 
       const newsChannel = guild.channels.cache.find(
-        (channel) => channel.isText() && channel.id == newsChannelId
+        (channel) => channel.isTextBased() && channel.id == newsChannelId
       ) as TextChannel | undefined;
       if (newsChannel) {
         await newsChannel.send({ content: latestLink });
