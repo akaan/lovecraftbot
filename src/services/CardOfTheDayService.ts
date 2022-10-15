@@ -163,12 +163,12 @@ export class CardOfTheDayService extends BaseService {
     });
 
     if (randomCard.length > 0) {
-      const embed = await this.cardService.createEmbed(randomCard[0], {
+      const embeds = await this.cardService.createEmbeds(randomCard[0], {
         back: false,
         extended: true,
       });
       const msg = await cardOfTheDayChannel.send({
-        embeds: [embed],
+        embeds: embeds,
       });
       await msg.pin();
       await this.addCardSent(guild, [randomCode]);

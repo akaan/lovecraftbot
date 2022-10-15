@@ -52,6 +52,7 @@ export interface ArkhamDBCard {
   imagesrc: string;
   back_text: string;
   backimagesrc: string;
+  customization_text: string;
   skill_willpower: number;
   skill_intellect: number;
   skill_combat: number;
@@ -391,10 +392,10 @@ export class CardService extends BaseService {
    * @param embedOptions Les options d'affichage
    * @returns Un encart Discord pour l'affichage de la carte
    */
-  public async createEmbed(
+  public async createEmbeds(
     card: ArkhamDBCard,
     embedOptions: EmbedOptions
-  ): Promise<Discord.EmbedBuilder> {
+  ): Promise<Discord.EmbedBuilder[]> {
     const embed = new Discord.EmbedBuilder();
     this.decorateEmbedForCard(embed, card);
 
@@ -547,7 +548,7 @@ export class CardService extends BaseService {
       embed.setFooter({ text: footerParts.join(" ") });
     }
 
-    return embed;
+    return [embed];
   }
 
   /**
